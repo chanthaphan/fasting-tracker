@@ -1,6 +1,7 @@
 const KEYS = {
   FOOD_ENTRIES: 'ft_food_entries',
   FASTING_SESSIONS: 'ft_fasting_sessions',
+  WEIGHT_ENTRIES: 'ft_weight_entries',
   SETTINGS: 'ft_settings',
 } as const;
 

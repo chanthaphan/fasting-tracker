@@ -29,9 +29,19 @@ export interface FastingPhase {
   bgColor: string;
 }
 
+export interface WeightEntry {
+  id: string;
+  weight: number; // in kg or lbs depending on user pref
+  unit: 'kg' | 'lbs';
+  date: string; // 'YYYY-MM-DD'
+  note?: string;
+  createdAt: number;
+}
+
 export interface AppState {
   foodEntries: FoodEntry[];
   fastingSessions: FastingSession[];
+  weightEntries: WeightEntry[];
   activeFastingId: string | null;
   selectedDate: string;
   theme: 'light' | 'dark' | 'system';
@@ -44,7 +54,11 @@ export type AppAction =
   | { type: 'START_FAST'; payload?: { targetHours?: number } }
   | { type: 'STOP_FAST' }
   | { type: 'DELETE_FAST'; payload: { id: string } }
+  | { type: 'EDIT_FAST'; payload: { id: string; startTime: number; endTime: number | null } }
+  | { type: 'ADD_WEIGHT'; payload: Omit<WeightEntry, 'id' | 'createdAt'> }
+  | { type: 'EDIT_WEIGHT'; payload: WeightEntry }
+  | { type: 'DELETE_WEIGHT'; payload: { id: string } }
   | { type: 'SET_SELECTED_DATE'; payload: string }
   | { type: 'SET_THEME'; payload: 'light' | 'dark' | 'system' }
-  | { type: 'IMPORT_DATA'; payload: { foodEntries: FoodEntry[]; fastingSessions: FastingSession[] } }
+  | { type: 'IMPORT_DATA'; payload: { foodEntries: FoodEntry[]; fastingSessions: FastingSession[]; weightEntries?: WeightEntry[] } }
   | { type: 'HYDRATE'; payload: AppState };

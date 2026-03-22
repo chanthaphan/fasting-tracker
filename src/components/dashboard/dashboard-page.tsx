@@ -5,9 +5,9 @@ import { useFastingTimer } from '../../hooks/use-fasting-timer';
 import { sumMacros } from '../../utils/macro-calc';
 import { todayKey, formatDuration } from '../../utils/date-utils';
 import { useTheme } from '../../hooks/use-theme';
-import { Settings, Plus, Moon, Sun, Monitor } from 'lucide-react';
+import { Settings, Plus, Moon, Sun, Monitor, Weight, TrendingDown, TrendingUp, Minus } from 'lucide-react';
 import { exportData, parseImportFile } from '../../utils/export-import';
-import { useRef } from 'react';
+import { useRef, useMemo } from 'react';
 
 export function DashboardPage() {
   const { state, dispatch } = useAppState();
@@ -19,6 +19,14 @@ export function DashboardPage() {
   const todayEntries = state.foodEntries.filter((e) => e.date === todayKey());
   const totals = sumMacros(todayEntries);
   const maxCal = Math.max(totals.calories, 2000);
+
+  const sortedWeights = useMemo(
+    () => [...state.weightEntries].sort((a, b) => b.createdAt - a.createdAt),
+    [state.weightEntries]
+  );
+  const latestWeight = sortedWeights[0] ?? null;
+  const previousWeight = sortedWeights[1] ?? null;
+  const weightDiff = latestWeight && previousWeight ? latestWeight.weight - previousWeight.weight : null;
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -129,6 +137,33 @@ export function DashboardPage() {
           </div>
         ) : (
           <p className="text-sm text-gray-400">You're not currently fasting</p>
+        )}
+      </div>
+
+      {/* Weight card */}
+      <div
+        onClick={() => navigate('/weight')}
+        className="bg-white dark:bg-gray-900 rounded-2xl p-4 mb-3 border border-gray-100 dark:border-gray-800 cursor-pointer hover:border-brand-200 dark:hover:border-brand-800 transition-colors"
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400">Weight</h2>
+          <Weight size={16} className="text-gray-400" />
+        </div>
+        {latestWeight ? (
+          <div className="flex items-end gap-2 mt-2">
+            <span className="text-2xl font-bold text-brand-600 dark:text-brand-400">{latestWeight.weight}</span>
+            <span className="text-sm text-gray-500 mb-0.5">{latestWeight.unit}</span>
+            {weightDiff !== null && (
+              <span className={`flex items-center gap-0.5 text-xs font-medium ml-auto mb-0.5 ${
+                weightDiff < 0 ? 'text-green-500' : weightDiff > 0 ? 'text-red-400' : 'text-gray-400'
+              }`}>
+                {weightDiff < 0 ? <TrendingDown size={12} /> : weightDiff > 0 ? <TrendingUp size={12} /> : <Minus size={12} />}
+                {weightDiff > 0 ? '+' : ''}{weightDiff.toFixed(1)}
+              </span>
+            )}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-400 mt-2">Tap to log your weight</p>
         )}
       </div>
 

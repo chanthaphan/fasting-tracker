@@ -1,4 +1,4 @@
-import type { FoodEntry, FastingSession } from '../types';
+import type { FoodEntry, FastingSession, WeightEntry } from '../types';
 import { KEYS, loadFromStorage } from './storage';
 
 interface ExportData {
@@ -6,6 +6,7 @@ interface ExportData {
   exportedAt: string;
   foodEntries: FoodEntry[];
   fastingSessions: FastingSession[];
+  weightEntries: WeightEntry[];
 }
 
 export function exportData(): void {
@@ -14,6 +15,7 @@ export function exportData(): void {
     exportedAt: new Date().toISOString(),
     foodEntries: loadFromStorage(KEYS.FOOD_ENTRIES, []),
     fastingSessions: loadFromStorage(KEYS.FASTING_SESSIONS, []),
+    weightEntries: loadFromStorage(KEYS.WEIGHT_ENTRIES, []),
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -24,7 +26,7 @@ export function exportData(): void {
   URL.revokeObjectURL(url);
 }
 
-export function parseImportFile(file: File): Promise<{ foodEntries: FoodEntry[]; fastingSessions: FastingSession[] }> {
+export function parseImportFile(file: File): Promise<{ foodEntries: FoodEntry[]; fastingSessions: FastingSession[]; weightEntries?: WeightEntry[] }> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
@@ -33,7 +35,11 @@ export function parseImportFile(file: File): Promise<{ foodEntries: FoodEntry[];
         if (!Array.isArray(data.foodEntries) || !Array.isArray(data.fastingSessions)) {
           throw new Error('Invalid backup file format');
         }
-        resolve({ foodEntries: data.foodEntries, fastingSessions: data.fastingSessions });
+        resolve({
+          foodEntries: data.foodEntries,
+          fastingSessions: data.fastingSessions,
+          weightEntries: Array.isArray(data.weightEntries) ? data.weightEntries : undefined,
+        });
       } catch (e) {
         reject(e);
       }
