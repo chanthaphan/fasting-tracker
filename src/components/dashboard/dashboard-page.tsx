@@ -5,9 +5,10 @@ import { useFastingTimer } from '../../hooks/use-fasting-timer';
 import { sumMacros } from '../../utils/macro-calc';
 import { todayKey, formatDuration } from '../../utils/date-utils';
 import { useTheme } from '../../hooks/use-theme';
-import { Settings, Plus, Moon, Sun, Monitor, Weight, TrendingDown, TrendingUp, Minus } from 'lucide-react';
+import { Settings, Plus, Moon, Sun, Monitor, Weight, TrendingDown, TrendingUp, Minus, Target } from 'lucide-react';
 import { exportData, parseImportFile } from '../../utils/export-import';
-import { useRef, useMemo } from 'react';
+import { GoalsModal } from './goals-modal';
+import { useRef, useMemo, useState } from 'react';
 
 export function DashboardPage() {
   const { state, dispatch } = useAppState();
@@ -15,10 +16,12 @@ export function DashboardPage() {
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
+  const [goalsOpen, setGoalsOpen] = useState(false);
 
   const todayEntries = state.foodEntries.filter((e) => e.date === todayKey());
   const totals = sumMacros(todayEntries);
-  const maxCal = Math.max(totals.calories, 2000);
+  const { goals } = state;
+  const maxCal = Math.max(goals.calories, 1);
 
   const sortedWeights = useMemo(
     () => [...state.weightEntries].sort((a, b) => b.createdAt - a.createdAt),
@@ -78,6 +81,14 @@ export function DashboardPage() {
             </button>
           ))}
         </div>
+        <p className="text-xs font-semibold text-gray-400 mb-2">Goals</p>
+        <button
+          onClick={() => setGoalsOpen(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 mb-3 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs font-medium"
+        >
+          <Target size={14} />
+          Edit Daily Goals
+        </button>
         <p className="text-xs font-semibold text-gray-400 mb-2">Data</p>
         <div className="flex gap-2">
           <button onClick={exportData} className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs font-medium">
@@ -94,7 +105,7 @@ export function DashboardPage() {
       <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 mb-3 border border-gray-100 dark:border-gray-800">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400">Today's Calories</h2>
-          <span className="text-2xl font-bold text-brand-600 dark:text-brand-400">{totals.calories}</span>
+          <span className="text-2xl font-bold text-brand-600 dark:text-brand-400">{totals.calories} <span className="text-sm font-normal text-gray-400">/ {goals.calories}</span></span>
         </div>
         <div className="w-full h-3 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden mb-3">
           <div
@@ -103,9 +114,9 @@ export function DashboardPage() {
           />
         </div>
         <div className="grid grid-cols-3 gap-3">
-          <MacroPill label="Protein" value={totals.protein} color="bg-blue-500" />
-          <MacroPill label="Carbs" value={totals.carbs} color="bg-amber-500" />
-          <MacroPill label="Fat" value={totals.fat} color="bg-rose-500" />
+          <MacroPill label="Protein" value={totals.protein} goal={goals.protein} color="bg-blue-500" />
+          <MacroPill label="Carbs" value={totals.carbs} goal={goals.carbs} color="bg-amber-500" />
+          <MacroPill label="Fat" value={totals.fat} goal={goals.fat} color="bg-rose-500" />
         </div>
       </div>
 
@@ -175,15 +186,25 @@ export function DashboardPage() {
         <Plus size={18} />
         Log Food
       </button>
+
+      <GoalsModal
+        open={goalsOpen}
+        onClose={() => setGoalsOpen(false)}
+        onSave={(g) => dispatch({ type: 'SET_GOALS', payload: g })}
+        currentGoals={goals}
+      />
     </PageShell>
   );
 }
 
-function MacroPill({ label, value, color }: { label: string; value: number; color: string }) {
+function MacroPill({ label, value, goal, color }: { label: string; value: number; goal: number; color: string }) {
+  const pct = goal > 0 ? Math.min((value / goal) * 100, 100) : 0;
   return (
     <div className="text-center">
-      <div className={`w-full h-1.5 ${color} rounded-full mb-1 opacity-80`} />
-      <p className="text-lg font-bold">{value}g</p>
+      <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full mb-1 overflow-hidden">
+        <div className={`h-full ${color} rounded-full transition-all duration-500`} style={{ width: `${pct}%` }} />
+      </div>
+      <p className="text-lg font-bold">{value}<span className="text-xs font-normal text-gray-400">/{goal}g</span></p>
       <p className="text-xs text-gray-400">{label}</p>
     </div>
   );

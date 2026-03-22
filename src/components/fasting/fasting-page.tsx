@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { PageShell } from '../layout/page-shell';
 import { FastingRing } from './fasting-ring';
 import { PhaseTimeline } from './phase-timeline';
 import { EditFastingModal } from './edit-fasting-modal';
 import { useFastingTimer } from '../../hooks/use-fasting-timer';
 import { useAppState } from '../../context/app-context';
-import { Play, Square, Pencil } from 'lucide-react';
+import { computeStreaks } from '../../utils/fasting-streak';
+import { Play, Square, Pencil, Flame, Trophy } from 'lucide-react';
 import type { FastingSession } from '../../types';
 
 const FASTING_TARGETS = [
@@ -19,7 +20,8 @@ const FASTING_TARGETS = [
 
 export function FastingPage() {
   const { isActive, activeFast, elapsedMs, currentPhase, startFast, stopFast } = useFastingTimer();
-  const { dispatch } = useAppState();
+  const { state, dispatch } = useAppState();
+  const streaks = useMemo(() => computeStreaks(state.fastingSessions), [state.fastingSessions]);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editSession, setEditSession] = useState<FastingSession | null>(null);
   const [selectedTarget, setSelectedTarget] = useState(16);
@@ -110,6 +112,22 @@ export function FastingPage() {
             </>
           )}
         </button>
+
+        {/* Streak card */}
+        {(streaks.current > 0 || streaks.longest > 0) && (
+          <div className="w-full grid grid-cols-2 gap-3">
+            <div className="bg-white dark:bg-gray-900 rounded-xl p-3 border border-gray-100 dark:border-gray-800 text-center">
+              <Flame size={18} className="mx-auto mb-1 text-orange-500" />
+              <p className="text-2xl font-bold">{streaks.current}</p>
+              <p className="text-xs text-gray-400">Current Streak</p>
+            </div>
+            <div className="bg-white dark:bg-gray-900 rounded-xl p-3 border border-gray-100 dark:border-gray-800 text-center">
+              <Trophy size={18} className="mx-auto mb-1 text-amber-500" />
+              <p className="text-2xl font-bold">{streaks.longest}</p>
+              <p className="text-xs text-gray-400">Longest Streak</p>
+            </div>
+          </div>
+        )}
 
         <div className="w-full mt-2">
           <h3 className="text-sm font-semibold mb-2 text-gray-500 dark:text-gray-400">Fasting Phases</h3>

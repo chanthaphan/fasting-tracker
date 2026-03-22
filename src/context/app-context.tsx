@@ -4,6 +4,8 @@ import { appReducer } from './app-reducer';
 import { KEYS, loadFromStorage, saveToStorage } from '../utils/storage';
 import { todayKey } from '../utils/date-utils';
 
+const DEFAULT_GOALS = { calories: 2000, protein: 150, carbs: 200, fat: 65 };
+
 const initialState: AppState = {
   foodEntries: [],
   fastingSessions: [],
@@ -11,6 +13,7 @@ const initialState: AppState = {
   activeFastingId: null,
   selectedDate: todayKey(),
   theme: 'system',
+  goals: DEFAULT_GOALS,
 };
 
 const AppContext = createContext<{
@@ -26,6 +29,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const settings = loadFromStorage(KEYS.SETTINGS, {
       theme: initialState.theme,
       activeFastingId: initialState.activeFastingId,
+      goals: DEFAULT_GOALS,
     });
     return {
       foodEntries,
@@ -34,6 +38,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       activeFastingId: settings.activeFastingId,
       selectedDate: todayKey(),
       theme: settings.theme,
+      goals: settings.goals ?? DEFAULT_GOALS,
     };
   });
 
@@ -53,8 +58,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     saveToStorage(KEYS.SETTINGS, {
       theme: state.theme,
       activeFastingId: state.activeFastingId,
+      goals: state.goals,
     });
-  }, [state.theme, state.activeFastingId]);
+  }, [state.theme, state.activeFastingId, state.goals]);
 
   return (
     <AppContext.Provider value={{ state, dispatch }}>

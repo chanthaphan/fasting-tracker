@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Search } from 'lucide-react';
 import { Modal } from '../ui/modal';
 import { MEAL_TYPES } from '../../constants/meal-types';
 import { FOOD_PRESET_CATEGORIES, type FoodPreset } from '../../constants/food-presets';
+import { useAppState } from '../../context/app-context';
 import type { FoodEntry, MealType } from '../../types';
 
 interface AddFoodModalProps {
@@ -13,6 +14,7 @@ interface AddFoodModalProps {
 }
 
 export function AddFoodModal({ open, onClose, onSave, editEntry }: AddFoodModalProps) {
+  const { state } = useAppState();
   const [name, setName] = useState('');
   const [calories, setCalories] = useState('');
   const [protein, setProtein] = useState('');
@@ -66,11 +68,31 @@ export function AddFoodModal({ open, onClose, onSave, editEntry }: AddFoodModalP
     onClose();
   };
 
-  const filteredCategories = presetSearch.trim()
+  const recentFoods = useMemo(() => {
+    const seen = new Set<string>();
+    return [...state.foodEntries]
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .filter((e) => {
+        const key = e.name.toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .slice(0, 10)
+      .map((e): FoodPreset => ({ name: e.name, emoji: '🕐', calories: e.calories, protein: e.protein, carbs: e.carbs, fat: e.fat }));
+  }, [state.foodEntries]);
+
+  const searchLower = presetSearch.trim().toLowerCase();
+
+  const filteredRecent = searchLower
+    ? recentFoods.filter((item) => item.name.toLowerCase().includes(searchLower))
+    : recentFoods;
+
+  const filteredCategories = searchLower
     ? FOOD_PRESET_CATEGORIES.map((cat) => ({
         ...cat,
         items: cat.items.filter((item) =>
-          item.name.toLowerCase().includes(presetSearch.toLowerCase())
+          item.name.toLowerCase().includes(searchLower)
         ),
       })).filter((cat) => cat.items.length > 0)
     : FOOD_PRESET_CATEGORIES;
@@ -103,6 +125,27 @@ export function AddFoodModal({ open, onClose, onSave, editEntry }: AddFoodModalP
               />
             </div>
             <div className="max-h-52 overflow-y-auto space-y-3 -mx-1 px-1">
+              {filteredRecent.length > 0 && (
+                <div>
+                  <div className="text-xs font-semibold text-gray-400 dark:text-gray-500 mb-1">
+                    🕐 Recent
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {filteredRecent.map((item) => (
+                      <button
+                        key={item.name}
+                        type="button"
+                        onClick={() => handleSelectPreset(item)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-brand-50 dark:bg-brand-900/20 hover:bg-brand-100 dark:hover:bg-brand-900/40 text-xs font-medium text-gray-700 dark:text-gray-300 transition-colors"
+                      >
+                        <span>{item.emoji}</span>
+                        <span>{item.name}</span>
+                        <span className="text-gray-400 dark:text-gray-500">{item.calories}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               {filteredCategories.map((cat) => (
                 <div key={cat.label}>
                   <div className="text-xs font-semibold text-gray-400 dark:text-gray-500 mb-1">
@@ -124,7 +167,7 @@ export function AddFoodModal({ open, onClose, onSave, editEntry }: AddFoodModalP
                   </div>
                 </div>
               ))}
-              {filteredCategories.length === 0 && (
+              {filteredCategories.length === 0 && filteredRecent.length === 0 && (
                 <p className="text-xs text-gray-400 text-center py-3">No matches found</p>
               )}
             </div>
