@@ -4,17 +4,18 @@ interface FastingRingProps {
   elapsedMs: number;
   phase: FastingPhase | null;
   isActive: boolean;
+  targetHours?: number;
 }
 
-export function FastingRing({ elapsedMs, phase, isActive }: FastingRingProps) {
+export function FastingRing({ elapsedMs, phase, isActive, targetHours = 24 }: FastingRingProps) {
   const size = 240;
   const strokeWidth = 12;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
 
-  // Progress over a 24h scale (wraps after 24h)
   const hours = elapsedMs / (1000 * 60 * 60);
-  const progress = Math.min(hours / 24, 1);
+  const scale = Math.max(targetHours, 24);
+  const progress = Math.min(hours / scale, 1);
   const offset = circumference * (1 - progress);
 
   const color = phase?.color ?? '#d1d5db';

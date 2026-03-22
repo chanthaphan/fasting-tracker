@@ -1,25 +1,30 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { PageShell } from '../layout/page-shell';
 import { FastingRing } from './fasting-ring';
 import { PhaseTimeline } from './phase-timeline';
 import { EditFastingModal } from './edit-fasting-modal';
 import { useFastingTimer } from '../../hooks/use-fasting-timer';
 import { useAppState } from '../../context/app-context';
-import { Play, Square, Pencil } from 'lucide-react';
+import { computeStreaks } from '../../utils/fasting-streak';
+import { getFastingInsights } from '../../utils/fasting-science';
+import { Play, Square, Pencil, Flame, Trophy } from 'lucide-react';
 import type { FastingSession } from '../../types';
 
 const FASTING_TARGETS = [
   { hours: 12, label: '12h', description: 'Beginner' },
-  { hours: 14, label: '14h', description: 'Light' },
   { hours: 16, label: '16:8', description: 'Popular' },
   { hours: 18, label: '18:6', description: 'Moderate' },
   { hours: 20, label: '20:4', description: 'Warrior' },
   { hours: 24, label: '24h', description: 'OMAD' },
+  { hours: 36, label: '36h', description: 'Extended' },
+  { hours: 48, label: '48h', description: 'Autophagy' },
+  { hours: 72, label: '72h', description: 'Prolonged' },
 ];
 
 export function FastingPage() {
   const { isActive, activeFast, elapsedMs, currentPhase, startFast, stopFast } = useFastingTimer();
-  const { dispatch } = useAppState();
+  const { state, dispatch } = useAppState();
+  const streaks = useMemo(() => computeStreaks(state.fastingSessions), [state.fastingSessions]);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editSession, setEditSession] = useState<FastingSession | null>(null);
   const [selectedTarget, setSelectedTarget] = useState(16);
@@ -49,7 +54,7 @@ export function FastingPage() {
       }
     >
       <div className="flex flex-col items-center gap-6">
-        <FastingRing elapsedMs={elapsedMs} phase={currentPhase} isActive={isActive} />
+        <FastingRing elapsedMs={elapsedMs} phase={currentPhase} isActive={isActive} targetHours={activeFast?.targetHours ?? selectedTarget} />
 
         {/* Target progress */}
         {isActive && (
@@ -71,7 +76,7 @@ export function FastingPage() {
         {!isActive && (
           <div className="w-full">
             <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">Choose Your Target</p>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               {FASTING_TARGETS.map((t) => (
                 <button
                   key={t.hours}
@@ -110,6 +115,45 @@ export function FastingPage() {
             </>
           )}
         </button>
+
+        {/* Streak card */}
+        {(streaks.current > 0 || streaks.longest > 0) && (
+          <div className="w-full grid grid-cols-2 gap-3">
+            <div className="bg-white dark:bg-gray-900 rounded-xl p-3 border border-gray-100 dark:border-gray-800 text-center">
+              <Flame size={18} className="mx-auto mb-1 text-orange-500" />
+              <p className="text-2xl font-bold">{streaks.current}</p>
+              <p className="text-xs text-gray-400">Current Streak</p>
+            </div>
+            <div className="bg-white dark:bg-gray-900 rounded-xl p-3 border border-gray-100 dark:border-gray-800 text-center">
+              <Trophy size={18} className="mx-auto mb-1 text-amber-500" />
+              <p className="text-2xl font-bold">{streaks.longest}</p>
+              <p className="text-xs text-gray-400">Longest Streak</p>
+            </div>
+          </div>
+        )}
+
+        {/* Science insights */}
+        {isActive && (
+          <div className="w-full">
+            <h3 className="text-sm font-semibold mb-2 text-gray-500 dark:text-gray-400">What's Happening in Your Body</h3>
+            <div className="space-y-2">
+              {getFastingInsights(elapsedMs).map((insight) => (
+                <div
+                  key={insight.label}
+                  className="bg-white dark:bg-gray-900 rounded-xl p-3 border border-gray-100 dark:border-gray-800"
+                >
+                  <div className="flex items-center justify-between mb-0.5">
+                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                      {insight.icon} {insight.label}
+                    </span>
+                    <span className="text-xs font-bold text-brand-600 dark:text-brand-400">{insight.value}</span>
+                  </div>
+                  <p className="text-[11px] text-gray-400 dark:text-gray-500">{insight.detail}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="w-full mt-2">
           <h3 className="text-sm font-semibold mb-2 text-gray-500 dark:text-gray-400">Fasting Phases</h3>

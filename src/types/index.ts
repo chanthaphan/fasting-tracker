@@ -1,5 +1,12 @@
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snacks';
 
+export interface MacroGoals {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
 export interface FoodEntry {
   id: string;
   name: string;
@@ -45,6 +52,7 @@ export interface AppState {
   activeFastingId: string | null;
   selectedDate: string;
   theme: 'light' | 'dark' | 'system';
+  goals: MacroGoals;
 }
 
 export type AppAction =
@@ -60,5 +68,6 @@ export type AppAction =
   | { type: 'DELETE_WEIGHT'; payload: { id: string } }
   | { type: 'SET_SELECTED_DATE'; payload: string }
   | { type: 'SET_THEME'; payload: 'light' | 'dark' | 'system' }
+  | { type: 'SET_GOALS'; payload: MacroGoals }
   | { type: 'IMPORT_DATA'; payload: { foodEntries: FoodEntry[]; fastingSessions: FastingSession[]; weightEntries?: WeightEntry[] } }
   | { type: 'HYDRATE'; payload: AppState };

@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { Plus, Pencil, Trash2, TrendingDown, TrendingUp, Minus } from 'lucide-react';
 import { PageShell } from '../layout/page-shell';
 import { AddWeightModal } from './add-weight-modal';
+import { WeightChart } from './weight-chart';
 import { useAppState } from '../../context/app-context';
 import { format } from 'date-fns';
 import type { WeightEntry } from '../../types';
@@ -72,6 +73,12 @@ export function WeightPage() {
           </div>
         </div>
       )}
+
+      {/* Weight trend chart */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 mb-4 border border-gray-100 dark:border-gray-800">
+        <p className="text-xs font-semibold text-gray-400 mb-2">Trend</p>
+        <WeightChart entries={state.weightEntries} />
+      </div>
 
       {/* Weight history */}
       {sortedEntries.length === 0 ? (
