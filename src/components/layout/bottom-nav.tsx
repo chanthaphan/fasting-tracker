@@ -1,10 +1,11 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, UtensilsCrossed, Timer, CalendarDays } from 'lucide-react';
+import { LayoutDashboard, UtensilsCrossed, Timer, CalendarDays, Weight } from 'lucide-react';
 
 const tabs = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/food', icon: UtensilsCrossed, label: 'Food' },
   { to: '/fasting', icon: Timer, label: 'Fasting' },
+  { to: '/weight', icon: Weight, label: 'Weight' },
   { to: '/history', icon: CalendarDays, label: 'History' },
 ];
 
@@ -18,14 +19,14 @@ export function BottomNav() {
             to={to}
             end={to === '/'}
             className={({ isActive }) =>
-              `flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors ${
+              `flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg transition-colors ${
                 isActive
                   ? 'text-brand-600 dark:text-brand-400'
                   : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
               }`
             }
           >
-            <Icon size={22} strokeWidth={2} />
+            <Icon size={20} strokeWidth={2} />
             <span className="text-[10px] font-medium">{label}</span>
           </NavLink>
         ))}
