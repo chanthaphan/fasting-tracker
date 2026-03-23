@@ -7,7 +7,9 @@ import { useFastingTimer } from '../../hooks/use-fasting-timer';
 import { useAppState } from '../../context/app-context';
 import { computeStreaks } from '../../utils/fasting-streak';
 import { getFastingInsights } from '../../utils/fasting-science';
-import { Play, Square, Pencil, Flame, Trophy } from 'lucide-react';
+import { getDynamicPhases, getDynamicPhaseForElapsed, getFactorSummary, type FastingFactors } from '../../utils/dynamic-phases';
+import { todayKey } from '../../utils/date-utils';
+import { Play, Square, Pencil, Flame, Trophy, ChevronDown, ChevronUp, Zap, Droplets, Moon, Coffee } from 'lucide-react';
 import type { FastingSession } from '../../types';
 
 const FASTING_TARGETS = [
@@ -22,12 +24,40 @@ const FASTING_TARGETS = [
 ];
 
 export function FastingPage() {
-  const { isActive, activeFast, elapsedMs, currentPhase, startFast, stopFast } = useFastingTimer();
+  const { isActive, activeFast, elapsedMs, startFast, stopFast } = useFastingTimer();
   const { state, dispatch } = useAppState();
   const streaks = useMemo(() => computeStreaks(state.fastingSessions), [state.fastingSessions]);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editSession, setEditSession] = useState<FastingSession | null>(null);
   const [selectedTarget, setSelectedTarget] = useState(16);
+  const [showFactors, setShowFactors] = useState(false);
+
+  // Factor states
+  const [sleepHours, setSleepHours] = useState(7);
+  const [hydration, setHydration] = useState<'low' | 'normal' | 'high'>('normal');
+  const [caffeine, setCaffeine] = useState(false);
+
+  // Get today's exercise data from app state
+  const today = todayKey();
+  const todayExercise = useMemo(
+    () => state.exerciseEntries.filter((e) => e.date === today),
+    [state.exerciseEntries, today],
+  );
+
+  // Compute dynamic phases
+  const factors: FastingFactors = useMemo(
+    () => ({ exerciseEntries: todayExercise, sleepHours, hydration, caffeine }),
+    [todayExercise, sleepHours, hydration, caffeine],
+  );
+
+  const dynamicPhases = useMemo(() => getDynamicPhases(factors), [factors]);
+  const currentPhase = useMemo(
+    () => (activeFast ? getDynamicPhaseForElapsed(elapsedMs, dynamicPhases) : null),
+    [activeFast, elapsedMs, dynamicPhases],
+  );
+  const factorEffects = useMemo(() => getFactorSummary(factors), [factors]);
+
+  const totalExerciseCals = todayExercise.reduce((s, e) => s + e.calories, 0);
 
   const handleEditSave = (id: string, startTime: number, endTime: number | null) => {
     dispatch({ type: 'EDIT_FAST', payload: { id, startTime, endTime } });
@@ -54,7 +84,14 @@ export function FastingPage() {
       }
     >
       <div className="flex flex-col items-center gap-6">
-        <FastingRing elapsedMs={elapsedMs} phase={currentPhase} isActive={isActive} targetHours={activeFast?.targetHours ?? selectedTarget} />
+        <FastingRing
+          elapsedMs={elapsedMs}
+          phase={currentPhase}
+          isActive={isActive}
+          targetHours={activeFast?.targetHours ?? selectedTarget}
+          phases={dynamicPhases}
+          startTime={activeFast?.startTime}
+        />
 
         {/* Target progress */}
         {isActive && (
@@ -71,6 +108,123 @@ export function FastingPage() {
             </div>
           </div>
         )}
+
+        {/* Fasting Factors panel */}
+        <div className="w-full">
+          <button
+            onClick={() => setShowFactors((v) => !v)}
+            className="flex items-center justify-between w-full text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2"
+          >
+            <span className="flex items-center gap-1.5">
+              <Zap size={14} />
+              Dynamic Factors
+              {factorEffects.length > 0 && (
+                <span className="bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+                  {factorEffects.length} active
+                </span>
+              )}
+            </span>
+            {showFactors ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+
+          {showFactors && (
+            <div className="bg-white dark:bg-gray-900 rounded-xl p-4 border border-gray-100 dark:border-gray-800 space-y-4">
+              {/* Exercise (auto-detected) */}
+              <div>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <Zap size={14} className="text-orange-500" />
+                  <span className="text-xs font-semibold">Exercise Today</span>
+                  <span className="text-[10px] text-gray-400 ml-auto">auto-detected</span>
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  {totalExerciseCals > 0 ? (
+                    <span>{totalExerciseCals} cal burned · {todayExercise.length} session{todayExercise.length !== 1 ? 's' : ''}</span>
+                  ) : (
+                    <span className="text-gray-400">No exercise logged today</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Sleep */}
+              <div>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <Moon size={14} className="text-indigo-500" />
+                  <span className="text-xs font-semibold">Sleep Last Night</span>
+                  <span className="text-xs font-bold text-gray-600 dark:text-gray-300 ml-auto">{sleepHours}h</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={12}
+                  step={0.5}
+                  value={sleepHours}
+                  onChange={(e) => setSleepHours(Number(e.target.value))}
+                  className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full appearance-none cursor-pointer accent-indigo-500"
+                />
+                <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
+                  <span>0h</span>
+                  <span>6h</span>
+                  <span>12h</span>
+                </div>
+              </div>
+
+              {/* Hydration */}
+              <div>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <Droplets size={14} className="text-blue-500" />
+                  <span className="text-xs font-semibold">Hydration</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['low', 'normal', 'high'] as const).map((level) => (
+                    <button
+                      key={level}
+                      onClick={() => setHydration(level)}
+                      className={`py-1.5 px-2 rounded-lg text-xs font-medium transition-all ${
+                        hydration === level
+                          ? 'bg-blue-500 text-white shadow-sm'
+                          : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
+                      }`}
+                    >
+                      {level === 'low' ? '🏜️ Low' : level === 'normal' ? '💧 Normal' : '🌊 High'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Caffeine */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Coffee size={14} className="text-amber-600" />
+                  <span className="text-xs font-semibold">Caffeine Today</span>
+                </div>
+                <button
+                  onClick={() => setCaffeine((v) => !v)}
+                  className={`relative w-10 h-5.5 rounded-full transition-colors ${
+                    caffeine ? 'bg-amber-500' : 'bg-gray-300 dark:bg-gray-700'
+                  }`}
+                >
+                  <div
+                    className={`absolute top-0.5 w-4.5 h-4.5 bg-white rounded-full shadow transition-transform ${
+                      caffeine ? 'translate-x-5' : 'translate-x-0.5'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Effect summary */}
+              {factorEffects.length > 0 && (
+                <div className="border-t border-gray-100 dark:border-gray-800 pt-3 space-y-1">
+                  {factorEffects.map((effect) => (
+                    <p key={effect} className="text-[11px] text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                      <span className="w-1 h-1 rounded-full bg-brand-500 shrink-0" />
+                      {effect}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Fasting target picker (only when not fasting) */}
         {!isActive && (
@@ -157,7 +311,7 @@ export function FastingPage() {
 
         <div className="w-full mt-2">
           <h3 className="text-sm font-semibold mb-2 text-gray-500 dark:text-gray-400">Fasting Phases</h3>
-          <PhaseTimeline elapsedMs={elapsedMs} isActive={isActive} />
+          <PhaseTimeline elapsedMs={elapsedMs} isActive={isActive} phases={dynamicPhases} />
         </div>
       </div>
 
