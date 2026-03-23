@@ -1,10 +1,11 @@
 import { get, set } from 'idb-keyval';
-import type { FoodEntry, FastingSession, WeightEntry, MacroGoals, WeightGoal } from '../types';
+import type { FoodEntry, FastingSession, WeightEntry, ExerciseEntry, MacroGoals, WeightGoal, UserProfile } from '../types';
 
 const KEYS = {
   FOOD_ENTRIES: 'ft_food_entries',
   FASTING_SESSIONS: 'ft_fasting_sessions',
   WEIGHT_ENTRIES: 'ft_weight_entries',
+  EXERCISE_ENTRIES: 'ft_exercise_entries',
   SETTINGS: 'ft_settings',
 } as const;
 
@@ -109,9 +110,25 @@ export const isWeightEntryArray: Validator<WeightEntry[]> = isArrayOf<WeightEntr
   (v) => hasKeys(v, 'id', 'weight', 'date')
 );
 
-export const isSettings: Validator<{ theme: string; activeFastingId: string | null; goals: MacroGoals; weightGoal: WeightGoal | null }> = (
+export const isExerciseEntryArray: Validator<ExerciseEntry[]> = isArrayOf<ExerciseEntry>(
+  (v) => hasKeys(v, 'id', 'name', 'calories', 'date')
+);
+
+export const isSettings: Validator<{
+  theme: string;
+  activeFastingId: string | null;
+  goals: MacroGoals;
+  weightGoal: WeightGoal | null;
+  userProfile: UserProfile | null;
+}> = (
   value: unknown
-): value is { theme: string; activeFastingId: string | null; goals: MacroGoals; weightGoal: WeightGoal | null } =>
+): value is {
+  theme: string;
+  activeFastingId: string | null;
+  goals: MacroGoals;
+  weightGoal: WeightGoal | null;
+  userProfile: UserProfile | null;
+} =>
   hasKeys(value, 'theme', 'goals');
 
 export { KEYS };

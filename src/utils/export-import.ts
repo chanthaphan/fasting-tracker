@@ -1,4 +1,4 @@
-import type { FoodEntry, FastingSession, WeightEntry } from '../types';
+import type { FoodEntry, FastingSession, WeightEntry, ExerciseEntry } from '../types';
 import { KEYS, loadFromStorage } from './storage';
 
 interface ExportData {
@@ -7,13 +7,15 @@ interface ExportData {
   foodEntries: FoodEntry[];
   fastingSessions: FastingSession[];
   weightEntries: WeightEntry[];
+  exerciseEntries: ExerciseEntry[];
 }
 
 export async function exportData(): Promise<void> {
-  const [foodEntries, fastingSessions, weightEntries] = await Promise.all([
+  const [foodEntries, fastingSessions, weightEntries, exerciseEntries] = await Promise.all([
     loadFromStorage<FoodEntry[]>(KEYS.FOOD_ENTRIES, []),
     loadFromStorage<FastingSession[]>(KEYS.FASTING_SESSIONS, []),
     loadFromStorage<WeightEntry[]>(KEYS.WEIGHT_ENTRIES, []),
+    loadFromStorage<ExerciseEntry[]>(KEYS.EXERCISE_ENTRIES, []),
   ]);
   const data: ExportData = {
     version: 1,
@@ -21,6 +23,7 @@ export async function exportData(): Promise<void> {
     foodEntries,
     fastingSessions,
     weightEntries,
+    exerciseEntries,
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -31,7 +34,12 @@ export async function exportData(): Promise<void> {
   URL.revokeObjectURL(url);
 }
 
-export function parseImportFile(file: File): Promise<{ foodEntries: FoodEntry[]; fastingSessions: FastingSession[]; weightEntries?: WeightEntry[] }> {
+export function parseImportFile(file: File): Promise<{
+  foodEntries: FoodEntry[];
+  fastingSessions: FastingSession[];
+  weightEntries?: WeightEntry[];
+  exerciseEntries?: ExerciseEntry[];
+}> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
@@ -44,6 +52,7 @@ export function parseImportFile(file: File): Promise<{ foodEntries: FoodEntry[];
           foodEntries: data.foodEntries,
           fastingSessions: data.fastingSessions,
           weightEntries: Array.isArray(data.weightEntries) ? data.weightEntries : undefined,
+          exerciseEntries: Array.isArray(data.exerciseEntries) ? data.exerciseEntries : undefined,
         });
       } catch (e) {
         reject(e);
