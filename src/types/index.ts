@@ -45,6 +45,14 @@ export interface WeightEntry {
   createdAt: number;
 }
 
+export interface WeightGoal {
+  targetWeight: number;
+  unit: 'kg' | 'lbs';
+  targetDate: string; // 'YYYY-MM-DD'
+  startWeight: number;
+  startDate: string; // 'YYYY-MM-DD'
+}
+
 export interface AppState {
   foodEntries: FoodEntry[];
   fastingSessions: FastingSession[];
@@ -53,6 +61,7 @@ export interface AppState {
   selectedDate: string;
   theme: 'light' | 'dark' | 'system';
   goals: MacroGoals;
+  weightGoal: WeightGoal | null;
 }
 
 export type AppAction =
@@ -69,5 +78,6 @@ export type AppAction =
   | { type: 'SET_SELECTED_DATE'; payload: string }
   | { type: 'SET_THEME'; payload: 'light' | 'dark' | 'system' }
   | { type: 'SET_GOALS'; payload: MacroGoals }
+  | { type: 'SET_WEIGHT_GOAL'; payload: WeightGoal | null }
   | { type: 'IMPORT_DATA'; payload: { foodEntries: FoodEntry[]; fastingSessions: FastingSession[]; weightEntries?: WeightEntry[] } }
   | { type: 'HYDRATE'; payload: AppState };

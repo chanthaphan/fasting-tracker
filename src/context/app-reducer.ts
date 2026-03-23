@@ -85,6 +85,8 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, theme: action.payload };
     case 'SET_GOALS':
       return { ...state, goals: action.payload };
+    case 'SET_WEIGHT_GOAL':
+      return { ...state, weightGoal: action.payload };
     case 'IMPORT_DATA':
       return {
         ...state,

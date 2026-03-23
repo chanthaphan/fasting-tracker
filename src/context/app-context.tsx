@@ -17,6 +17,7 @@ const initialState: AppState = {
   selectedDate: todayKey(),
   theme: 'system',
   goals: DEFAULT_GOALS,
+  weightGoal: null,
 };
 
 const AppContext = createContext<{
@@ -32,6 +33,7 @@ function loadInitialState(): AppState {
     theme: initialState.theme,
     activeFastingId: initialState.activeFastingId,
     goals: DEFAULT_GOALS,
+    weightGoal: null,
   }, isSettings);
   return {
     foodEntries,
@@ -41,6 +43,7 @@ function loadInitialState(): AppState {
     selectedDate: todayKey(),
     theme: settings.theme as AppState['theme'],
     goals: settings.goals ?? DEFAULT_GOALS,
+    weightGoal: settings.weightGoal ?? null,
   };
 }
 
@@ -59,6 +62,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           theme: initialState.theme,
           activeFastingId: initialState.activeFastingId,
           goals: DEFAULT_GOALS,
+          weightGoal: null,
         }, isSettings),
       ]);
       if (cancelled) return;
@@ -72,6 +76,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           selectedDate: todayKey(),
           theme: settings.theme as AppState['theme'],
           goals: settings.goals ?? DEFAULT_GOALS,
+          weightGoal: settings.weightGoal ?? null,
         },
       });
     }
@@ -96,8 +101,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       theme: state.theme,
       activeFastingId: state.activeFastingId,
       goals: state.goals,
+      weightGoal: state.weightGoal,
     });
-  }, [state.theme, state.activeFastingId, state.goals]);
+  }, [state.theme, state.activeFastingId, state.goals, state.weightGoal]);
 
   const [storageFull, setStorageFull] = useState(false);
 

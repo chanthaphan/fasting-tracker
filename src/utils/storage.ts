@@ -1,5 +1,5 @@
 import { get, set } from 'idb-keyval';
-import type { FoodEntry, FastingSession, WeightEntry, MacroGoals } from '../types';
+import type { FoodEntry, FastingSession, WeightEntry, MacroGoals, WeightGoal } from '../types';
 
 const KEYS = {
   FOOD_ENTRIES: 'ft_food_entries',
@@ -109,9 +109,9 @@ export const isWeightEntryArray: Validator<WeightEntry[]> = isArrayOf<WeightEntr
   (v) => hasKeys(v, 'id', 'weight', 'date')
 );
 
-export const isSettings: Validator<{ theme: string; activeFastingId: string | null; goals: MacroGoals }> = (
+export const isSettings: Validator<{ theme: string; activeFastingId: string | null; goals: MacroGoals; weightGoal: WeightGoal | null }> = (
   value: unknown
-): value is { theme: string; activeFastingId: string | null; goals: MacroGoals } =>
+): value is { theme: string; activeFastingId: string | null; goals: MacroGoals; weightGoal: WeightGoal | null } =>
   hasKeys(value, 'theme', 'goals');
 
 export { KEYS };
