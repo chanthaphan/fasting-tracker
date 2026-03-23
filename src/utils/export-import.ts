@@ -1,5 +1,8 @@
 import type { FoodEntry, FastingSession, WeightEntry, ExerciseEntry } from '../types';
-import { KEYS, loadFromStorage } from './storage';
+import {
+  KEYS, loadFromStorage,
+  isFoodEntryArray, isFastingSessionArray, isWeightEntryArray, isExerciseEntryArray,
+} from './storage';
 
 interface ExportData {
   version: 1;
@@ -44,15 +47,15 @@ export function parseImportFile(file: File): Promise<{
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        const data = JSON.parse(reader.result as string) as ExportData;
-        if (!Array.isArray(data.foodEntries) || !Array.isArray(data.fastingSessions)) {
+        const data = JSON.parse(reader.result as string);
+        if (!isFoodEntryArray(data.foodEntries) || !isFastingSessionArray(data.fastingSessions)) {
           throw new Error('Invalid backup file format');
         }
         resolve({
           foodEntries: data.foodEntries,
           fastingSessions: data.fastingSessions,
-          weightEntries: Array.isArray(data.weightEntries) ? data.weightEntries : undefined,
-          exerciseEntries: Array.isArray(data.exerciseEntries) ? data.exerciseEntries : undefined,
+          weightEntries: isWeightEntryArray(data.weightEntries) ? data.weightEntries : undefined,
+          exerciseEntries: isExerciseEntryArray(data.exerciseEntries) ? data.exerciseEntries : undefined,
         });
       } catch (e) {
         reject(e);
