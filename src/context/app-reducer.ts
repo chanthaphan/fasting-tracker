@@ -79,18 +79,43 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         weightEntries: state.weightEntries.filter((e) => e.id !== action.payload.id),
       };
+    case 'ADD_EXERCISE': {
+      const entry = {
+        ...action.payload,
+        id: crypto.randomUUID(),
+        createdAt: Date.now(),
+      };
+      return { ...state, exerciseEntries: [...state.exerciseEntries, entry] };
+    }
+    case 'EDIT_EXERCISE':
+      return {
+        ...state,
+        exerciseEntries: state.exerciseEntries.map((e) =>
+          e.id === action.payload.id ? action.payload : e
+        ),
+      };
+    case 'DELETE_EXERCISE':
+      return {
+        ...state,
+        exerciseEntries: state.exerciseEntries.filter((e) => e.id !== action.payload.id),
+      };
     case 'SET_SELECTED_DATE':
       return { ...state, selectedDate: action.payload };
     case 'SET_THEME':
       return { ...state, theme: action.payload };
     case 'SET_GOALS':
       return { ...state, goals: action.payload };
+    case 'SET_WEIGHT_GOAL':
+      return { ...state, weightGoal: action.payload };
+    case 'SET_USER_PROFILE':
+      return { ...state, userProfile: action.payload };
     case 'IMPORT_DATA':
       return {
         ...state,
         foodEntries: action.payload.foodEntries,
         fastingSessions: action.payload.fastingSessions,
         weightEntries: action.payload.weightEntries ?? state.weightEntries,
+        exerciseEntries: action.payload.exerciseEntries ?? state.exerciseEntries,
         activeFastingId:
           action.payload.fastingSessions.find((s) => s.endTime === null)?.id ?? null,
       };

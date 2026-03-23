@@ -119,7 +119,7 @@ export function AddFoodModal({ open, onClose, onSave, editEntry }: AddFoodModalP
                 type="text"
                 value={presetSearch}
                 onChange={(e) => setPresetSearch(e.target.value)}
-                placeholder="Search Thai dishes..."
+                placeholder="Search food..."
                 className="w-full pl-8 pr-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm"
                 autoFocus
               />

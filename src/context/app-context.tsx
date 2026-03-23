@@ -3,7 +3,7 @@ import type { AppState, AppAction } from '../types';
 import { appReducer } from './app-reducer';
 import {
   KEYS, loadFromStorage, loadFromStorageSync, saveToStorage,
-  isFoodEntryArray, isFastingSessionArray, isWeightEntryArray, isSettings,
+  isFoodEntryArray, isFastingSessionArray, isWeightEntryArray, isExerciseEntryArray, isSettings,
 } from '../utils/storage';
 import { todayKey } from '../utils/date-utils';
 
@@ -13,10 +13,13 @@ const initialState: AppState = {
   foodEntries: [],
   fastingSessions: [],
   weightEntries: [],
+  exerciseEntries: [],
   activeFastingId: null,
   selectedDate: todayKey(),
   theme: 'system',
   goals: DEFAULT_GOALS,
+  weightGoal: null,
+  userProfile: null,
 };
 
 const AppContext = createContext<{
@@ -28,19 +31,25 @@ function loadInitialState(): AppState {
   const foodEntries = loadFromStorageSync(KEYS.FOOD_ENTRIES, initialState.foodEntries, isFoodEntryArray);
   const fastingSessions = loadFromStorageSync(KEYS.FASTING_SESSIONS, initialState.fastingSessions, isFastingSessionArray);
   const weightEntries = loadFromStorageSync(KEYS.WEIGHT_ENTRIES, initialState.weightEntries, isWeightEntryArray);
+  const exerciseEntries = loadFromStorageSync(KEYS.EXERCISE_ENTRIES, initialState.exerciseEntries, isExerciseEntryArray);
   const settings = loadFromStorageSync(KEYS.SETTINGS, {
     theme: initialState.theme,
     activeFastingId: initialState.activeFastingId,
     goals: DEFAULT_GOALS,
+    weightGoal: null,
+    userProfile: null,
   }, isSettings);
   return {
     foodEntries,
     fastingSessions,
     weightEntries,
+    exerciseEntries,
     activeFastingId: settings.activeFastingId,
     selectedDate: todayKey(),
     theme: settings.theme as AppState['theme'],
     goals: settings.goals ?? DEFAULT_GOALS,
+    weightGoal: settings.weightGoal ?? null,
+    userProfile: settings.userProfile ?? null,
   };
 }
 
@@ -51,14 +60,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     async function hydrate() {
-      const [foodEntries, fastingSessions, weightEntries, settings] = await Promise.all([
+      const [foodEntries, fastingSessions, weightEntries, exerciseEntries, settings] = await Promise.all([
         loadFromStorage(KEYS.FOOD_ENTRIES, initialState.foodEntries, isFoodEntryArray),
         loadFromStorage(KEYS.FASTING_SESSIONS, initialState.fastingSessions, isFastingSessionArray),
         loadFromStorage(KEYS.WEIGHT_ENTRIES, initialState.weightEntries, isWeightEntryArray),
+        loadFromStorage(KEYS.EXERCISE_ENTRIES, initialState.exerciseEntries, isExerciseEntryArray),
         loadFromStorage(KEYS.SETTINGS, {
           theme: initialState.theme,
           activeFastingId: initialState.activeFastingId,
           goals: DEFAULT_GOALS,
+          weightGoal: null,
+          userProfile: null,
         }, isSettings),
       ]);
       if (cancelled) return;
@@ -68,10 +80,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
           foodEntries,
           fastingSessions,
           weightEntries,
+          exerciseEntries,
           activeFastingId: settings.activeFastingId,
           selectedDate: todayKey(),
           theme: settings.theme as AppState['theme'],
           goals: settings.goals ?? DEFAULT_GOALS,
+          weightGoal: settings.weightGoal ?? null,
+          userProfile: settings.userProfile ?? null,
         },
       });
     }
@@ -92,12 +107,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [state.weightEntries]);
 
   useEffect(() => {
+    saveToStorage(KEYS.EXERCISE_ENTRIES, state.exerciseEntries);
+  }, [state.exerciseEntries]);
+
+  useEffect(() => {
     saveToStorage(KEYS.SETTINGS, {
       theme: state.theme,
       activeFastingId: state.activeFastingId,
       goals: state.goals,
+      weightGoal: state.weightGoal,
+      userProfile: state.userProfile,
     });
-  }, [state.theme, state.activeFastingId, state.goals]);
+  }, [state.theme, state.activeFastingId, state.goals, state.weightGoal, state.userProfile]);
 
   const [storageFull, setStorageFull] = useState(false);
 

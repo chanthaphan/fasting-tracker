@@ -5,6 +5,7 @@ import { DashboardPage } from './components/dashboard/dashboard-page';
 import { FoodLogPage } from './components/food-log/food-log-page';
 import { FastingPage } from './components/fasting/fasting-page';
 import { WeightPage } from './components/weight/weight-page';
+import { ExercisePage } from './components/exercise/exercise-page';
 import { HistoryPage } from './components/history/history-page';
 
 export default function App() {
@@ -16,6 +17,7 @@ export default function App() {
             <Route path="/" element={<DashboardPage />} />
             <Route path="/food" element={<FoodLogPage />} />
             <Route path="/fasting" element={<FastingPage />} />
+            <Route path="/exercise" element={<ExercisePage />} />
             <Route path="/weight" element={<WeightPage />} />
             <Route path="/history" element={<HistoryPage />} />
           </Routes>
