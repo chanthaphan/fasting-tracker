@@ -1,7 +1,10 @@
 import { createContext, useContext, useReducer, useEffect, useState, type ReactNode } from 'react';
 import type { AppState, AppAction } from '../types';
 import { appReducer } from './app-reducer';
-import { KEYS, loadFromStorage, saveToStorage, isFoodEntryArray, isFastingSessionArray, isWeightEntryArray, isSettings } from '../utils/storage';
+import {
+  KEYS, loadFromStorage, loadFromStorageSync, saveToStorage,
+  isFoodEntryArray, isFastingSessionArray, isWeightEntryArray, isSettings,
+} from '../utils/storage';
 import { todayKey } from '../utils/date-utils';
 
 const DEFAULT_GOALS = { calories: 2000, protein: 150, carbs: 200, fat: 65 };
@@ -21,26 +24,60 @@ const AppContext = createContext<{
   dispatch: React.Dispatch<AppAction>;
 }>({ state: initialState, dispatch: () => {} });
 
+function loadInitialState(): AppState {
+  const foodEntries = loadFromStorageSync(KEYS.FOOD_ENTRIES, initialState.foodEntries, isFoodEntryArray);
+  const fastingSessions = loadFromStorageSync(KEYS.FASTING_SESSIONS, initialState.fastingSessions, isFastingSessionArray);
+  const weightEntries = loadFromStorageSync(KEYS.WEIGHT_ENTRIES, initialState.weightEntries, isWeightEntryArray);
+  const settings = loadFromStorageSync(KEYS.SETTINGS, {
+    theme: initialState.theme,
+    activeFastingId: initialState.activeFastingId,
+    goals: DEFAULT_GOALS,
+  }, isSettings);
+  return {
+    foodEntries,
+    fastingSessions,
+    weightEntries,
+    activeFastingId: settings.activeFastingId,
+    selectedDate: todayKey(),
+    theme: settings.theme as AppState['theme'],
+    goals: settings.goals ?? DEFAULT_GOALS,
+  };
+}
+
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(appReducer, initialState, () => {
-    const foodEntries = loadFromStorage(KEYS.FOOD_ENTRIES, initialState.foodEntries, isFoodEntryArray);
-    const fastingSessions = loadFromStorage(KEYS.FASTING_SESSIONS, initialState.fastingSessions, isFastingSessionArray);
-    const weightEntries = loadFromStorage(KEYS.WEIGHT_ENTRIES, initialState.weightEntries, isWeightEntryArray);
-    const settings = loadFromStorage(KEYS.SETTINGS, {
-      theme: initialState.theme,
-      activeFastingId: initialState.activeFastingId,
-      goals: DEFAULT_GOALS,
-    }, isSettings);
-    return {
-      foodEntries,
-      fastingSessions,
-      weightEntries,
-      activeFastingId: settings.activeFastingId,
-      selectedDate: todayKey(),
-      theme: settings.theme as AppState['theme'],
-      goals: settings.goals ?? DEFAULT_GOALS,
-    };
-  });
+  const [state, dispatch] = useReducer(appReducer, initialState, loadInitialState);
+
+  // Hydrate from IndexedDB (may have newer data than localStorage)
+  useEffect(() => {
+    let cancelled = false;
+    async function hydrate() {
+      const [foodEntries, fastingSessions, weightEntries, settings] = await Promise.all([
+        loadFromStorage(KEYS.FOOD_ENTRIES, initialState.foodEntries, isFoodEntryArray),
+        loadFromStorage(KEYS.FASTING_SESSIONS, initialState.fastingSessions, isFastingSessionArray),
+        loadFromStorage(KEYS.WEIGHT_ENTRIES, initialState.weightEntries, isWeightEntryArray),
+        loadFromStorage(KEYS.SETTINGS, {
+          theme: initialState.theme,
+          activeFastingId: initialState.activeFastingId,
+          goals: DEFAULT_GOALS,
+        }, isSettings),
+      ]);
+      if (cancelled) return;
+      dispatch({
+        type: 'HYDRATE',
+        payload: {
+          foodEntries,
+          fastingSessions,
+          weightEntries,
+          activeFastingId: settings.activeFastingId,
+          selectedDate: todayKey(),
+          theme: settings.theme as AppState['theme'],
+          goals: settings.goals ?? DEFAULT_GOALS,
+        },
+      });
+    }
+    hydrate();
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     saveToStorage(KEYS.FOOD_ENTRIES, state.foodEntries);

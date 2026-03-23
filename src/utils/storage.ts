@@ -1,3 +1,4 @@
+import { get, set } from 'idb-keyval';
 import type { FoodEntry, FastingSession, WeightEntry, MacroGoals } from '../types';
 
 const KEYS = {
@@ -7,44 +8,35 @@ const KEYS = {
   SETTINGS: 'ft_settings',
 } as const;
 
-const BACKUP_SUFFIX = '_bak';
-
-/**
- * Validate that a value matches expected shape before trusting it.
- * Returns true if value passes the validator, false otherwise.
- */
 type Validator<T> = (value: unknown) => value is T;
 
-export function loadFromStorage<T>(key: string, fallback: T, validator?: Validator<T>): T {
+/**
+ * Load from IndexedDB (primary) with localStorage fallback.
+ * On first load after migration, IndexedDB may be empty — we read
+ * localStorage and migrate the data over.
+ */
+export async function loadFromStorage<T>(key: string, fallback: T, validator?: Validator<T>): Promise<T> {
+  // Try IndexedDB first
+  try {
+    const idbValue = await get<T>(key);
+    if (idbValue !== undefined) {
+      if (!validator || validator(idbValue)) return idbValue;
+      console.warn(`[storage] IndexedDB data for "${key}" failed validation`);
+    }
+  } catch {
+    console.warn(`[storage] Failed to read "${key}" from IndexedDB`);
+  }
+
+  // Fallback to localStorage (handles migration from old storage)
   try {
     const raw = localStorage.getItem(key);
     if (!raw) return fallback;
 
     const parsed = JSON.parse(raw);
-
-    // If a validator is provided, check the parsed data
-    if (validator && !validator(parsed)) {
-      console.warn(`[storage] Data for "${key}" failed validation, trying backup`);
-      return loadBackup(key, fallback, validator);
-    }
-
-    return parsed as T;
-  } catch {
-    console.warn(`[storage] Failed to parse "${key}", trying backup`);
-    return loadBackup(key, fallback, validator);
-  }
-}
-
-function loadBackup<T>(key: string, fallback: T, validator?: Validator<T>): T {
-  try {
-    const raw = localStorage.getItem(key + BACKUP_SUFFIX);
-    if (!raw) return fallback;
-
-    const parsed = JSON.parse(raw);
     if (validator && !validator(parsed)) return fallback;
 
-    // Restore good backup to primary
-    localStorage.setItem(key, raw);
+    // Migrate to IndexedDB
+    set(key, parsed).catch(() => {});
     return parsed as T;
   } catch {
     return fallback;
@@ -54,27 +46,44 @@ function loadBackup<T>(key: string, fallback: T, validator?: Validator<T>): T {
 /** Track whether we've already warned the user this session */
 let hasWarnedStorageFull = false;
 
+/**
+ * Save to IndexedDB (primary) and localStorage (backup).
+ * Dual-write ensures fast synchronous reads on cold start while
+ * IndexedDB provides the larger, more reliable store.
+ */
 export function saveToStorage(key: string, value: unknown): void {
-  try {
-    const json = JSON.stringify(value);
-
-    // Save current value as backup before overwriting
-    const existing = localStorage.getItem(key);
-    if (existing) {
-      try {
-        localStorage.setItem(key + BACKUP_SUFFIX, existing);
-      } catch {
-        // If we can't save backup, still try to save primary
-      }
+  // Async write to IndexedDB (primary)
+  set(key, value).catch((err) => {
+    if (!hasWarnedStorageFull) {
+      hasWarnedStorageFull = true;
+      console.error('[storage] IndexedDB write failed:', err);
+      window.dispatchEvent(new CustomEvent('storage-full'));
     }
+  });
 
-    localStorage.setItem(key, json);
+  // Sync write to localStorage (backup / fast cold-start reads)
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
     hasWarnedStorageFull = false;
   } catch (err) {
     if (!hasWarnedStorageFull && err instanceof DOMException && err.name === 'QuotaExceededError') {
       hasWarnedStorageFull = true;
       window.dispatchEvent(new CustomEvent('storage-full'));
     }
+  }
+}
+
+// --- Synchronous load for initial render (reads localStorage only) ---
+
+export function loadFromStorageSync<T>(key: string, fallback: T, validator?: Validator<T>): T {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw);
+    if (validator && !validator(parsed)) return fallback;
+    return parsed as T;
+  } catch {
+    return fallback;
   }
 }
 
