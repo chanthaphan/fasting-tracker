@@ -9,13 +9,18 @@ interface ExportData {
   weightEntries: WeightEntry[];
 }
 
-export function exportData(): void {
+export async function exportData(): Promise<void> {
+  const [foodEntries, fastingSessions, weightEntries] = await Promise.all([
+    loadFromStorage<FoodEntry[]>(KEYS.FOOD_ENTRIES, []),
+    loadFromStorage<FastingSession[]>(KEYS.FASTING_SESSIONS, []),
+    loadFromStorage<WeightEntry[]>(KEYS.WEIGHT_ENTRIES, []),
+  ]);
   const data: ExportData = {
     version: 1,
     exportedAt: new Date().toISOString(),
-    foodEntries: loadFromStorage(KEYS.FOOD_ENTRIES, []),
-    fastingSessions: loadFromStorage(KEYS.FASTING_SESSIONS, []),
-    weightEntries: loadFromStorage(KEYS.WEIGHT_ENTRIES, []),
+    foodEntries,
+    fastingSessions,
+    weightEntries,
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
