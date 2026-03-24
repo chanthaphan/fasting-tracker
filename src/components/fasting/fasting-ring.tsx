@@ -76,7 +76,6 @@ export function FastingRing({ elapsedMs, phase, isActive, targetHours = 24, phas
 
         {/* Inner phase segments ring */}
         {phaseSegments.map((seg) => {
-          const segLength = seg.endFraction - seg.startFraction;
           const gap = 0.003; // small gap between segments
           const adjustedStart = seg.startFraction + (seg.startFraction > 0 ? gap / 2 : 0);
           const adjustedEnd = seg.endFraction - (seg.endFraction < 1 ? gap / 2 : 0);
