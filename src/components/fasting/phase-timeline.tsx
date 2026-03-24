@@ -1,16 +1,19 @@
+import type { FastingPhase } from '../../types';
 import { FASTING_PHASES } from '../../constants/fasting-phases';
 
 interface PhaseTimelineProps {
   elapsedMs: number;
   isActive: boolean;
+  phases?: FastingPhase[];
 }
 
-export function PhaseTimeline({ elapsedMs, isActive }: PhaseTimelineProps) {
+export function PhaseTimeline({ elapsedMs, isActive, phases }: PhaseTimelineProps) {
+  const displayPhases = phases ?? FASTING_PHASES;
   const hours = elapsedMs / (1000 * 60 * 60);
 
   return (
     <div className="space-y-1">
-      {FASTING_PHASES.map((phase) => {
+      {displayPhases.map((phase) => {
         const isCurrentPhase = isActive && hours >= phase.minHours && hours < phase.maxHours;
         const isPast = isActive && hours >= phase.maxHours;
 
@@ -40,7 +43,7 @@ export function PhaseTimeline({ elapsedMs, isActive }: PhaseTimelineProps) {
                   {phase.label}
                 </span>
                 <span className="text-xs text-gray-400">
-                  {phase.minHours}h{phase.maxHours !== Infinity ? ` - ${phase.maxHours}h` : '+'}
+                  {formatHour(phase.minHours)}h{phase.maxHours !== Infinity ? ` - ${formatHour(phase.maxHours)}h` : '+'}
                 </span>
               </div>
               {isCurrentPhase && (
@@ -52,4 +55,8 @@ export function PhaseTimeline({ elapsedMs, isActive }: PhaseTimelineProps) {
       })}
     </div>
   );
+}
+
+function formatHour(h: number): string {
+  return h === Math.floor(h) ? String(h) : h.toFixed(1);
 }
