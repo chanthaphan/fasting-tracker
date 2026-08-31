@@ -3,6 +3,8 @@ import { PageShell } from '../layout/page-shell';
 import { FastingRing } from './fasting-ring';
 import { PhaseTimeline } from './phase-timeline';
 import { EditFastingModal } from './edit-fasting-modal';
+import { AiFastSuggestion } from './ai-fast-suggestion';
+import { FastSummaryModal } from './fast-summary-modal';
 import { useFastingTimer } from '../../hooks/use-fasting-timer';
 import { useAppState } from '../../context/app-context';
 import { computeStreaks } from '../../utils/fasting-streak';
@@ -31,6 +33,7 @@ export function FastingPage() {
   const [editSession, setEditSession] = useState<FastingSession | null>(null);
   const [selectedTarget, setSelectedTarget] = useState(16);
   const [showFactors, setShowFactors] = useState(false);
+  const [summarySession, setSummarySession] = useState<FastingSession | null>(null);
 
   // Factor states
   const [sleepHours, setSleepHours] = useState(7);
@@ -226,6 +229,14 @@ export function FastingPage() {
           )}
         </div>
 
+        {/* AI target suggestion (only when not fasting) */}
+        {!isActive && (
+          <AiFastSuggestion
+            factors={{ sleepHours, hydration, caffeine, exerciseCals: totalExerciseCals }}
+            onApply={setSelectedTarget}
+          />
+        )}
+
         {/* Fasting target picker (only when not fasting) */}
         {!isActive && (
           <div className="w-full">
@@ -250,7 +261,14 @@ export function FastingPage() {
         )}
 
         <button
-          onClick={() => (isActive ? stopFast() : startFast(selectedTarget))}
+          onClick={() => {
+            if (isActive) {
+              if (activeFast) setSummarySession({ ...activeFast, endTime: Date.now() });
+              stopFast();
+            } else {
+              startFast(selectedTarget);
+            }
+          }}
           className={`flex items-center gap-2 px-8 py-3 rounded-2xl font-semibold text-white transition-all shadow-lg active:scale-95 ${
             isActive
               ? 'bg-red-500 hover:bg-red-600 shadow-red-500/25'
@@ -320,6 +338,12 @@ export function FastingPage() {
         onClose={() => { setEditModalOpen(false); setEditSession(null); }}
         onSave={handleEditSave}
         session={editSession}
+      />
+
+      <FastSummaryModal
+        open={summarySession !== null}
+        onClose={() => setSummarySession(null)}
+        session={summarySession}
       />
     </PageShell>
   );

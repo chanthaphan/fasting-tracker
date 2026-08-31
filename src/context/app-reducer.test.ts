@@ -13,6 +13,7 @@ const baseState: AppState = {
   goals: { calories: 2000, protein: 150, carbs: 200, fat: 65 },
   weightGoal: null,
   userProfile: null,
+  aiSettings: { apiKey: '', model: 'claude-opus-5', language: 'auto' },
 };
 
 describe('appReducer - Food actions', () => {
@@ -182,6 +183,17 @@ describe('appReducer - Import', () => {
       payload: { foodEntries: [], fastingSessions: [] },
     });
     expect(state.exerciseEntries).toHaveLength(1);
+  });
+});
+
+describe('appReducer - AI settings', () => {
+  it('SET_AI_SETTINGS replaces the AI settings', () => {
+    const state = appReducer(baseState, {
+      type: 'SET_AI_SETTINGS',
+      payload: { apiKey: 'sk-ant-test', model: 'claude-haiku-4-5', language: 'th' },
+    });
+    expect(state.aiSettings).toEqual({ apiKey: 'sk-ant-test', model: 'claude-haiku-4-5', language: 'th' });
+    expect(baseState.aiSettings.apiKey).toBe('');
   });
 });
 

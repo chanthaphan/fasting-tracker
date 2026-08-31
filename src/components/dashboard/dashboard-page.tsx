@@ -5,10 +5,12 @@ import { useFastingTimer } from '../../hooks/use-fasting-timer';
 import { sumMacros } from '../../utils/macro-calc';
 import { todayKey, formatDuration } from '../../utils/date-utils';
 import { useTheme } from '../../hooks/use-theme';
-import { Settings, Plus, Moon, Sun, Monitor, Weight, TrendingDown, TrendingUp, Minus, Target, User, Flame } from 'lucide-react';
+import { Settings, Plus, Moon, Sun, Monitor, Weight, TrendingDown, TrendingUp, Minus, Target, User, Flame, Sparkles } from 'lucide-react';
 import { exportData, parseImportFile } from '../../utils/export-import';
 import { GoalsModal } from './goals-modal';
 import { ProfileModal } from './profile-modal';
+import { AiSettingsModal } from '../ai/ai-settings-modal';
+import { DailyDigestCard } from './daily-digest-card';
 import { getTDEE } from '../../utils/tdee-calc';
 import { useRef, useMemo, useState } from 'react';
 
@@ -20,6 +22,7 @@ export function DashboardPage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [goalsOpen, setGoalsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
 
   const todayEntries = state.foodEntries.filter((e) => e.date === todayKey());
   const totals = sumMacros(todayEntries);
@@ -121,6 +124,13 @@ export function DashboardPage() {
             <User size={14} />
             Body Profile
           </button>
+          <button
+            onClick={() => setAiOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs font-medium"
+          >
+            <Sparkles size={14} />
+            AI Assistant
+          </button>
         </div>
         <p className="text-xs font-semibold text-gray-400 mb-2">Data</p>
         <div className="flex gap-2">
@@ -133,6 +143,9 @@ export function DashboardPage() {
           <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
         </div>
       </div>
+
+      {/* AI daily check-in */}
+      <DailyDigestCard />
 
       {/* Calorie card */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 mb-3 border border-gray-100 dark:border-gray-800">
@@ -306,6 +319,8 @@ export function DashboardPage() {
         onSave={(p) => dispatch({ type: 'SET_USER_PROFILE', payload: p })}
         currentProfile={state.userProfile}
       />
+
+      <AiSettingsModal open={aiOpen} onClose={() => setAiOpen(false)} />
     </PageShell>
   );
 }

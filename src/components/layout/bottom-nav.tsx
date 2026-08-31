@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, UtensilsCrossed, Timer, Weight, Flame, CalendarDays } from 'lucide-react';
+import { LayoutDashboard, UtensilsCrossed, Timer, Weight, Flame, CalendarDays, Sparkles } from 'lucide-react';
 
 const tabs = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -8,6 +8,7 @@ const tabs = [
   { to: '/exercise', icon: Flame, label: 'Exercise' },
   { to: '/weight', icon: Weight, label: 'Weight' },
   { to: '/history', icon: CalendarDays, label: 'History' },
+  { to: '/coach', icon: Sparkles, label: 'Coach' },
 ];
 
 export function BottomNav() {

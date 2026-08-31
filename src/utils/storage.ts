@@ -1,5 +1,8 @@
 import { get, set } from 'idb-keyval';
-import type { FoodEntry, FastingSession, WeightEntry, ExerciseEntry, MacroGoals, WeightGoal, UserProfile } from '../types';
+import type {
+  FoodEntry, FastingSession, WeightEntry, ExerciseEntry, MacroGoals, WeightGoal, UserProfile,
+  AiSettings, ChatMessageRecord, DailyDigestCache, FastPlanCache,
+} from '../types';
 
 const KEYS = {
   FOOD_ENTRIES: 'ft_food_entries',
@@ -7,6 +10,9 @@ const KEYS = {
   WEIGHT_ENTRIES: 'ft_weight_entries',
   EXERCISE_ENTRIES: 'ft_exercise_entries',
   SETTINGS: 'ft_settings',
+  AI_CHAT: 'ft_ai_chat',
+  AI_DIGEST: 'ft_ai_digest',
+  AI_FAST_PLAN: 'ft_ai_fast_plan',
 } as const;
 
 type Validator<T> = (value: unknown) => value is T;
@@ -114,21 +120,31 @@ export const isExerciseEntryArray: Validator<ExerciseEntry[]> = isArrayOf<Exerci
   (v) => hasKeys(v, 'id', 'name', 'calories', 'date')
 );
 
-export const isSettings: Validator<{
+export interface StoredSettings {
   theme: string;
   activeFastingId: string | null;
   goals: MacroGoals;
   weightGoal: WeightGoal | null;
   userProfile: UserProfile | null;
-}> = (
+  aiSettings?: AiSettings;
+}
+
+export const isSettings: Validator<StoredSettings> = (
   value: unknown
-): value is {
-  theme: string;
-  activeFastingId: string | null;
-  goals: MacroGoals;
-  weightGoal: WeightGoal | null;
-  userProfile: UserProfile | null;
-} =>
+): value is StoredSettings =>
   hasKeys(value, 'theme', 'goals');
+
+export const isChatHistory: Validator<ChatMessageRecord[]> = isArrayOf<ChatMessageRecord>(
+  (v) =>
+    hasKeys(v, 'role', 'content') &&
+    ((v as ChatMessageRecord).role === 'user' || (v as ChatMessageRecord).role === 'assistant') &&
+    typeof (v as ChatMessageRecord).content === 'string'
+);
+
+export const isDigestCache: Validator<DailyDigestCache> = (value: unknown): value is DailyDigestCache =>
+  hasKeys(value, 'dateKey', 'content');
+
+export const isFastPlanCache: Validator<FastPlanCache> = (value: unknown): value is FastPlanCache =>
+  hasKeys(value, 'dateKey', 'targetHours');
 
 export { KEYS };
