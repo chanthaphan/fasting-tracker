@@ -1,7 +1,8 @@
-import type { FoodEntry, FastingSession, WeightEntry, ExerciseEntry } from '../types';
+import type { FoodEntry, FastingSession, WeightEntry, ExerciseEntry, WorkoutSession, WorkoutTemplate } from '../types';
 import {
   KEYS, loadFromStorage,
   isFoodEntryArray, isFastingSessionArray, isWeightEntryArray, isExerciseEntryArray,
+  isWorkoutSessionArray, isWorkoutTemplateArray,
 } from './storage';
 
 interface ExportData {
@@ -11,14 +12,18 @@ interface ExportData {
   fastingSessions: FastingSession[];
   weightEntries: WeightEntry[];
   exerciseEntries: ExerciseEntry[];
+  workoutSessions: WorkoutSession[];
+  workoutTemplates: WorkoutTemplate[];
 }
 
 export async function exportData(): Promise<void> {
-  const [foodEntries, fastingSessions, weightEntries, exerciseEntries] = await Promise.all([
+  const [foodEntries, fastingSessions, weightEntries, exerciseEntries, workoutSessions, workoutTemplates] = await Promise.all([
     loadFromStorage<FoodEntry[]>(KEYS.FOOD_ENTRIES, []),
     loadFromStorage<FastingSession[]>(KEYS.FASTING_SESSIONS, []),
     loadFromStorage<WeightEntry[]>(KEYS.WEIGHT_ENTRIES, []),
     loadFromStorage<ExerciseEntry[]>(KEYS.EXERCISE_ENTRIES, []),
+    loadFromStorage<WorkoutSession[]>(KEYS.WORKOUT_SESSIONS, []),
+    loadFromStorage<WorkoutTemplate[]>(KEYS.WORKOUT_TEMPLATES, []),
   ]);
   const data: ExportData = {
     version: 1,
@@ -27,6 +32,8 @@ export async function exportData(): Promise<void> {
     fastingSessions,
     weightEntries,
     exerciseEntries,
+    workoutSessions,
+    workoutTemplates,
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -42,6 +49,8 @@ export function parseImportFile(file: File): Promise<{
   fastingSessions: FastingSession[];
   weightEntries?: WeightEntry[];
   exerciseEntries?: ExerciseEntry[];
+  workoutSessions?: WorkoutSession[];
+  workoutTemplates?: WorkoutTemplate[];
 }> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -56,6 +65,8 @@ export function parseImportFile(file: File): Promise<{
           fastingSessions: data.fastingSessions,
           weightEntries: isWeightEntryArray(data.weightEntries) ? data.weightEntries : undefined,
           exerciseEntries: isExerciseEntryArray(data.exerciseEntries) ? data.exerciseEntries : undefined,
+          workoutSessions: isWorkoutSessionArray(data.workoutSessions) ? data.workoutSessions : undefined,
+          workoutTemplates: isWorkoutTemplateArray(data.workoutTemplates) ? data.workoutTemplates : undefined,
         });
       } catch (e) {
         reject(e);

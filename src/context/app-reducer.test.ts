@@ -7,6 +7,9 @@ const baseState: AppState = {
   fastingSessions: [],
   weightEntries: [],
   exerciseEntries: [],
+  workoutSessions: [],
+  workoutTemplates: [],
+  activeWorkoutId: null,
   activeFastingId: null,
   selectedDate: '2025-01-01',
   theme: 'system',
@@ -194,6 +197,104 @@ describe('appReducer - AI settings', () => {
     });
     expect(state.aiSettings).toEqual({ apiKey: 'sk-ant-test', model: 'claude-haiku-4-5', language: 'th' });
     expect(baseState.aiSettings.apiKey).toBe('');
+  });
+});
+
+describe('appReducer - Workout actions', () => {
+  const makeActiveWorkout = () => {
+    const state = appReducer(baseState, { type: 'START_WORKOUT', payload: { name: 'Push Day' } });
+    return { state, session: state.workoutSessions[0] };
+  };
+
+  it('START_WORKOUT creates an active session', () => {
+    const { state, session } = makeActiveWorkout();
+    expect(state.workoutSessions).toHaveLength(1);
+    expect(session.endTime).toBeNull();
+    expect(session.name).toBe('Push Day');
+    expect(state.activeWorkoutId).toBe(session.id);
+  });
+
+  it('START_WORKOUT is a no-op when a workout is already active', () => {
+    const { state } = makeActiveWorkout();
+    const again = appReducer(state, { type: 'START_WORKOUT' });
+    expect(again).toBe(state);
+  });
+
+  it('UPDATE_WORKOUT replaces the session by id', () => {
+    const { state, session } = makeActiveWorkout();
+    const updated = appReducer(state, {
+      type: 'UPDATE_WORKOUT',
+      payload: {
+        ...session,
+        exercises: [{ id: 'e1', name: 'Bench Press', sets: [{ id: 's1', weightKg: 60, reps: 8, completed: true }] }],
+      },
+    });
+    expect(updated.workoutSessions[0].exercises).toHaveLength(1);
+  });
+
+  it('FINISH_WORKOUT sets endTime, clears activeWorkoutId, appends derived exercise entry', () => {
+    const { state, session } = makeActiveWorkout();
+    const withSets = appReducer(state, {
+      type: 'UPDATE_WORKOUT',
+      payload: {
+        ...session,
+        exercises: [{ id: 'e1', name: 'Bench Press', sets: [{ id: 's1', weightKg: 60, reps: 8, completed: true }] }],
+      },
+    });
+    const endTime = session.startTime + 60 * 60000; // 60 minutes
+    const finished = appReducer(withSets, { type: 'FINISH_WORKOUT', payload: { id: session.id, endTime } });
+    expect(finished.workoutSessions[0].endTime).toBe(endTime);
+    expect(finished.activeWorkoutId).toBeNull();
+    expect(finished.exerciseEntries).toHaveLength(1);
+    expect(finished.exerciseEntries[0].name).toBe('Weight Training');
+    expect(finished.exerciseEntries[0].durationMin).toBe(60);
+    expect(finished.exerciseEntries[0].calories).toBe(300); // 150/30min * 60min
+    expect(finished.exerciseEntries[0].note).toBe('Push Day');
+  });
+
+  it('FINISH_WORKOUT skips the derived entry when no set was completed', () => {
+    const { state, session } = makeActiveWorkout();
+    const finished = appReducer(state, {
+      type: 'FINISH_WORKOUT',
+      payload: { id: session.id, endTime: session.startTime + 30 * 60000 },
+    });
+    expect(finished.exerciseEntries).toHaveLength(0);
+    expect(finished.activeWorkoutId).toBeNull();
+  });
+
+  it('CANCEL_WORKOUT removes the session and clears activeWorkoutId', () => {
+    const { state, session } = makeActiveWorkout();
+    const cancelled = appReducer(state, { type: 'CANCEL_WORKOUT', payload: { id: session.id } });
+    expect(cancelled.workoutSessions).toHaveLength(0);
+    expect(cancelled.activeWorkoutId).toBeNull();
+  });
+
+  it('SAVE_TEMPLATE and DELETE_TEMPLATE round-trip', () => {
+    const saved = appReducer(baseState, {
+      type: 'SAVE_TEMPLATE',
+      payload: { name: 'Push Day', exercises: [{ name: 'Bench Press', numSets: 3, lastWeightKg: 60, lastReps: 8 }] },
+    });
+    expect(saved.workoutTemplates).toHaveLength(1);
+    expect(saved.workoutTemplates[0].id).toBeTruthy();
+    const deleted = appReducer(saved, { type: 'DELETE_TEMPLATE', payload: { id: saved.workoutTemplates[0].id } });
+    expect(deleted.workoutTemplates).toHaveLength(0);
+  });
+
+  it('IMPORT_DATA restores workouts and recomputes activeWorkoutId', () => {
+    const active = { id: 'w1', name: 'Workout', date: '2025-01-01', startTime: 1, endTime: null, exercises: [] };
+    const state = appReducer(baseState, {
+      type: 'IMPORT_DATA',
+      payload: { foodEntries: [], fastingSessions: [], workoutSessions: [active], workoutTemplates: [] },
+    });
+    expect(state.workoutSessions).toHaveLength(1);
+    expect(state.activeWorkoutId).toBe('w1');
+  });
+
+  it('IMPORT_DATA without workout fields preserves existing workouts', () => {
+    const { state } = makeActiveWorkout();
+    const imported = appReducer(state, { type: 'IMPORT_DATA', payload: { foodEntries: [], fastingSessions: [] } });
+    expect(imported.workoutSessions).toHaveLength(1);
+    expect(imported.activeWorkoutId).toBe(state.activeWorkoutId);
   });
 });
 

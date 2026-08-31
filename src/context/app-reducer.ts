@@ -1,4 +1,6 @@
 import type { AppState, AppAction } from '../types';
+import { STRENGTH_CALORIES_PER_30MIN } from '../constants/lift-presets';
+import { dateKey } from '../utils/date-utils';
 
 export function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
@@ -111,16 +113,95 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, userProfile: action.payload };
     case 'SET_AI_SETTINGS':
       return { ...state, aiSettings: action.payload };
-    case 'IMPORT_DATA':
+    case 'START_WORKOUT': {
+      if (state.activeWorkoutId) return state;
+      const now = Date.now();
+      const session = {
+        id: crypto.randomUUID(),
+        name: action.payload?.name ?? 'Workout',
+        date: dateKey(new Date(now)),
+        startTime: now,
+        endTime: null,
+        exercises: action.payload?.exercises ?? [],
+        templateId: action.payload?.templateId,
+      };
+      return {
+        ...state,
+        workoutSessions: [...state.workoutSessions, session],
+        activeWorkoutId: session.id,
+      };
+    }
+    case 'UPDATE_WORKOUT':
+      return {
+        ...state,
+        workoutSessions: state.workoutSessions.map((s) =>
+          s.id === action.payload.id ? action.payload : s
+        ),
+      };
+    case 'FINISH_WORKOUT': {
+      const session = state.workoutSessions.find((s) => s.id === action.payload.id);
+      if (!session) return state;
+      const durationMin = Math.round((action.payload.endTime - session.startTime) / 60000);
+      const hasCompletedSet = session.exercises.some((ex) => ex.sets.some((set) => set.completed));
+      const derivedEntry =
+        hasCompletedSet && durationMin >= 1
+          ? [{
+              id: crypto.randomUUID(),
+              name: 'Weight Training',
+              calories: Math.round((STRENGTH_CALORIES_PER_30MIN / 30) * durationMin),
+              durationMin,
+              date: session.date,
+              note: session.name !== 'Workout' ? session.name : undefined,
+              createdAt: Date.now(),
+            }]
+          : [];
+      return {
+        ...state,
+        workoutSessions: state.workoutSessions.map((s) =>
+          s.id === action.payload.id
+            ? { ...s, endTime: action.payload.endTime, restTimerEndsAt: null }
+            : s
+        ),
+        exerciseEntries: [...state.exerciseEntries, ...derivedEntry],
+        activeWorkoutId: state.activeWorkoutId === action.payload.id ? null : state.activeWorkoutId,
+      };
+    }
+    case 'CANCEL_WORKOUT':
+    case 'DELETE_WORKOUT':
+      return {
+        ...state,
+        workoutSessions: state.workoutSessions.filter((s) => s.id !== action.payload.id),
+        activeWorkoutId:
+          state.activeWorkoutId === action.payload.id ? null : state.activeWorkoutId,
+      };
+    case 'SAVE_TEMPLATE': {
+      const template = {
+        ...action.payload,
+        id: crypto.randomUUID(),
+        createdAt: Date.now(),
+      };
+      return { ...state, workoutTemplates: [...state.workoutTemplates, template] };
+    }
+    case 'DELETE_TEMPLATE':
+      return {
+        ...state,
+        workoutTemplates: state.workoutTemplates.filter((t) => t.id !== action.payload.id),
+      };
+    case 'IMPORT_DATA': {
+      const workoutSessions = action.payload.workoutSessions ?? state.workoutSessions;
       return {
         ...state,
         foodEntries: action.payload.foodEntries,
         fastingSessions: action.payload.fastingSessions,
         weightEntries: action.payload.weightEntries ?? state.weightEntries,
         exerciseEntries: action.payload.exerciseEntries ?? state.exerciseEntries,
+        workoutSessions,
+        workoutTemplates: action.payload.workoutTemplates ?? state.workoutTemplates,
         activeFastingId:
           action.payload.fastingSessions.find((s) => s.endTime === null)?.id ?? null,
+        activeWorkoutId: workoutSessions.find((s) => s.endTime === null)?.id ?? null,
       };
+    }
     case 'HYDRATE':
       return action.payload;
     default:

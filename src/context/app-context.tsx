@@ -5,6 +5,7 @@ import { appReducer } from './app-reducer';
 import {
   KEYS, loadFromStorage, loadFromStorageSync, saveToStorage,
   isFoodEntryArray, isFastingSessionArray, isWeightEntryArray, isExerciseEntryArray, isSettings,
+  isWorkoutSessionArray, isWorkoutTemplateArray,
 } from '../utils/storage';
 import { todayKey } from '../utils/date-utils';
 
@@ -15,6 +16,9 @@ const initialState: AppState = {
   fastingSessions: [],
   weightEntries: [],
   exerciseEntries: [],
+  workoutSessions: [],
+  workoutTemplates: [],
+  activeWorkoutId: null,
   activeFastingId: null,
   selectedDate: todayKey(),
   theme: 'system',
@@ -34,6 +38,8 @@ function loadInitialState(): AppState {
   const fastingSessions = loadFromStorageSync(KEYS.FASTING_SESSIONS, initialState.fastingSessions, isFastingSessionArray);
   const weightEntries = loadFromStorageSync(KEYS.WEIGHT_ENTRIES, initialState.weightEntries, isWeightEntryArray);
   const exerciseEntries = loadFromStorageSync(KEYS.EXERCISE_ENTRIES, initialState.exerciseEntries, isExerciseEntryArray);
+  const workoutSessions = loadFromStorageSync(KEYS.WORKOUT_SESSIONS, initialState.workoutSessions, isWorkoutSessionArray);
+  const workoutTemplates = loadFromStorageSync(KEYS.WORKOUT_TEMPLATES, initialState.workoutTemplates, isWorkoutTemplateArray);
   const settings = loadFromStorageSync(KEYS.SETTINGS, {
     theme: initialState.theme,
     activeFastingId: initialState.activeFastingId,
@@ -46,6 +52,9 @@ function loadInitialState(): AppState {
     fastingSessions,
     weightEntries,
     exerciseEntries,
+    workoutSessions,
+    workoutTemplates,
+    activeWorkoutId: settings.activeWorkoutId ?? workoutSessions.find((s) => s.endTime === null)?.id ?? null,
     activeFastingId: settings.activeFastingId,
     selectedDate: todayKey(),
     theme: settings.theme as AppState['theme'],
@@ -63,11 +72,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     async function hydrate() {
-      const [foodEntries, fastingSessions, weightEntries, exerciseEntries, settings] = await Promise.all([
+      const [foodEntries, fastingSessions, weightEntries, exerciseEntries, workoutSessions, workoutTemplates, settings] = await Promise.all([
         loadFromStorage(KEYS.FOOD_ENTRIES, initialState.foodEntries, isFoodEntryArray),
         loadFromStorage(KEYS.FASTING_SESSIONS, initialState.fastingSessions, isFastingSessionArray),
         loadFromStorage(KEYS.WEIGHT_ENTRIES, initialState.weightEntries, isWeightEntryArray),
         loadFromStorage(KEYS.EXERCISE_ENTRIES, initialState.exerciseEntries, isExerciseEntryArray),
+        loadFromStorage(KEYS.WORKOUT_SESSIONS, initialState.workoutSessions, isWorkoutSessionArray),
+        loadFromStorage(KEYS.WORKOUT_TEMPLATES, initialState.workoutTemplates, isWorkoutTemplateArray),
         loadFromStorage(KEYS.SETTINGS, {
           theme: initialState.theme,
           activeFastingId: initialState.activeFastingId,
@@ -84,6 +95,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
           fastingSessions,
           weightEntries,
           exerciseEntries,
+          workoutSessions,
+          workoutTemplates,
+          activeWorkoutId: settings.activeWorkoutId ?? workoutSessions.find((s) => s.endTime === null)?.id ?? null,
           activeFastingId: settings.activeFastingId,
           selectedDate: todayKey(),
           theme: settings.theme as AppState['theme'],
@@ -115,6 +129,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [state.exerciseEntries]);
 
   useEffect(() => {
+    saveToStorage(KEYS.WORKOUT_SESSIONS, state.workoutSessions);
+  }, [state.workoutSessions]);
+
+  useEffect(() => {
+    saveToStorage(KEYS.WORKOUT_TEMPLATES, state.workoutTemplates);
+  }, [state.workoutTemplates]);
+
+  useEffect(() => {
     saveToStorage(KEYS.SETTINGS, {
       theme: state.theme,
       activeFastingId: state.activeFastingId,
@@ -122,8 +144,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       weightGoal: state.weightGoal,
       userProfile: state.userProfile,
       aiSettings: state.aiSettings,
+      activeWorkoutId: state.activeWorkoutId,
     });
-  }, [state.theme, state.activeFastingId, state.goals, state.weightGoal, state.userProfile, state.aiSettings]);
+  }, [state.theme, state.activeFastingId, state.goals, state.weightGoal, state.userProfile, state.aiSettings, state.activeWorkoutId]);
 
   const [storageFull, setStorageFull] = useState(false);
 
