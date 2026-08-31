@@ -7,6 +7,7 @@ import { FastingPage } from './components/fasting/fasting-page';
 import { WeightPage } from './components/weight/weight-page';
 import { ExercisePage } from './components/exercise/exercise-page';
 import { HistoryPage } from './components/history/history-page';
+import { CoachPage } from './components/coach/coach-page';
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
             <Route path="/exercise" element={<ExercisePage />} />
             <Route path="/weight" element={<WeightPage />} />
             <Route path="/history" element={<HistoryPage />} />
+            <Route path="/coach" element={<CoachPage />} />
           </Routes>
           <BottomNav />
         </div>
