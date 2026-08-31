@@ -1,5 +1,6 @@
 import { createContext, useContext, useReducer, useEffect, useState, type ReactNode } from 'react';
 import type { AppState, AppAction } from '../types';
+import { DEFAULT_AI_SETTINGS } from '../constants/ai';
 import { appReducer } from './app-reducer';
 import {
   KEYS, loadFromStorage, loadFromStorageSync, saveToStorage,
@@ -20,6 +21,7 @@ const initialState: AppState = {
   goals: DEFAULT_GOALS,
   weightGoal: null,
   userProfile: null,
+  aiSettings: DEFAULT_AI_SETTINGS,
 };
 
 const AppContext = createContext<{
@@ -50,6 +52,7 @@ function loadInitialState(): AppState {
     goals: settings.goals ?? DEFAULT_GOALS,
     weightGoal: settings.weightGoal ?? null,
     userProfile: settings.userProfile ?? null,
+    aiSettings: settings.aiSettings ?? DEFAULT_AI_SETTINGS,
   };
 }
 
@@ -87,6 +90,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           goals: settings.goals ?? DEFAULT_GOALS,
           weightGoal: settings.weightGoal ?? null,
           userProfile: settings.userProfile ?? null,
+          aiSettings: settings.aiSettings ?? DEFAULT_AI_SETTINGS,
         },
       });
     }
@@ -117,8 +121,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       goals: state.goals,
       weightGoal: state.weightGoal,
       userProfile: state.userProfile,
+      aiSettings: state.aiSettings,
     });
-  }, [state.theme, state.activeFastingId, state.goals, state.weightGoal, state.userProfile]);
+  }, [state.theme, state.activeFastingId, state.goals, state.weightGoal, state.userProfile, state.aiSettings]);
 
   const [storageFull, setStorageFull] = useState(false);
 

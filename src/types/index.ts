@@ -72,6 +72,44 @@ export interface ExerciseEntry {
   createdAt: number;
 }
 
+export type AiModel = 'claude-opus-5' | 'claude-haiku-4-5';
+
+export type AiLanguage = 'auto' | 'th' | 'en';
+
+export interface AiSettings {
+  apiKey: string;
+  model: AiModel;
+  language: AiLanguage;
+}
+
+export interface ParsedFoodItem {
+  name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  mealType: MealType;
+}
+
+export interface DailyDigestCache {
+  dateKey: string;
+  content: string;
+  model: string;
+  generatedAt: number;
+}
+
+export interface FastPlanCache {
+  dateKey: string;
+  targetHours: number;
+  reason: string;
+  generatedAt: number;
+}
+
+export interface ChatMessageRecord {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export interface AppState {
   foodEntries: FoodEntry[];
   fastingSessions: FastingSession[];
@@ -83,6 +121,7 @@ export interface AppState {
   goals: MacroGoals;
   weightGoal: WeightGoal | null;
   userProfile: UserProfile | null;
+  aiSettings: AiSettings;
 }
 
 export type AppAction =
@@ -104,5 +143,6 @@ export type AppAction =
   | { type: 'SET_GOALS'; payload: MacroGoals }
   | { type: 'SET_WEIGHT_GOAL'; payload: WeightGoal | null }
   | { type: 'SET_USER_PROFILE'; payload: UserProfile | null }
+  | { type: 'SET_AI_SETTINGS'; payload: AiSettings }
   | { type: 'IMPORT_DATA'; payload: { foodEntries: FoodEntry[]; fastingSessions: FastingSession[]; weightEntries?: WeightEntry[]; exerciseEntries?: ExerciseEntry[] } }
   | { type: 'HYDRATE'; payload: AppState };

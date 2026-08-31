@@ -109,6 +109,8 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, weightGoal: action.payload };
     case 'SET_USER_PROFILE':
       return { ...state, userProfile: action.payload };
+    case 'SET_AI_SETTINGS':
+      return { ...state, aiSettings: action.payload };
     case 'IMPORT_DATA':
       return {
         ...state,
