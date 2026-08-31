@@ -10,6 +10,7 @@ import { exportData, parseImportFile } from '../../utils/export-import';
 import { GoalsModal } from './goals-modal';
 import { ProfileModal } from './profile-modal';
 import { AiSettingsModal } from '../ai/ai-settings-modal';
+import { DailyDigestCard } from './daily-digest-card';
 import { getTDEE } from '../../utils/tdee-calc';
 import { useRef, useMemo, useState } from 'react';
 
@@ -142,6 +143,9 @@ export function DashboardPage() {
           <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
         </div>
       </div>
+
+      {/* AI daily check-in */}
+      <DailyDigestCard />
 
       {/* Calorie card */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 mb-3 border border-gray-100 dark:border-gray-800">
