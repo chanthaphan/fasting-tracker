@@ -8,6 +8,7 @@ import { WeightPage } from './components/weight/weight-page';
 import { ExercisePage } from './components/exercise/exercise-page';
 import { HistoryPage } from './components/history/history-page';
 import { CoachPage } from './components/coach/coach-page';
+import { ActiveWorkoutPage } from './components/workout/active-workout-page';
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
             <Route path="/weight" element={<WeightPage />} />
             <Route path="/history" element={<HistoryPage />} />
             <Route path="/coach" element={<CoachPage />} />
+            <Route path="/workout" element={<ActiveWorkoutPage />} />
           </Routes>
           <BottomNav />
         </div>

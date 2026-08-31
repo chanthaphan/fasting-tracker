@@ -5,6 +5,9 @@ import {
   isWeightEntryArray,
   isExerciseEntryArray,
   isSettings,
+  isWorkoutSessionArray,
+  isWorkoutTemplateArray,
+  isWorkoutPlanCache,
   loadFromStorageSync,
   saveToStorage,
 } from './storage';
@@ -91,6 +94,32 @@ describe('Validators', () => {
       expect(isSettings('string')).toBe(false);
       expect(isSettings(null)).toBe(false);
     });
+  });
+});
+
+describe('Workout validators', () => {
+  const session = { id: 'w1', name: 'Workout', date: '2025-01-01', startTime: 1, endTime: null, exercises: [] };
+
+  it('isWorkoutSessionArray accepts valid sessions and empty arrays', () => {
+    expect(isWorkoutSessionArray([session])).toBe(true);
+    expect(isWorkoutSessionArray([])).toBe(true);
+  });
+
+  it('isWorkoutSessionArray rejects non-arrays and malformed items', () => {
+    expect(isWorkoutSessionArray('x')).toBe(false);
+    expect(isWorkoutSessionArray([{ id: 'w1' }])).toBe(false);
+    expect(isWorkoutSessionArray([{ ...session, exercises: 'nope' }])).toBe(false);
+  });
+
+  it('isWorkoutTemplateArray validates shape', () => {
+    expect(isWorkoutTemplateArray([{ id: 't1', name: 'Push', exercises: [], createdAt: 1 }])).toBe(true);
+    expect(isWorkoutTemplateArray([{ id: 't1' }])).toBe(false);
+  });
+
+  it('isWorkoutPlanCache validates shape', () => {
+    expect(isWorkoutPlanCache({ dateKey: '2025-01-01', exercises: [], reason: '', generatedAt: 1 })).toBe(true);
+    expect(isWorkoutPlanCache({ dateKey: '2025-01-01', exercises: 'x' })).toBe(false);
+    expect(isWorkoutPlanCache(null)).toBe(false);
   });
 });
 

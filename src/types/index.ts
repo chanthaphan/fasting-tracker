@@ -110,11 +110,67 @@ export interface ChatMessageRecord {
   content: string;
 }
 
+export interface WorkoutSet {
+  id: string;
+  weightKg: number;
+  reps: number;
+  completed: boolean;
+}
+
+export interface WorkoutExercise {
+  id: string;
+  name: string;
+  sets: WorkoutSet[];
+}
+
+export interface WorkoutSession {
+  id: string;
+  name: string;
+  date: string; // 'YYYY-MM-DD' of start
+  startTime: number; // Unix ms
+  endTime: number | null; // null = active
+  exercises: WorkoutExercise[];
+  note?: string;
+  restTimerEndsAt?: number | null; // Unix ms — persisted so the timer survives navigation/reload
+  templateId?: string;
+}
+
+export interface WorkoutTemplateExercise {
+  name: string;
+  numSets: number;
+  lastWeightKg?: number;
+  lastReps?: number;
+}
+
+export interface WorkoutTemplate {
+  id: string;
+  name: string;
+  exercises: WorkoutTemplateExercise[];
+  createdAt: number;
+}
+
+export interface WorkoutPlanExercise {
+  name: string;
+  sets: number;
+  targetWeightKg: number;
+  targetReps: number;
+}
+
+export interface WorkoutPlanCache {
+  dateKey: string;
+  exercises: WorkoutPlanExercise[];
+  reason: string;
+  generatedAt: number;
+}
+
 export interface AppState {
   foodEntries: FoodEntry[];
   fastingSessions: FastingSession[];
   weightEntries: WeightEntry[];
   exerciseEntries: ExerciseEntry[];
+  workoutSessions: WorkoutSession[];
+  workoutTemplates: WorkoutTemplate[];
+  activeWorkoutId: string | null;
   activeFastingId: string | null;
   selectedDate: string;
   theme: 'light' | 'dark' | 'system';
@@ -144,5 +200,12 @@ export type AppAction =
   | { type: 'SET_WEIGHT_GOAL'; payload: WeightGoal | null }
   | { type: 'SET_USER_PROFILE'; payload: UserProfile | null }
   | { type: 'SET_AI_SETTINGS'; payload: AiSettings }
-  | { type: 'IMPORT_DATA'; payload: { foodEntries: FoodEntry[]; fastingSessions: FastingSession[]; weightEntries?: WeightEntry[]; exerciseEntries?: ExerciseEntry[] } }
+  | { type: 'START_WORKOUT'; payload?: { name?: string; exercises?: WorkoutExercise[]; templateId?: string } }
+  | { type: 'UPDATE_WORKOUT'; payload: WorkoutSession }
+  | { type: 'FINISH_WORKOUT'; payload: { id: string; endTime: number } }
+  | { type: 'CANCEL_WORKOUT'; payload: { id: string } }
+  | { type: 'DELETE_WORKOUT'; payload: { id: string } }
+  | { type: 'SAVE_TEMPLATE'; payload: Omit<WorkoutTemplate, 'id' | 'createdAt'> }
+  | { type: 'DELETE_TEMPLATE'; payload: { id: string } }
+  | { type: 'IMPORT_DATA'; payload: { foodEntries: FoodEntry[]; fastingSessions: FastingSession[]; weightEntries?: WeightEntry[]; exerciseEntries?: ExerciseEntry[]; workoutSessions?: WorkoutSession[]; workoutTemplates?: WorkoutTemplate[] } }
   | { type: 'HYDRATE'; payload: AppState };
