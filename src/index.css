@@ -50,3 +50,42 @@ body {
 .transition-phase {
   transition: stroke-dashoffset 1s linear, stroke 0.5s ease;
 }
+
+/* Compact styling for markdown in AI responses (chat bubbles, digest, recaps) */
+.ai-markdown > *:first-child { margin-top: 0; }
+.ai-markdown > *:last-child { margin-bottom: 0; }
+.ai-markdown p { margin: 0 0 0.5em; }
+.ai-markdown ul, .ai-markdown ol { margin: 0.25em 0 0.5em; padding-left: 1.25em; }
+.ai-markdown ul { list-style: disc; }
+.ai-markdown ol { list-style: decimal; }
+.ai-markdown li { margin: 0.125em 0; }
+.ai-markdown li > p { margin: 0; }
+.ai-markdown strong { font-weight: 600; }
+.ai-markdown h1, .ai-markdown h2, .ai-markdown h3, .ai-markdown h4 {
+  font-size: 1em;
+  font-weight: 600;
+  margin: 0.6em 0 0.25em;
+}
+.ai-markdown code {
+  font-size: 0.85em;
+  padding: 0.1em 0.3em;
+  border-radius: 0.25rem;
+  @apply bg-black/5 dark:bg-white/10;
+}
+.ai-markdown pre {
+  overflow-x: auto;
+  padding: 0.5em 0.75em;
+  border-radius: 0.5rem;
+  margin: 0.25em 0 0.5em;
+  @apply bg-black/5 dark:bg-white/10;
+}
+.ai-markdown pre code { padding: 0; background: none; }
+.ai-markdown a { text-decoration: underline; @apply text-brand-600 dark:text-brand-400; }
+.ai-markdown blockquote {
+  margin: 0.25em 0 0.5em;
+  padding-left: 0.75em;
+  @apply border-l-2 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400;
+}
+.ai-markdown hr { margin: 0.5em 0; @apply border-gray-200 dark:border-gray-700; }
+.ai-markdown table { border-collapse: collapse; margin: 0.25em 0 0.5em; display: block; overflow-x: auto; }
+.ai-markdown th, .ai-markdown td { padding: 0.25em 0.5em; @apply border border-gray-200 dark:border-gray-700; }
