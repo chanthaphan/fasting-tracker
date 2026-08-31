@@ -3,11 +3,15 @@ import { dateKey } from '../date-utils';
 import { sumMacros } from '../macro-calc';
 import { getTDEE } from '../tdee-calc';
 import { computeStreaks } from '../fasting-streak';
+import { computeLiftRecords, listLifts, sessionVolume } from '../workout-stats';
 
 const FOOD_DAYS = 14;
 const MAX_FASTS = 10;
 const MAX_WEIGHTS = 8;
 const MAX_TODAY_FOODS = 15;
+const MAX_WORKOUTS = 8;
+const MAX_LIFTS_PER_LINE = 6;
+const MAX_LIFT_BESTS = 8;
 
 function toKg(weight: number, unit: string): number {
   return unit === 'lbs' ? weight * 0.453592 : weight;
@@ -95,6 +99,35 @@ export function buildHealthContext(state: AppState, now: Date = new Date()): str
         })
         .join(', ')}`
     );
+  }
+
+  // Weight training
+  const finishedWorkouts = state.workoutSessions
+    .filter((s) => s.endTime !== null)
+    .sort((a, b) => b.startTime - a.startTime)
+    .slice(0, MAX_WORKOUTS);
+  if (finishedWorkouts.length > 0) {
+    lines.push('Recent weight-training workouts:');
+    for (const w of finishedWorkouts) {
+      const mins = Math.round((w.endTime! - w.startTime) / 60000);
+      const liftSummaries = w.exercises
+        .map((ex) => {
+          const completed = ex.sets.filter((s) => s.completed);
+          if (completed.length === 0) return null;
+          const top = completed.reduce((best, s) => (s.weightKg > best.weightKg ? s : best));
+          return `${ex.name} ${top.weightKg}kgx${top.reps}`;
+        })
+        .filter((s): s is string => s !== null)
+        .slice(0, MAX_LIFTS_PER_LINE);
+      lines.push(`${w.date} ${w.name} ${mins}min vol ${Math.round(sessionVolume(w))}kg: ${liftSummaries.join(', ')}`);
+    }
+    const bests = listLifts(state.workoutSessions)
+      .slice(0, MAX_LIFT_BESTS)
+      .map((lift) => {
+        const r = computeLiftRecords(state.workoutSessions, lift.name);
+        return `${lift.name} ${r.bestWeightKg}kg (1RM ${Math.round(r.best1RmKg)})`;
+      });
+    if (bests.length > 0) lines.push(`Lift bests: ${bests.join(', ')}`);
   }
 
   // Today

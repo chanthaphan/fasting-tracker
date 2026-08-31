@@ -117,6 +117,51 @@ describe('buildHealthContext', () => {
   });
 });
 
+describe('buildHealthContext - workouts', () => {
+  function workout(id: string, daysAgo: number, endOffsetMs: number | null = 3600000) {
+    const start = NOW.getTime() - daysAgo * 86400000;
+    return {
+      id,
+      name: 'Push Day',
+      date: dayKey(daysAgo),
+      startTime: start,
+      endTime: endOffsetMs === null ? null : start + endOffsetMs,
+      exercises: [
+        {
+          id: `${id}-e1`,
+          name: 'Bench Press',
+          sets: [{ id: `${id}-s1`, weightKg: 60, reps: 8, completed: true }],
+        },
+      ],
+    };
+  }
+
+  it('includes workout lines with top sets and lift bests', () => {
+    const state = { ...emptyState, workoutSessions: [workout('w1', 1)] };
+    const out = buildHealthContext(state, NOW);
+    expect(out).toContain('Recent weight-training workouts:');
+    expect(out).toContain('Bench Press 60kgx8');
+    expect(out).toContain('Lift bests: Bench Press 60kg (1RM 76)');
+  });
+
+  it('excludes active workouts and caps at 8', () => {
+    const sessions = [
+      workout('active', 0, null),
+      ...Array.from({ length: 12 }, (_, i) => workout(`w${i}`, i + 1)),
+    ];
+    const state = { ...emptyState, workoutSessions: sessions };
+    const out = buildHealthContext(state, NOW);
+    const workoutLines = out.split('\n').filter((l) => l.includes('Push Day'));
+    expect(workoutLines).toHaveLength(8);
+    expect(out).not.toContain(dayKey(0) + ' Push Day');
+  });
+
+  it('omits the section when there are no workouts', () => {
+    const out = buildHealthContext(emptyState, NOW);
+    expect(out).not.toContain('weight-training');
+  });
+});
+
 describe('dataLooksThai', () => {
   it('detects Thai food names', () => {
     const state = { ...emptyState, foodEntries: [{ ...makeFood(0), name: 'ผัดกะเพราไก่' }] };
