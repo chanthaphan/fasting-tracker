@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { LayoutDashboard, UtensilsCrossed, Timer, Weight, Flame, CalendarDays, Sparkles } from 'lucide-react';
 
 const tabs = [
@@ -12,6 +12,9 @@ const tabs = [
 ];
 
 export function BottomNav() {
+  const { pathname } = useLocation();
+  // Active workout is a full-screen experience
+  if (pathname === '/workout') return null;
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 pb-[env(safe-area-inset-bottom)]">
       <div className="flex items-center justify-around max-w-lg mx-auto h-14">

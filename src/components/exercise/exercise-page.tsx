@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Plus, Pencil, Trash2, Flame } from 'lucide-react';
 import { PageShell } from '../layout/page-shell';
+import { WorkoutSection } from '../workout/workout-section';
 import { AddExerciseModal } from './add-exercise-modal';
 import { useAppState } from '../../context/app-context';
 import { todayKey } from '../../utils/date-utils';
@@ -69,6 +70,9 @@ export function ExercisePage() {
         </button>
       }
     >
+      {/* Weight training */}
+      <WorkoutSection />
+
       {/* Today's summary */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 mb-4 border border-gray-100 dark:border-gray-800">
         <p className="text-xs font-semibold text-gray-400 mb-1">Today's Exercise</p>
