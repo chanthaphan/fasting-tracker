@@ -1,5 +1,8 @@
-import { Plus, X } from 'lucide-react';
+import { useState } from 'react';
+import { Info, Plus, X } from 'lucide-react';
 import { WorkoutSetRow } from './workout-set-row';
+import { ExerciseInfoModal } from './exercise-info-modal';
+import { getExerciseInfo } from '../../constants/exercise-info';
 import type { WorkoutExercise, WorkoutSet } from '../../types';
 
 interface WorkoutExerciseBlockProps {
@@ -12,6 +15,8 @@ interface WorkoutExerciseBlockProps {
 }
 
 export function WorkoutExerciseBlock({ exercise, previousSets, onChange, onRemove }: WorkoutExerciseBlockProps) {
+  const [infoOpen, setInfoOpen] = useState(false);
+  const hasInfo = getExerciseInfo(exercise.name) !== undefined;
   const prevFor = (i: number): WorkoutSet | null =>
     previousSets ? previousSets[i] ?? previousSets[previousSets.length - 1] ?? null : null;
 
@@ -67,7 +72,19 @@ export function WorkoutExerciseBlock({ exercise, previousSets, onChange, onRemov
   return (
     <div className="bg-white dark:bg-gray-900 rounded-2xl p-3 border border-gray-100 dark:border-gray-800">
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-semibold text-orange-500">{exercise.name}</h3>
+        <div className="flex items-center gap-1 min-w-0">
+          <h3 className="text-sm font-semibold text-orange-500 truncate">{exercise.name}</h3>
+          {hasInfo && (
+            <button
+              type="button"
+              onClick={() => setInfoOpen(true)}
+              aria-label={`How to do ${exercise.name}`}
+              className="p-1 rounded-lg text-gray-400 hover:text-orange-500 shrink-0"
+            >
+              <Info size={14} />
+            </button>
+          )}
+        </div>
         <button
           type="button"
           onClick={onRemove}
@@ -109,6 +126,8 @@ export function WorkoutExerciseBlock({ exercise, previousSets, onChange, onRemov
         <Plus size={13} />
         Add Set
       </button>
+
+      <ExerciseInfoModal open={infoOpen} onClose={() => setInfoOpen(false)} liftName={exercise.name} />
     </div>
   );
 }

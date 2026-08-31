@@ -7,6 +7,7 @@ import { formatHoursMinutes } from '../../utils/date-utils';
 import { LiftRecordsModal } from './lift-records-modal';
 import { SaveTemplateModal } from './save-template-modal';
 import { WorkoutAiCard } from './workout-ai-card';
+import { WorkoutDetailModal } from './workout-detail-modal';
 import type { WorkoutSession, WorkoutTemplate } from '../../types';
 
 export function WorkoutSection() {
@@ -14,6 +15,7 @@ export function WorkoutSection() {
   const navigate = useNavigate();
   const [recordsOpen, setRecordsOpen] = useState(false);
   const [templateSource, setTemplateSource] = useState<WorkoutSession | null>(null);
+  const [detailSession, setDetailSession] = useState<WorkoutSession | null>(null);
 
   const activeSession = state.workoutSessions.find((s) => s.id === state.activeWorkoutId) ?? null;
 
@@ -127,12 +129,12 @@ export function WorkoutSection() {
               key={w.id}
               className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-xl p-3 border border-gray-100 dark:border-gray-800"
             >
-              <div className="flex-1 min-w-0">
+              <button onClick={() => setDetailSession(w)} className="flex-1 min-w-0 text-left">
                 <p className="text-sm font-medium truncate">{w.name}</p>
                 <p className="text-xs text-gray-400">
                   {w.date} · {formatHoursMinutes((w.endTime ?? w.startTime) - w.startTime)} · {sessionSetCount(w)} sets · {Math.round(sessionVolume(w)).toLocaleString()} kg
                 </p>
-              </div>
+              </button>
               <button
                 onClick={() => setTemplateSource(w)}
                 aria-label={`Save ${w.name} as template`}
@@ -158,6 +160,7 @@ export function WorkoutSection() {
 
       <LiftRecordsModal open={recordsOpen} onClose={() => setRecordsOpen(false)} />
       <SaveTemplateModal open={templateSource !== null} onClose={() => setTemplateSource(null)} session={templateSource} />
+      <WorkoutDetailModal open={detailSession !== null} onClose={() => setDetailSession(null)} session={detailSession} />
     </div>
   );
 }

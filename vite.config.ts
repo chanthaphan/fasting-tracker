@@ -30,6 +30,15 @@ export default defineConfig({
               expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
             },
           },
+          {
+            // Exercise demo images: not precached (jpg), cached on first view
+            urlPattern: /\/exercise-media\/.*\.jpg$/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'exercise-media-cache',
+              expiration: { maxEntries: 120, maxAgeSeconds: 60 * 60 * 24 * 365 },
+            },
+          },
         ],
       },
     }),

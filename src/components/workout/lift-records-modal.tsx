@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Info } from 'lucide-react';
 import { Modal } from '../ui/modal';
 import { useAppState } from '../../context/app-context';
 import { computeLiftRecords, listLifts } from '../../utils/workout-stats';
 import { LiftProgressChart } from './lift-progress-chart';
+import { ExerciseInfoModal } from './exercise-info-modal';
+import { getExerciseInfo } from '../../constants/exercise-info';
 
 interface LiftRecordsModalProps {
   open: boolean;
@@ -13,6 +15,7 @@ interface LiftRecordsModalProps {
 export function LiftRecordsModal({ open, onClose }: LiftRecordsModalProps) {
   const { state } = useAppState();
   const [selectedLift, setSelectedLift] = useState<string | null>(null);
+  const [infoOpen, setInfoOpen] = useState(false);
 
   const lifts = useMemo(() => listLifts(state.workoutSessions), [state.workoutSessions]);
 
@@ -57,13 +60,25 @@ export function LiftRecordsModal({ open, onClose }: LiftRecordsModalProps) {
 
       {selectedLift && records && (
         <div className="space-y-3">
-          <button
-            onClick={() => setSelectedLift(null)}
-            className="flex items-center gap-1 text-xs font-medium text-orange-500"
-          >
-            <ChevronLeft size={14} />
-            All lifts
-          </button>
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => setSelectedLift(null)}
+              className="flex items-center gap-1 text-xs font-medium text-orange-500"
+            >
+              <ChevronLeft size={14} />
+              All lifts
+            </button>
+            {getExerciseInfo(selectedLift) && (
+              <button
+                onClick={() => setInfoOpen(true)}
+                aria-label={`How to do ${selectedLift}`}
+                className="flex items-center gap-1 text-xs font-medium text-gray-400 hover:text-orange-500"
+              >
+                <Info size={14} />
+                How to
+              </button>
+            )}
+          </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 text-center">
@@ -91,6 +106,10 @@ export function LiftRecordsModal({ open, onClose }: LiftRecordsModalProps) {
             ))}
           </div>
         </div>
+      )}
+
+      {selectedLift && (
+        <ExerciseInfoModal open={infoOpen} onClose={() => setInfoOpen(false)} liftName={selectedLift} />
       )}
     </Modal>
   );
