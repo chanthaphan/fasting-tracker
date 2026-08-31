@@ -4,7 +4,11 @@ import { Modal } from '../ui/modal';
 import { MEAL_TYPES } from '../../constants/meal-types';
 import { FOOD_PRESET_CATEGORIES, type FoodPreset } from '../../constants/food-presets';
 import { useAppState } from '../../context/app-context';
-import type { FoodEntry, MealType } from '../../types';
+import { AiGate } from '../ai/ai-gate';
+import { AiFoodInput } from './ai-food-input';
+import type { FoodEntry, MealType, ParsedFoodItem } from '../../types';
+
+type EntryMode = 'presets' | 'ai' | 'manual';
 
 interface AddFoodModalProps {
   open: boolean;
@@ -22,7 +26,7 @@ export function AddFoodModal({ open, onClose, onSave, editEntry }: AddFoodModalP
   const [fat, setFat] = useState('');
   const [mealType, setMealType] = useState<MealType>('breakfast');
   const [presetSearch, setPresetSearch] = useState('');
-  const [showPresets, setShowPresets] = useState(true);
+  const [mode, setMode] = useState<EntryMode>('presets');
 
   useEffect(() => {
     if (editEntry) {
@@ -32,7 +36,7 @@ export function AddFoodModal({ open, onClose, onSave, editEntry }: AddFoodModalP
       setCarbs(String(editEntry.carbs));
       setFat(String(editEntry.fat));
       setMealType(editEntry.mealType);
-      setShowPresets(false);
+      setMode('manual');
     } else {
       setName('');
       setCalories('');
@@ -41,7 +45,7 @@ export function AddFoodModal({ open, onClose, onSave, editEntry }: AddFoodModalP
       setFat('');
       setMealType('breakfast');
       setPresetSearch('');
-      setShowPresets(true);
+      setMode('presets');
     }
   }, [editEntry, open]);
 
@@ -51,7 +55,22 @@ export function AddFoodModal({ open, onClose, onSave, editEntry }: AddFoodModalP
     setProtein(String(preset.protein));
     setCarbs(String(preset.carbs));
     setFat(String(preset.fat));
-    setShowPresets(false);
+    setMode('manual');
+  };
+
+  const handleAiAddItems = (items: ParsedFoodItem[]) => {
+    for (const item of items) onSave(item);
+    onClose();
+  };
+
+  const handleAiEditItem = (item: ParsedFoodItem) => {
+    setName(item.name);
+    setCalories(String(item.calories));
+    setProtein(String(item.protein));
+    setCarbs(String(item.carbs));
+    setFat(String(item.fat));
+    setMealType(item.mealType);
+    setMode('manual');
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -100,19 +119,40 @@ export function AddFoodModal({ open, onClose, onSave, editEntry }: AddFoodModalP
   return (
     <Modal open={open} onClose={onClose} title={editEntry ? 'Edit Food' : 'Add Food'}>
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Quick Pick Presets - shown when adding new food */}
-        {!editEntry && showPresets && (
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Quick Pick</label>
+        {/* Mode switcher - shown when adding new food */}
+        {!editEntry && (
+          <div className="grid grid-cols-3 gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
+            {([
+              { v: 'presets' as const, label: 'Quick Pick' },
+              { v: 'ai' as const, label: '✨ AI' },
+              { v: 'manual' as const, label: 'Manual' },
+            ]).map(({ v, label }) => (
               <button
+                key={v}
                 type="button"
-                onClick={() => setShowPresets(false)}
-                className="text-xs text-brand-600 dark:text-brand-400 font-medium"
+                onClick={() => setMode(v)}
+                className={`py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  mode === v
+                    ? 'bg-white dark:bg-gray-900 text-brand-600 dark:text-brand-400 shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400'
+                }`}
               >
-                Manual entry
+                {label}
               </button>
-            </div>
+            ))}
+          </div>
+        )}
+
+        {/* AI entry */}
+        {!editEntry && mode === 'ai' && (
+          <AiGate feature="log meals by describing them or snapping a photo">
+            <AiFoodInput onAddItems={handleAiAddItems} onEditItem={handleAiEditItem} />
+          </AiGate>
+        )}
+
+        {/* Quick Pick Presets - shown when adding new food */}
+        {!editEntry && mode === 'presets' && (
+          <div>
             <div className="relative mb-2">
               <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
@@ -175,17 +215,8 @@ export function AddFoodModal({ open, onClose, onSave, editEntry }: AddFoodModalP
         )}
 
         {/* Manual entry form - shown after picking a preset or switching to manual */}
-        {(!showPresets || editEntry) && (
+        {(mode === 'manual' || editEntry) && (
           <>
-            {!editEntry && (
-              <button
-                type="button"
-                onClick={() => { setShowPresets(true); setName(''); setCalories(''); setProtein(''); setCarbs(''); setFat(''); }}
-                className="text-xs text-brand-600 dark:text-brand-400 font-medium"
-              >
-                ← Back to Quick Pick
-              </button>
-            )}
             <div>
               <label className="block text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">Food Name</label>
               <input
