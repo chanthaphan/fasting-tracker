@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Send, Sparkles, Square, Trash2 } from 'lucide-react';
 import { PageShell } from '../layout/page-shell';
 import { AiGate } from '../ai/ai-gate';
+import { AiMarkdown } from '../ai/ai-markdown';
 import { useAiReady } from '../../hooks/use-ai';
 import { useCoachChat } from '../../hooks/use-coach-chat';
 import { HEALTH_DISCLAIMER } from '../../utils/ai/prompts';
@@ -92,8 +93,8 @@ function CoachChat() {
         {HEALTH_DISCLAIMER.en} · {HEALTH_DISCLAIMER.th}
       </p>
 
-      {/* Input bar pinned above the bottom nav */}
-      <div className="fixed bottom-14 left-0 right-0 z-30 bg-white/90 dark:bg-gray-950/90 backdrop-blur-lg border-t border-gray-100 dark:border-gray-800">
+      {/* Input bar pinned above the bottom nav (nav = 3.5rem + safe-area inset) */}
+      <div className="fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom))] left-0 right-0 z-30 bg-white/90 dark:bg-gray-950/90 backdrop-blur-lg border-t border-gray-100 dark:border-gray-800">
         <div className="max-w-lg mx-auto flex items-center gap-2 px-4 py-2">
           <input
             type="text"
@@ -132,13 +133,13 @@ function MessageBubble({ role, content, streaming }: { role: 'user' | 'assistant
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
-        className={`max-w-[85%] px-3.5 py-2.5 rounded-2xl text-sm whitespace-pre-wrap ${
+        className={`max-w-[85%] px-3.5 py-2.5 rounded-2xl text-sm ${
           isUser
-            ? 'bg-brand-500 text-white rounded-br-md'
+            ? 'bg-brand-500 text-white rounded-br-md whitespace-pre-wrap'
             : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-bl-md'
         }`}
       >
-        {content}
+        {isUser ? content : <AiMarkdown text={content} />}
         {streaming && <span className="inline-block w-1.5 h-3.5 ml-0.5 bg-brand-400 animate-pulse align-middle rounded-sm" />}
       </div>
     </div>

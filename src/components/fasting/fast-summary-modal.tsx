@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { CheckCircle2, Flame, Sparkles, Timer, XCircle } from 'lucide-react';
 import { Modal } from '../ui/modal';
+import { AiMarkdown } from '../ai/ai-markdown';
 import { useAppState } from '../../context/app-context';
 import { useAiReady } from '../../hooks/use-ai';
 import { useFastSummary } from '../../hooks/use-fast-ai';
@@ -78,10 +79,10 @@ export function FastSummaryModal({ open, onClose, session }: FastSummaryModalPro
               Coach recap
             </p>
             {summary ? (
-              <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                {summary}
+              <div className="text-sm text-gray-700 dark:text-gray-300">
+                <AiMarkdown text={summary} />
                 {streaming && <span className="inline-block w-1.5 h-3.5 ml-0.5 bg-brand-400 animate-pulse align-middle rounded-sm" />}
-              </p>
+              </div>
             ) : streaming ? (
               <div className="space-y-2 animate-pulse">
                 <div className="h-3 bg-brand-100/60 dark:bg-gray-800 rounded w-full" />

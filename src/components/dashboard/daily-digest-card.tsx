@@ -1,5 +1,6 @@
 import { RefreshCw, Sparkles } from 'lucide-react';
 import { AiGate } from '../ai/ai-gate';
+import { AiMarkdown } from '../ai/ai-markdown';
 import { useDailyDigest } from '../../hooks/use-daily-digest';
 import { useAiReady } from '../../hooks/use-ai';
 import { HEALTH_DISCLAIMER } from '../../utils/ai/prompts';
@@ -52,9 +53,10 @@ function DigestContent() {
 
       {digest && !error && (
         <>
-          <p className={`text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap ${loading ? 'opacity-50' : ''}`}>
-            {digest.content}
-          </p>
+          <AiMarkdown
+            text={digest.content}
+            className={`text-sm text-gray-700 dark:text-gray-300 ${loading ? 'opacity-50' : ''}`}
+          />
           <p className="text-[10px] text-gray-400 mt-2">
             Generated today · {digest.model} · {HEALTH_DISCLAIMER.en}
           </p>
