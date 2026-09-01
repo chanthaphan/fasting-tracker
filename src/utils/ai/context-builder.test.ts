@@ -24,6 +24,7 @@ const emptyState: AppState = {
   weightGoal: null,
   userProfile: null,
   aiSettings: { apiKey: '', model: 'claude-opus-5', language: 'auto' },
+  trainingGoal: null,
 };
 
 function makeFood(daysAgo: number, name = 'Rice'): FoodEntry {
@@ -159,6 +160,39 @@ describe('buildHealthContext - workouts', () => {
   it('omits the section when there are no workouts', () => {
     const out = buildHealthContext(emptyState, NOW);
     expect(out).not.toContain('weight-training');
+  });
+});
+
+describe('summarizeFastingPattern / goal context', () => {
+  function fast(daysAgo: number, hours: number, startHour = 20): FastingSession {
+    const d = new Date(NOW.getTime() - daysAgo * 86400000);
+    d.setHours(startHour, 0, 0, 0);
+    return { id: `f${daysAgo}`, startTime: d.getTime(), endTime: d.getTime() + hours * 3600000 };
+  }
+
+  it('summarizes duration, start hour, and recent weekdays', () => {
+    const state = { ...emptyState, fastingSessions: [fast(1, 16), fast(2, 16), fast(4, 17), fast(9, 15)] };
+    const out = buildHealthContext(state, NOW);
+    expect(out).toContain('Fasting pattern: ~16h fasts usually starting ~20:00');
+    expect(out).toMatch(/fasted .+ in the last week/);
+  });
+
+  it('omits the pattern with fewer than 3 finished fasts', () => {
+    const state = { ...emptyState, fastingSessions: [fast(1, 16), fast(2, 16)] };
+    expect(buildHealthContext(state, NOW)).not.toContain('Fasting pattern');
+  });
+
+  it('includes the training goal line', () => {
+    const state = {
+      ...emptyState,
+      trainingGoal: {
+        targetLifts: [{ name: 'Bench Press', targetWeightKg: 80 }],
+        preferredDays: [1, 3, 5],
+        sessionMinutes: 60,
+      },
+    };
+    const out = buildHealthContext(state, NOW);
+    expect(out).toContain('Training goal: targets Bench Press 80kg; prefers Mon/Wed/Fri; 60min sessions');
   });
 });
 

@@ -113,6 +113,8 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, userProfile: action.payload };
     case 'SET_AI_SETTINGS':
       return { ...state, aiSettings: action.payload };
+    case 'SET_TRAINING_GOAL':
+      return { ...state, trainingGoal: action.payload };
     case 'START_WORKOUT': {
       if (state.activeWorkoutId) return state;
       const now = Date.now();

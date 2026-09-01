@@ -163,6 +163,32 @@ export interface WorkoutPlanCache {
   generatedAt: number;
 }
 
+export interface LiftTarget {
+  name: string;
+  targetWeightKg: number;
+}
+
+export interface TrainingGoal {
+  targetLifts: LiftTarget[];
+  preferredDays: number[]; // 0 = Sunday .. 6 = Saturday
+  sessionMinutes: number;
+}
+
+export interface WeeklyPlanDay {
+  date: string; // 'YYYY-MM-DD'
+  type: 'workout' | 'rest';
+  name?: string;
+  exercises?: WorkoutPlanExercise[];
+  note?: string;
+}
+
+export interface WeeklyPlanCache {
+  startDate: string; // 'YYYY-MM-DD'
+  days: WeeklyPlanDay[];
+  reason: string;
+  generatedAt: number;
+}
+
 export interface AppState {
   foodEntries: FoodEntry[];
   fastingSessions: FastingSession[];
@@ -178,6 +204,7 @@ export interface AppState {
   weightGoal: WeightGoal | null;
   userProfile: UserProfile | null;
   aiSettings: AiSettings;
+  trainingGoal: TrainingGoal | null;
 }
 
 export type AppAction =
@@ -200,6 +227,7 @@ export type AppAction =
   | { type: 'SET_WEIGHT_GOAL'; payload: WeightGoal | null }
   | { type: 'SET_USER_PROFILE'; payload: UserProfile | null }
   | { type: 'SET_AI_SETTINGS'; payload: AiSettings }
+  | { type: 'SET_TRAINING_GOAL'; payload: TrainingGoal | null }
   | { type: 'START_WORKOUT'; payload?: { name?: string; exercises?: WorkoutExercise[]; templateId?: string } }
   | { type: 'UPDATE_WORKOUT'; payload: WorkoutSession }
   | { type: 'FINISH_WORKOUT'; payload: { id: string; endTime: number } }

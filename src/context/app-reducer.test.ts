@@ -17,6 +17,7 @@ const baseState: AppState = {
   weightGoal: null,
   userProfile: null,
   aiSettings: { apiKey: '', model: 'claude-opus-5', language: 'auto' },
+  trainingGoal: null,
 };
 
 describe('appReducer - Food actions', () => {
@@ -197,6 +198,20 @@ describe('appReducer - AI settings', () => {
     });
     expect(state.aiSettings).toEqual({ apiKey: 'sk-ant-test', model: 'claude-haiku-4-5', language: 'th' });
     expect(baseState.aiSettings.apiKey).toBe('');
+  });
+});
+
+describe('appReducer - Training goal', () => {
+  it('SET_TRAINING_GOAL sets and clears the goal', () => {
+    const goal = {
+      targetLifts: [{ name: 'Bench Press', targetWeightKg: 80 }],
+      preferredDays: [1, 3, 5],
+      sessionMinutes: 60,
+    };
+    const withGoal = appReducer(baseState, { type: 'SET_TRAINING_GOAL', payload: goal });
+    expect(withGoal.trainingGoal).toEqual(goal);
+    const cleared = appReducer(withGoal, { type: 'SET_TRAINING_GOAL', payload: null });
+    expect(cleared.trainingGoal).toBeNull();
   });
 });
 
