@@ -2,6 +2,9 @@ import { addDays } from 'date-fns';
 import type { WeeklyPlanCache, WeeklyPlanDay, WorkoutPlanExercise } from '../../types';
 import { dateKey } from '../date-utils';
 
+// NOTE: structured outputs reject numeric/array constraint keywords
+// (minimum, maximum, minItems > 1, ...) with a 400 — ranges live in
+// descriptions here and are enforced client-side by validateWeeklyPlan.
 export const WEEKLY_PLAN_SCHEMA = {
   type: 'object',
   additionalProperties: false,
@@ -9,8 +12,7 @@ export const WEEKLY_PLAN_SCHEMA = {
   properties: {
     days: {
       type: 'array',
-      minItems: 7,
-      maxItems: 7,
+      description: 'Exactly 7 entries, one per day in order starting from the given start date',
       items: {
         type: 'object',
         additionalProperties: false,
@@ -22,17 +24,16 @@ export const WEEKLY_PLAN_SCHEMA = {
           note: { type: 'string' },
           exercises: {
             type: 'array',
-            minItems: 1,
-            maxItems: 8,
+            description: '1-8 exercises; required for workout days',
             items: {
               type: 'object',
               additionalProperties: false,
               required: ['name', 'sets', 'targetWeightKg', 'targetReps'],
               properties: {
                 name: { type: 'string' },
-                sets: { type: 'integer', minimum: 1, maximum: 6 },
-                targetWeightKg: { type: 'number', minimum: 0 },
-                targetReps: { type: 'integer', minimum: 1, maximum: 30 },
+                sets: { type: 'integer', description: '1-6 sets' },
+                targetWeightKg: { type: 'number', description: 'kg, non-negative' },
+                targetReps: { type: 'integer', description: '1-30 reps' },
               },
             },
           },
