@@ -5,6 +5,9 @@ import { FOOD_PARSE_SYSTEM } from './prompts';
 
 const MEAL_TYPES: MealType[] = ['breakfast', 'lunch', 'dinner', 'snacks'];
 
+// NOTE: structured outputs reject numeric/array constraint keywords
+// (minimum, maximum, minItems > 1, ...) with a 400 — ranges live in
+// descriptions here and are enforced client-side by validateParsedItems.
 export const FOOD_ITEMS_SCHEMA = {
   type: 'object',
   additionalProperties: false,
@@ -18,10 +21,10 @@ export const FOOD_ITEMS_SCHEMA = {
         required: ['name', 'calories', 'protein', 'carbs', 'fat', 'mealType'],
         properties: {
           name: { type: 'string' },
-          calories: { type: 'number', minimum: 0 },
-          protein: { type: 'number', minimum: 0 },
-          carbs: { type: 'number', minimum: 0 },
-          fat: { type: 'number', minimum: 0 },
+          calories: { type: 'number', description: 'kcal, non-negative' },
+          protein: { type: 'number', description: 'grams, non-negative' },
+          carbs: { type: 'number', description: 'grams, non-negative' },
+          fat: { type: 'number', description: 'grams, non-negative' },
           mealType: { type: 'string', enum: MEAL_TYPES },
         },
       },

@@ -10,7 +10,7 @@ import type { FastingSession, FastPlanCache } from '../types';
 
 export const SUGGESTED_TARGETS = [12, 16, 18, 20, 24, 36];
 
-const PLAN_SCHEMA = {
+export const FAST_PLAN_SCHEMA = {
   type: 'object',
   additionalProperties: false,
   required: ['targetHours', 'reason'],
@@ -64,7 +64,7 @@ export function useFastSuggestion() {
           { type: 'text', text: buildHealthContext(current) },
         ],
         output_config: {
-          format: { type: 'json_schema', schema: PLAN_SCHEMA as unknown as Record<string, unknown> },
+          format: { type: 'json_schema', schema: FAST_PLAN_SCHEMA as unknown as Record<string, unknown> },
           ...effortConfig(aiSettings.model, 'low').output_config,
         },
         messages: [
