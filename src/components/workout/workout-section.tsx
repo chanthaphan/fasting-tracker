@@ -6,7 +6,7 @@ import { sessionSetCount, sessionVolume } from '../../utils/workout-stats';
 import { formatHoursMinutes } from '../../utils/date-utils';
 import { LiftRecordsModal } from './lift-records-modal';
 import { SaveTemplateModal } from './save-template-modal';
-import { WorkoutAiCard } from './workout-ai-card';
+import { WeeklyPlanCard } from './weekly-plan-card';
 import { WorkoutDetailModal } from './workout-detail-modal';
 import type { WorkoutSession, WorkoutTemplate } from '../../types';
 
@@ -120,7 +120,7 @@ export function WorkoutSection() {
         </div>
       )}
 
-      <WorkoutAiCard />
+      <WeeklyPlanCard />
 
       {recentWorkouts.length > 0 && (
         <div className="space-y-2 mt-2">

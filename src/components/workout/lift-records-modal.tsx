@@ -24,6 +24,12 @@ export function LiftRecordsModal({ open, onClose }: LiftRecordsModalProps) {
     [state.workoutSessions, selectedLift]
   );
 
+  const liftTarget = selectedLift
+    ? state.trainingGoal?.targetLifts.find(
+        (t) => t.name.trim().toLowerCase() === selectedLift.trim().toLowerCase() && t.targetWeightKg > 0
+      ) ?? null
+    : null;
+
   const handleClose = () => {
     setSelectedLift(null);
     onClose();
@@ -90,6 +96,23 @@ export function LiftRecordsModal({ open, onClose }: LiftRecordsModalProps) {
               <p className="text-[10px] text-gray-400">Best est. 1RM</p>
             </div>
           </div>
+
+          {liftTarget && (
+            <div>
+              <div className="flex items-center justify-between text-xs mb-1">
+                <span className="text-gray-400">Target: {liftTarget.targetWeightKg} kg</span>
+                <span className="font-semibold text-orange-500">
+                  {Math.min(100, Math.round((records.bestWeightKg / liftTarget.targetWeightKg) * 100))}%
+                </span>
+              </div>
+              <div className="w-full h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-orange-500 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, (records.bestWeightKg / liftTarget.targetWeightKg) * 100)}%` }}
+                />
+              </div>
+            </div>
+          )}
 
           <LiftProgressChart history={records.history} />
 
