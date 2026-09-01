@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { CheckCircle2, Flame, Star, ChevronRight } from 'lucide-react';
+import { CheckCircle2, Flame, Snowflake, Star, ChevronRight } from 'lucide-react';
 import { BodyAvatar } from './body-avatar';
 import { ProgressModal } from './progress-modal';
 import { AchievementUnlockModal } from './achievement-unlock-modal';
@@ -7,7 +7,7 @@ import { useAppState } from '../../context/app-context';
 import { useAchievements } from '../../hooks/use-achievements';
 import { getAvatarModel } from '../../utils/body-avatar';
 import { computeXp, getLevelInfo, XP_RULES } from '../../utils/xp';
-import { computeStreaksFromDates } from '../../utils/streaks';
+import { computeStreaksWithFreeze } from '../../utils/streaks';
 import { todayKey } from '../../utils/date-utils';
 
 /**
@@ -23,7 +23,7 @@ export function ProgressCard() {
   const avatar = useMemo(() => getAvatarModel(state), [state]);
   const levelInfo = useMemo(() => getLevelInfo(computeXp(state)), [state]);
   const checkInStreak = useMemo(
-    () => computeStreaksFromDates(state.gamification.checkIns),
+    () => computeStreaksWithFreeze(state.gamification.checkIns),
     [state.gamification.checkIns]
   );
   const checkedInToday = state.gamification.checkIns.includes(todayKey());
@@ -37,7 +37,7 @@ export function ProgressCard() {
           role="button"
           aria-label="Open progress details"
         >
-          <BodyAvatar fatLevel={avatar.currentFatLevel} gender={avatar.gender} mood={avatar.mood} size={96} />
+          <BodyAvatar fatLevel={avatar.currentFatLevel} gender={avatar.gender} mood={avatar.mood} size={96} level={levelInfo.level} />
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between">
               <p className="flex items-center gap-1.5 text-sm font-semibold">
@@ -57,6 +57,15 @@ export function ProgressCard() {
               {checkInStreak.current > 0
                 ? `${checkInStreak.current}-day check-in streak`
                 : 'Check in daily to start a streak'}
+              {checkInStreak.freezesHeld > 0 && (
+                <span
+                  className="flex items-center gap-0.5 ml-1 text-sky-500 dark:text-sky-400 font-medium"
+                  title="Streak freezes held"
+                >
+                  <Snowflake size={12} />
+                  ×{checkInStreak.freezesHeld}
+                </span>
+              )}
             </p>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Flame, CheckCircle2, Star } from 'lucide-react';
+import { Flame, CheckCircle2, Snowflake, Star } from 'lucide-react';
 import { Modal } from '../ui/modal';
 import { BodyAvatar } from './body-avatar';
 import { AchievementGallery } from './achievement-gallery';
@@ -9,7 +9,7 @@ import { useAppState } from '../../context/app-context';
 import { getAvatarModel } from '../../utils/body-avatar';
 import { computeXp, getLevelInfo } from '../../utils/xp';
 import { computeStreaks } from '../../utils/fasting-streak';
-import { computeStreaksFromDates } from '../../utils/streaks';
+import { computeStreaksWithFreeze } from '../../utils/streaks';
 
 interface ProgressModalProps {
   open: boolean;
@@ -25,7 +25,7 @@ export function ProgressModal({ open, onClose, unlocked }: ProgressModalProps) {
   const levelInfo = useMemo(() => getLevelInfo(computeXp(state)), [state]);
   const fastStreak = useMemo(() => computeStreaks(state.fastingSessions), [state.fastingSessions]);
   const checkInStreak = useMemo(
-    () => computeStreaksFromDates(state.gamification.checkIns),
+    () => computeStreaksWithFreeze(state.gamification.checkIns),
     [state.gamification.checkIns]
   );
 
@@ -37,7 +37,7 @@ export function ProgressModal({ open, onClose, unlocked }: ProgressModalProps) {
         {/* Avatar: now vs goal */}
         {avatar.status === 'no-weight' ? (
           <div className="text-center py-2">
-            <BodyAvatar fatLevel={avatar.currentFatLevel} gender={avatar.gender} mood={avatar.mood} size={150} />
+            <BodyAvatar fatLevel={avatar.currentFatLevel} gender={avatar.gender} mood={avatar.mood} size={150} level={levelInfo.level} />
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
               Log your weight to bring your avatar to life
             </p>
@@ -50,7 +50,7 @@ export function ProgressModal({ open, onClose, unlocked }: ProgressModalProps) {
           </div>
         ) : avatar.status === 'no-goal' ? (
           <div className="text-center py-2">
-            <BodyAvatar fatLevel={avatar.currentFatLevel} gender={avatar.gender} mood={avatar.mood} size={150} />
+            <BodyAvatar fatLevel={avatar.currentFatLevel} gender={avatar.gender} mood={avatar.mood} size={150} level={levelInfo.level} />
             <p className="text-xs text-gray-400 mt-1">{formatKg(avatar.currentWeightKg)}</p>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
               Set a weight goal to see your future self
@@ -66,7 +66,8 @@ export function ProgressModal({ open, onClose, unlocked }: ProgressModalProps) {
           <div>
             <div className="flex justify-center gap-8">
               <div className="text-center">
-                <BodyAvatar fatLevel={avatar.currentFatLevel} gender={avatar.gender} mood={avatar.mood} size={150} />
+                {/* Goal avatar stays bare — accessories are earned "now" status */}
+                <BodyAvatar fatLevel={avatar.currentFatLevel} gender={avatar.gender} mood={avatar.mood} size={150} level={levelInfo.level} />
                 <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mt-1">Now</p>
                 <p className="text-xs text-gray-400">{formatKg(avatar.currentWeightKg)}</p>
               </div>
@@ -122,6 +123,12 @@ export function ProgressModal({ open, onClose, unlocked }: ProgressModalProps) {
             <CheckCircle2 size={16} className="mx-auto mb-1 text-brand-500" />
             <p className="text-lg font-bold">{checkInStreak.current}</p>
             <p className="text-[10px] text-gray-400">Check-in streak (best {checkInStreak.longest})</p>
+            {checkInStreak.freezesHeld > 0 && (
+              <p className="flex items-center justify-center gap-0.5 text-[10px] text-sky-500 dark:text-sky-400 mt-0.5">
+                <Snowflake size={10} />
+                {checkInStreak.freezesHeld} freeze{checkInStreak.freezesHeld > 1 ? 's' : ''} held
+              </p>
+            )}
           </div>
         </div>
 

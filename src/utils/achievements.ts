@@ -1,6 +1,6 @@
 import type { AppState } from '../types';
 import { computeStreaks } from './fasting-streak';
-import { computeStreaksFromDates } from './streaks';
+import { computeStreaksWithFreeze } from './streaks';
 import { getAvatarModel } from './body-avatar';
 
 type AchievementState = Pick<
@@ -37,7 +37,8 @@ export function getUnlockedAchievements(state: AchievementState): Set<string> {
     if (avatar.progress >= 1) unlocked.add('goal-reached');
   }
 
-  const checkInStreak = computeStreaksFromDates(state.gamification.checkIns);
+  // Freeze-aware, so the streak number shown on the card always matches the badge
+  const checkInStreak = computeStreaksWithFreeze(state.gamification.checkIns);
   if (checkInStreak.longest >= 7) unlocked.add('checkin-7');
   if (checkInStreak.longest >= 30) unlocked.add('checkin-30');
 

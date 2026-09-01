@@ -2,6 +2,24 @@ import type { AppState, AppAction } from '../types';
 import { STRENGTH_CALORIES_PER_30MIN } from '../constants/lift-presets';
 import { dateKey } from '../utils/date-utils';
 
+/** Record today as a check-in (no-op when already checked in). */
+function withTodayCheckIn(state: AppState): AppState {
+  const today = dateKey(new Date());
+  if (state.gamification.checkIns.includes(today)) return state;
+  return {
+    ...state,
+    gamification: {
+      ...state.gamification,
+      checkIns: [...state.gamification.checkIns, today].sort(),
+    },
+  };
+}
+
+/** Auto check-in for log actions, but only when the entry is for today. */
+function withCheckInIfToday(state: AppState, entryDate: string): AppState {
+  return entryDate === dateKey(new Date()) ? withTodayCheckIn(state) : state;
+}
+
 export function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case 'ADD_FOOD': {
@@ -10,7 +28,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         id: crypto.randomUUID(),
         createdAt: Date.now(),
       };
-      return { ...state, foodEntries: [...state.foodEntries, entry] };
+      return withCheckInIfToday({ ...state, foodEntries: [...state.foodEntries, entry] }, entry.date);
     }
     case 'EDIT_FOOD':
       return {
@@ -38,13 +56,13 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       };
     }
     case 'STOP_FAST':
-      return {
+      return withTodayCheckIn({
         ...state,
         fastingSessions: state.fastingSessions.map((s) =>
           s.id === state.activeFastingId ? { ...s, endTime: Date.now() } : s
         ),
         activeFastingId: null,
-      };
+      });
     case 'DELETE_FAST':
       return {
         ...state,
@@ -67,7 +85,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         id: crypto.randomUUID(),
         createdAt: Date.now(),
       };
-      return { ...state, weightEntries: [...state.weightEntries, entry] };
+      return withCheckInIfToday({ ...state, weightEntries: [...state.weightEntries, entry] }, entry.date);
     }
     case 'EDIT_WEIGHT':
       return {
@@ -87,7 +105,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         id: crypto.randomUUID(),
         createdAt: Date.now(),
       };
-      return { ...state, exerciseEntries: [...state.exerciseEntries, entry] };
+      return withCheckInIfToday({ ...state, exerciseEntries: [...state.exerciseEntries, entry] }, entry.date);
     }
     case 'EDIT_EXERCISE':
       return {
@@ -157,7 +175,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
               createdAt: Date.now(),
             }]
           : [];
-      return {
+      return withTodayCheckIn({
         ...state,
         workoutSessions: state.workoutSessions.map((s) =>
           s.id === action.payload.id
@@ -166,7 +184,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         ),
         exerciseEntries: [...state.exerciseEntries, ...derivedEntry],
         activeWorkoutId: state.activeWorkoutId === action.payload.id ? null : state.activeWorkoutId,
-      };
+      });
     }
     case 'CANCEL_WORKOUT':
     case 'DELETE_WORKOUT':
@@ -189,17 +207,8 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         workoutTemplates: state.workoutTemplates.filter((t) => t.id !== action.payload.id),
       };
-    case 'DAILY_CHECK_IN': {
-      const today = dateKey(new Date());
-      if (state.gamification.checkIns.includes(today)) return state;
-      return {
-        ...state,
-        gamification: {
-          ...state.gamification,
-          checkIns: [...state.gamification.checkIns, today].sort(),
-        },
-      };
-    }
+    case 'DAILY_CHECK_IN':
+      return withTodayCheckIn(state);
     case 'MARK_ACHIEVEMENTS_SEEN': {
       const merged = new Set([...state.gamification.seenAchievements, ...action.payload.ids]);
       if (merged.size === state.gamification.seenAchievements.length) return state;

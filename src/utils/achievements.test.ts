@@ -83,6 +83,20 @@ describe('getUnlockedAchievements', () => {
     expect(unlocked.has('checkin-30')).toBe(false);
   });
 
+  it('counts a freeze-bridged streak toward check-in badges', () => {
+    // 15 days, one missed day (bridged by an earned freeze), 15 more days
+    // → freeze-aware longest is 30 even though the raw longest run is 15
+    const checkIns = [
+      ...Array.from({ length: 15 }, (_, i) => daysAgo(31 - i)),
+      ...Array.from({ length: 15 }, (_, i) => daysAgo(15 - i)),
+    ];
+    const unlocked = getUnlockedAchievements({
+      ...emptyState,
+      gamification: { checkIns, seenAchievements: [] },
+    });
+    expect(unlocked.has('checkin-30')).toBe(true);
+  });
+
   it('unlocks first-workout only for finished sessions', () => {
     const active = getUnlockedAchievements({
       ...emptyState,
