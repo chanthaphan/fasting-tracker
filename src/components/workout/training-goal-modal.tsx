@@ -4,14 +4,15 @@ import { Modal } from '../ui/modal';
 import { useAppState } from '../../context/app-context';
 import { LIFT_PRESET_CATEGORIES } from '../../constants/lift-presets';
 import { listLifts } from '../../utils/workout-stats';
-import { DAY_NAMES } from '../../utils/ai/context-builder';
-import type { LiftTarget } from '../../types';
+import { DAY_NAMES } from '../../utils/date-utils';
+import type { LiftTarget, TrainingGoal } from '../../types';
 
 interface TrainingGoalModalProps {
   open: boolean;
   onClose: () => void;
-  /** Called after saving (e.g. to kick off plan generation). */
-  onSaved?: () => void;
+  /** Receives the freshly saved goal — React batches the dispatch, so
+   *  callers must not read it back from state in the same tick. */
+  onSaved?: (goal: TrainingGoal) => void;
 }
 
 /** Mounted fresh on each open so state prefills without sync effects. */
@@ -22,10 +23,14 @@ export function TrainingGoalModal({ open, onClose, onSaved }: TrainingGoalModalP
 
 const SESSION_LENGTHS = [30, 45, 60, 90];
 
-function TrainingGoalForm({ onClose, onSaved }: { onClose: () => void; onSaved?: () => void }) {
+type TargetRow = LiftTarget & { rowId: string };
+
+function TrainingGoalForm({ onClose, onSaved }: { onClose: () => void; onSaved?: (goal: TrainingGoal) => void }) {
   const { state, dispatch } = useAppState();
   const goal = state.trainingGoal;
-  const [targets, setTargets] = useState<LiftTarget[]>(goal?.targetLifts ?? []);
+  const [targets, setTargets] = useState<TargetRow[]>(
+    () => (goal?.targetLifts ?? []).map((t) => ({ ...t, rowId: crypto.randomUUID() }))
+  );
   const [days, setDays] = useState<number[]>(goal?.preferredDays ?? [1, 3, 5]);
   const [minutes, setMinutes] = useState(goal?.sessionMinutes ?? 60);
 
@@ -36,8 +41,8 @@ function TrainingGoalForm({ onClose, onSaved }: { onClose: () => void; onSaved?:
     return [...names];
   }, [state.workoutSessions]);
 
-  const updateTarget = (index: number, changes: Partial<LiftTarget>) => {
-    setTargets((prev) => prev.map((t, i) => (i === index ? { ...t, ...changes } : t)));
+  const updateTarget = (rowId: string, changes: Partial<LiftTarget>) => {
+    setTargets((prev) => prev.map((t) => (t.rowId === rowId ? { ...t, ...changes } : t)));
   };
 
   const toggleDay = (d: number) => {
@@ -45,16 +50,16 @@ function TrainingGoalForm({ onClose, onSaved }: { onClose: () => void; onSaved?:
   };
 
   const handleSave = () => {
-    dispatch({
-      type: 'SET_TRAINING_GOAL',
-      payload: {
-        targetLifts: targets.filter((t) => t.name.trim() && t.targetWeightKg > 0),
-        preferredDays: days,
-        sessionMinutes: minutes,
-      },
-    });
+    const saved: TrainingGoal = {
+      targetLifts: targets
+        .filter((t) => t.name.trim() && t.targetWeightKg > 0)
+        .map(({ name, targetWeightKg }) => ({ name, targetWeightKg })),
+      preferredDays: days,
+      sessionMinutes: minutes,
+    };
+    dispatch({ type: 'SET_TRAINING_GOAL', payload: saved });
     onClose();
-    onSaved?.();
+    onSaved?.(saved);
   };
 
   return (
@@ -63,11 +68,11 @@ function TrainingGoalForm({ onClose, onSaved }: { onClose: () => void; onSaved?:
         <div>
           <label className="block text-xs font-semibold text-gray-400 mb-1.5">Target weights (kg)</label>
           <div className="space-y-2">
-            {targets.map((t, i) => (
-              <div key={i} className="flex items-center gap-2">
+            {targets.map((t) => (
+              <div key={t.rowId} className="flex items-center gap-2">
                 <select
                   value={t.name}
-                  onChange={(e) => updateTarget(i, { name: e.target.value })}
+                  onChange={(e) => updateTarget(t.rowId, { name: e.target.value })}
                   className="flex-1 px-2 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 >
                   <option value="">Choose lift…</option>
@@ -81,13 +86,13 @@ function TrainingGoalForm({ onClose, onSaved }: { onClose: () => void; onSaved?:
                   min="0"
                   step="2.5"
                   value={t.targetWeightKg > 0 ? t.targetWeightKg : ''}
-                  onChange={(e) => updateTarget(i, { targetWeightKg: Number(e.target.value) || 0 })}
+                  onChange={(e) => updateTarget(t.rowId, { targetWeightKg: Number(e.target.value) || 0 })}
                   placeholder="kg"
                   className="w-20 px-2 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-center focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
                 <button
                   type="button"
-                  onClick={() => setTargets((prev) => prev.filter((_, idx) => idx !== i))}
+                  onClick={() => setTargets((prev) => prev.filter((row) => row.rowId !== t.rowId))}
                   aria-label="Remove target"
                   className="p-1.5 text-gray-300 dark:text-gray-600 hover:text-red-500"
                 >
@@ -98,7 +103,7 @@ function TrainingGoalForm({ onClose, onSaved }: { onClose: () => void; onSaved?:
           </div>
           <button
             type="button"
-            onClick={() => setTargets((prev) => [...prev, { name: '', targetWeightKg: 0 }])}
+            onClick={() => setTargets((prev) => [...prev, { name: '', targetWeightKg: 0, rowId: crypto.randomUUID() }])}
             className="mt-2 flex items-center gap-1 text-xs font-medium text-orange-500"
           >
             <Plus size={13} />

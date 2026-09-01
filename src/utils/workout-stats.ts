@@ -7,9 +7,11 @@ export function epley1Rm(weightKg: number, reps: number): number {
   return weightKg * (1 + reps / 30);
 }
 
-function normalize(name: string): string {
+/** Canonical lift-name identity used everywhere lifts are matched by name. */
+export function normalizeLiftName(name: string): string {
   return name.trim().toLowerCase();
 }
+const normalize = normalizeLiftName;
 
 function finishedSessions(sessions: WorkoutSession[]): WorkoutSession[] {
   return sessions

@@ -1,5 +1,7 @@
 import { format } from 'date-fns';
 
+export const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
 export function todayKey(): string {
   return format(new Date(), 'yyyy-MM-dd');
 }

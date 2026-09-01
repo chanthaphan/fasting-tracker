@@ -14,7 +14,7 @@ interface CalendarGridProps {
   datesWithFasting: Set<string>;
 }
 
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+import { DAY_NAMES as WEEKDAYS } from '../../utils/date-utils';
 
 export function CalendarGrid({ selectedDate, onSelectDate, datesWithFood, datesWithFasting }: CalendarGridProps) {
   const [viewDate, setViewDate] = useState(new Date());

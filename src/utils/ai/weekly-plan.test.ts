@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateWeeklyPlan } from './weekly-plan';
+import { isPlanCurrent, planHasWorkout, validateWeeklyPlan } from './weekly-plan';
 import { dateKey } from '../date-utils';
 
 const START = new Date('2025-06-02T00:00:00'); // a Monday
@@ -68,5 +68,34 @@ describe('validateWeeklyPlan', () => {
     expect(validateWeeklyPlan(null, START)).toBeNull();
     expect(validateWeeklyPlan({}, START)).toBeNull();
     expect(validateWeeklyPlan({ days: [] }, START)).toBeNull();
+  });
+});
+
+describe('planHasWorkout', () => {
+  it('detects at least one workout day', () => {
+    const days = validateWeeklyPlan({ days: [workoutDay('A')] }, START)!;
+    expect(planHasWorkout(days)).toBe(true);
+    expect(planHasWorkout(days.map((d) => ({ ...d, type: 'rest' as const })))).toBe(false);
+  });
+});
+
+describe('isPlanCurrent', () => {
+  const plan = (days: { date: string; type: 'workout' | 'rest' }[]) => ({
+    startDate: days[0]?.date ?? '',
+    days,
+    reason: '',
+    generatedAt: 0,
+  });
+  const week = [0, 1, 2, 3, 4, 5, 6].map((i) => ({ date: day(i), type: 'rest' as const }));
+
+  it('is current while today is inside the week but not its last day', () => {
+    expect(isPlanCurrent(plan(week), day(0))).toBe(true);
+    expect(isPlanCurrent(plan(week), day(5))).toBe(true);
+  });
+
+  it('expires on the final day and outside the week', () => {
+    expect(isPlanCurrent(plan(week), day(6))).toBe(false);
+    expect(isPlanCurrent(plan(week), day(7))).toBe(false);
+    expect(isPlanCurrent(plan([]), day(0))).toBe(false);
   });
 });

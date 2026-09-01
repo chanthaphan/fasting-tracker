@@ -1,4 +1,5 @@
-import type { WeeklyPlanDay, WorkoutPlanExercise } from '../../types';
+import { addDays } from 'date-fns';
+import type { WeeklyPlanCache, WeeklyPlanDay, WorkoutPlanExercise } from '../../types';
 import { dateKey } from '../date-utils';
 
 export const WEEKLY_PLAN_SCHEMA = {
@@ -76,7 +77,7 @@ export function validateWeeklyPlan(value: unknown, startDate: Date): WeeklyPlanD
 
   const days: WeeklyPlanDay[] = [];
   for (let i = 0; i < 7; i++) {
-    const date = dateKey(new Date(startDate.getTime() + i * 86400000));
+    const date = dateKey(addDays(startDate, i));
     const raw = rawDays[i];
     if (typeof raw !== 'object' || raw === null) {
       days.push({ date, type: 'rest' });
@@ -94,4 +95,20 @@ export function validateWeeklyPlan(value: unknown, startDate: Date): WeeklyPlanD
     });
   }
   return days;
+}
+
+/** A plan needs at least one training day to be worth caching. */
+export function planHasWorkout(days: WeeklyPlanDay[]): boolean {
+  return days.some((d) => d.type === 'workout');
+}
+
+/**
+ * A cached plan is current while today is inside it but not its final
+ * day — on the last day (or after) a fresh forward-looking week should
+ * be generated instead of showing mostly-past days.
+ */
+export function isPlanCurrent(plan: WeeklyPlanCache, today: string): boolean {
+  if (!Array.isArray(plan.days) || plan.days.length === 0) return false;
+  const index = plan.days.findIndex((d) => d.date === today);
+  return index >= 0 && index < plan.days.length - 1;
 }

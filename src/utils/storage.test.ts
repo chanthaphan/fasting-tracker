@@ -7,7 +7,7 @@ import {
   isSettings,
   isWorkoutSessionArray,
   isWorkoutTemplateArray,
-  isWorkoutPlanCache,
+  isWeeklyPlanCache,
   loadFromStorageSync,
   saveToStorage,
 } from './storage';
@@ -116,10 +116,14 @@ describe('Workout validators', () => {
     expect(isWorkoutTemplateArray([{ id: 't1' }])).toBe(false);
   });
 
-  it('isWorkoutPlanCache validates shape', () => {
-    expect(isWorkoutPlanCache({ dateKey: '2025-01-01', exercises: [], reason: '', generatedAt: 1 })).toBe(true);
-    expect(isWorkoutPlanCache({ dateKey: '2025-01-01', exercises: 'x' })).toBe(false);
-    expect(isWorkoutPlanCache(null)).toBe(false);
+  it('isWeeklyPlanCache validates each day element', () => {
+    const day = { date: '2025-01-01', type: 'rest' };
+    expect(isWeeklyPlanCache({ startDate: '2025-01-01', days: [day], reason: '', generatedAt: 1 })).toBe(true);
+    expect(isWeeklyPlanCache({ startDate: '2025-01-01', days: [] })).toBe(true);
+    expect(isWeeklyPlanCache({ startDate: '2025-01-01', days: [null] })).toBe(false);
+    expect(isWeeklyPlanCache({ startDate: '2025-01-01', days: [{ date: '2025-01-01', type: 'nap' }] })).toBe(false);
+    expect(isWeeklyPlanCache({ startDate: '2025-01-01', days: 'x' })).toBe(false);
+    expect(isWeeklyPlanCache(null)).toBe(false);
   });
 });
 

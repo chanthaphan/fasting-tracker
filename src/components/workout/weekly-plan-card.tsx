@@ -6,8 +6,7 @@ import { useAiReady } from '../../hooks/use-ai';
 import { useWeeklyPlan } from '../../hooks/use-weekly-plan';
 import { TrainingGoalModal } from './training-goal-modal';
 import { HEALTH_DISCLAIMER } from '../../utils/ai/prompts';
-import { DAY_NAMES } from '../../utils/ai/context-builder';
-import { todayKey } from '../../utils/date-utils';
+import { DAY_NAMES, todayKey } from '../../utils/date-utils';
 
 /**
  * AI weekly training plan: 7-day strip scheduled around the user's
@@ -25,7 +24,11 @@ export function WeeklyPlanCard() {
 
   const goal = state.trainingGoal;
   const today = todayKey();
-  const selectedDay = plan?.days.find((d) => d.date === (selectedDate ?? today)) ?? null;
+  // A cached plan whose week has fully passed (long-lived tab) renders as "no plan"
+  const currentPlan = plan && plan.days.some((d) => d.date === today) ? plan : null;
+  // A selection from a regenerated/previous plan falls back to today
+  const activeDate = selectedDate && currentPlan?.days.some((d) => d.date === selectedDate) ? selectedDate : today;
+  const selectedDay = currentPlan?.days.find((d) => d.date === activeDate) ?? null;
 
   const startPlannedWorkout = () => {
     if (!selectedDay?.exercises || state.activeWorkoutId) return;
@@ -60,7 +63,7 @@ export function WeeklyPlanCard() {
         </button>
       )}
 
-      {goal && !plan && (
+      {goal && !currentPlan && (
         <button
           onClick={() => getPlan()}
           disabled={loading}
@@ -71,7 +74,7 @@ export function WeeklyPlanCard() {
         </button>
       )}
 
-      {goal && plan && (
+      {goal && currentPlan && (
         <div className="bg-white dark:bg-gray-900 rounded-xl p-3 border border-orange-100 dark:border-orange-900/50">
           <div className="flex items-center justify-between mb-2">
             <p className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400">
@@ -99,8 +102,8 @@ export function WeeklyPlanCard() {
 
           {/* 7-day strip */}
           <div className="grid grid-cols-7 gap-1 mb-2">
-            {plan.days.map((d) => {
-              const isSelected = d.date === (selectedDate ?? today);
+            {currentPlan.days.map((d) => {
+              const isSelected = d.date === activeDate;
               const isToday = d.date === today;
               return (
                 <button
@@ -158,14 +161,14 @@ export function WeeklyPlanCard() {
             </div>
           )}
 
-          {plan.reason && <p className="text-[11px] text-gray-400 mt-2">{plan.reason}</p>}
+          {currentPlan.reason && <p className="text-[11px] text-gray-400 mt-2">{currentPlan.reason}</p>}
           <p className="text-[10px] text-gray-400 mt-1.5">{HEALTH_DISCLAIMER.en} · {HEALTH_DISCLAIMER.th}</p>
         </div>
       )}
 
       {error && <p className="text-xs text-red-500 font-medium mt-1.5">{error}</p>}
 
-      <TrainingGoalModal open={goalOpen} onClose={() => setGoalOpen(false)} onSaved={() => getPlan(true)} />
+      <TrainingGoalModal open={goalOpen} onClose={() => setGoalOpen(false)} onSaved={(saved) => getPlan(true, saved)} />
     </div>
   );
 }

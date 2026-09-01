@@ -1,5 +1,5 @@
 import type { AppState, FastingSession, FoodEntry } from '../../types';
-import { dateKey } from '../date-utils';
+import { DAY_NAMES, dateKey } from '../date-utils';
 import { sumMacros } from '../macro-calc';
 import { getTDEE } from '../tdee-calc';
 import { computeStreaks } from '../fasting-streak';
@@ -21,8 +21,6 @@ function round1(n: number): string {
   return (Math.round(n * 10) / 10).toString();
 }
 
-export const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
 /**
  * Compact description of the user's fasting habit — average length,
  * usual start hour, and which weekdays were fasted in the last week —
@@ -30,7 +28,7 @@ export const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
  */
 export function summarizeFastingPattern(sessions: FastingSession[], now: Date = new Date()): string | null {
   const finished = sessions
-    .filter((s) => s.endTime !== null)
+    .filter((s) => typeof s.endTime === 'number')
     .sort((a, b) => b.startTime - a.startTime)
     .slice(0, 14);
   if (finished.length < 3) return null;
@@ -160,7 +158,8 @@ export function buildHealthContext(state: AppState, now: Date = new Date()): str
       });
     if (bests.length > 0) lines.push(`Lift bests: ${bests.join(', ')}`);
   }
-  if (state.trainingGoal) {
+  // Shape-guarded: trainingGoal is hydrated from loosely-validated storage
+  if (state.trainingGoal && Array.isArray(state.trainingGoal.targetLifts) && Array.isArray(state.trainingGoal.preferredDays)) {
     const g = state.trainingGoal;
     const targets = g.targetLifts.map((t) => `${t.name} ${t.targetWeightKg}kg`).join(', ');
     lines.push(

@@ -156,13 +156,6 @@ export interface WorkoutPlanExercise {
   targetReps: number;
 }
 
-export interface WorkoutPlanCache {
-  dateKey: string;
-  exercises: WorkoutPlanExercise[];
-  reason: string;
-  generatedAt: number;
-}
-
 export interface LiftTarget {
   name: string;
   targetWeightKg: number;
