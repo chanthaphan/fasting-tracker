@@ -26,6 +26,7 @@ const initialState: AppState = {
   weightGoal: null,
   userProfile: null,
   aiSettings: DEFAULT_AI_SETTINGS,
+  trainingGoal: null,
 };
 
 const AppContext = createContext<{
@@ -62,6 +63,7 @@ function loadInitialState(): AppState {
     weightGoal: settings.weightGoal ?? null,
     userProfile: settings.userProfile ?? null,
     aiSettings: settings.aiSettings ?? DEFAULT_AI_SETTINGS,
+    trainingGoal: settings.trainingGoal ?? null,
   };
 }
 
@@ -105,6 +107,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           weightGoal: settings.weightGoal ?? null,
           userProfile: settings.userProfile ?? null,
           aiSettings: settings.aiSettings ?? DEFAULT_AI_SETTINGS,
+          trainingGoal: settings.trainingGoal ?? null,
         },
       });
     }
@@ -145,8 +148,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       userProfile: state.userProfile,
       aiSettings: state.aiSettings,
       activeWorkoutId: state.activeWorkoutId,
+      trainingGoal: state.trainingGoal,
     });
-  }, [state.theme, state.activeFastingId, state.goals, state.weightGoal, state.userProfile, state.aiSettings, state.activeWorkoutId]);
+  }, [state.theme, state.activeFastingId, state.goals, state.weightGoal, state.userProfile, state.aiSettings, state.activeWorkoutId, state.trainingGoal]);
 
   const [storageFull, setStorageFull] = useState(false);
 

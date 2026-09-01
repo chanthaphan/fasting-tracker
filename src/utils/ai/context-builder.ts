@@ -1,5 +1,5 @@
-import type { AppState, FoodEntry } from '../../types';
-import { dateKey } from '../date-utils';
+import type { AppState, FastingSession, FoodEntry } from '../../types';
+import { DAY_NAMES, dateKey } from '../date-utils';
 import { sumMacros } from '../macro-calc';
 import { getTDEE } from '../tdee-calc';
 import { computeStreaks } from '../fasting-streak';
@@ -19,6 +19,33 @@ function toKg(weight: number, unit: string): number {
 
 function round1(n: number): string {
   return (Math.round(n * 10) / 10).toString();
+}
+
+/**
+ * Compact description of the user's fasting habit — average length,
+ * usual start hour, and which weekdays were fasted in the last week —
+ * so the AI can schedule training around it. Null with too little data.
+ */
+export function summarizeFastingPattern(sessions: FastingSession[], now: Date = new Date()): string | null {
+  const finished = sessions
+    .filter((s) => typeof s.endTime === 'number')
+    .sort((a, b) => b.startTime - a.startTime)
+    .slice(0, 14);
+  if (finished.length < 3) return null;
+
+  const avgHours = finished.reduce((sum, f) => sum + (f.endTime! - f.startTime), 0) / finished.length / 3600000;
+  const startHours = finished.map((f) => new Date(f.startTime).getHours()).sort((a, b) => a - b);
+  const medianHour = startHours[Math.floor(startHours.length / 2)];
+
+  const weekAgo = now.getTime() - 7 * 86400000;
+  const recentDays = [...new Set(
+    finished.filter((f) => f.startTime >= weekAgo).map((f) => DAY_NAMES[new Date(f.startTime).getDay()])
+  )];
+
+  return (
+    `Fasting pattern: ~${Math.round(avgHours)}h fasts usually starting ~${medianHour}:00` +
+    (recentDays.length > 0 ? `; fasted ${recentDays.join(', ')} in the last week` : '')
+  );
 }
 
 /**
@@ -100,6 +127,8 @@ export function buildHealthContext(state: AppState, now: Date = new Date()): str
         .join(', ')}`
     );
   }
+  const fastingPattern = summarizeFastingPattern(state.fastingSessions, now);
+  if (fastingPattern) lines.push(fastingPattern);
 
   // Weight training
   const finishedWorkouts = state.workoutSessions
@@ -128,6 +157,14 @@ export function buildHealthContext(state: AppState, now: Date = new Date()): str
         return `${lift.name} ${r.bestWeightKg}kg (1RM ${Math.round(r.best1RmKg)})`;
       });
     if (bests.length > 0) lines.push(`Lift bests: ${bests.join(', ')}`);
+  }
+  // Shape-guarded: trainingGoal is hydrated from loosely-validated storage
+  if (state.trainingGoal && Array.isArray(state.trainingGoal.targetLifts) && Array.isArray(state.trainingGoal.preferredDays)) {
+    const g = state.trainingGoal;
+    const targets = g.targetLifts.map((t) => `${t.name} ${t.targetWeightKg}kg`).join(', ');
+    lines.push(
+      `Training goal:${targets ? ` targets ${targets};` : ''} prefers ${g.preferredDays.map((d) => DAY_NAMES[d]).join('/') || 'any days'}; ${g.sessionMinutes}min sessions`
+    );
   }
 
   // Today

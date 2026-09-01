@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { ChevronLeft, Info } from 'lucide-react';
 import { Modal } from '../ui/modal';
 import { useAppState } from '../../context/app-context';
-import { computeLiftRecords, listLifts } from '../../utils/workout-stats';
+import { computeLiftRecords, listLifts, normalizeLiftName } from '../../utils/workout-stats';
 import { LiftProgressChart } from './lift-progress-chart';
 import { ExerciseInfoModal } from './exercise-info-modal';
 import { getExerciseInfo } from '../../constants/exercise-info';
@@ -23,6 +23,16 @@ export function LiftRecordsModal({ open, onClose }: LiftRecordsModalProps) {
     () => (selectedLift ? computeLiftRecords(state.workoutSessions, selectedLift) : null),
     [state.workoutSessions, selectedLift]
   );
+
+  const targetLifts = Array.isArray(state.trainingGoal?.targetLifts) ? state.trainingGoal.targetLifts : [];
+  const liftTarget = selectedLift
+    ? targetLifts.find(
+        (t) => normalizeLiftName(t.name) === normalizeLiftName(selectedLift) && t.targetWeightKg > 0
+      ) ?? null
+    : null;
+  const targetPct = liftTarget && records
+    ? Math.min(100, Math.round((records.bestWeightKg / liftTarget.targetWeightKg) * 100))
+    : null;
 
   const handleClose = () => {
     setSelectedLift(null);
@@ -90,6 +100,21 @@ export function LiftRecordsModal({ open, onClose }: LiftRecordsModalProps) {
               <p className="text-[10px] text-gray-400">Best est. 1RM</p>
             </div>
           </div>
+
+          {liftTarget && targetPct !== null && (
+            <div>
+              <div className="flex items-center justify-between text-xs mb-1">
+                <span className="text-gray-400">Target: {liftTarget.targetWeightKg} kg</span>
+                <span className="font-semibold text-orange-500">{targetPct}%</span>
+              </div>
+              <div className="w-full h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-orange-500 rounded-full transition-all duration-500"
+                  style={{ width: `${targetPct}%` }}
+                />
+              </div>
+            </div>
+          )}
 
           <LiftProgressChart history={records.history} />
 

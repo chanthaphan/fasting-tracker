@@ -2,7 +2,7 @@ import { get, set } from 'idb-keyval';
 import type {
   FoodEntry, FastingSession, WeightEntry, ExerciseEntry, MacroGoals, WeightGoal, UserProfile,
   AiSettings, ChatMessageRecord, DailyDigestCache, FastPlanCache,
-  WorkoutSession, WorkoutTemplate, WorkoutPlanCache,
+  WorkoutSession, WorkoutTemplate, TrainingGoal, WeeklyPlanCache, WeeklyPlanDay,
 } from '../types';
 
 const KEYS = {
@@ -16,7 +16,7 @@ const KEYS = {
   AI_FAST_PLAN: 'ft_ai_fast_plan',
   WORKOUT_SESSIONS: 'ft_workout_sessions',
   WORKOUT_TEMPLATES: 'ft_workout_templates',
-  AI_WORKOUT_PLAN: 'ft_ai_workout_plan',
+  AI_WEEKLY_PLAN: 'ft_ai_weekly_plan',
 } as const;
 
 type Validator<T> = (value: unknown) => value is T;
@@ -132,6 +132,7 @@ export interface StoredSettings {
   userProfile: UserProfile | null;
   aiSettings?: AiSettings;
   activeWorkoutId?: string | null;
+  trainingGoal?: TrainingGoal | null;
 }
 
 export const isSettings: Validator<StoredSettings> = (
@@ -160,7 +161,14 @@ export const isWorkoutTemplateArray: Validator<WorkoutTemplate[]> = isArrayOf<Wo
   (v) => hasKeys(v, 'id', 'name', 'exercises') && Array.isArray((v as WorkoutTemplate).exercises)
 );
 
-export const isWorkoutPlanCache: Validator<WorkoutPlanCache> = (value: unknown): value is WorkoutPlanCache =>
-  hasKeys(value, 'dateKey', 'exercises') && Array.isArray((value as WorkoutPlanCache).exercises);
+export const isWeeklyPlanCache: Validator<WeeklyPlanCache> = (value: unknown): value is WeeklyPlanCache =>
+  hasKeys(value, 'startDate', 'days') &&
+  Array.isArray((value as WeeklyPlanCache).days) &&
+  (value as WeeklyPlanCache).days.every(
+    (d: unknown) =>
+      hasKeys(d, 'date', 'type') &&
+      typeof (d as WeeklyPlanDay).date === 'string' &&
+      ((d as WeeklyPlanDay).type === 'workout' || (d as WeeklyPlanDay).type === 'rest')
+  );
 
 export { KEYS };
