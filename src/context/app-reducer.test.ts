@@ -18,6 +18,7 @@ const baseState: AppState = {
   userProfile: null,
   aiSettings: { apiKey: '', model: 'claude-opus-5', language: 'auto' },
   trainingGoal: null,
+  gamification: { checkIns: [], seenAchievements: [] },
 };
 
 describe('appReducer - Food actions', () => {
@@ -310,6 +311,60 @@ describe('appReducer - Workout actions', () => {
     const imported = appReducer(state, { type: 'IMPORT_DATA', payload: { foodEntries: [], fastingSessions: [] } });
     expect(imported.workoutSessions).toHaveLength(1);
     expect(imported.activeWorkoutId).toBe(state.activeWorkoutId);
+  });
+});
+
+describe('appReducer - Gamification actions', () => {
+  it('DAILY_CHECK_IN records today once and is a no-op on repeat', () => {
+    const once = appReducer(baseState, { type: 'DAILY_CHECK_IN' });
+    expect(once.gamification.checkIns).toHaveLength(1);
+    const twice = appReducer(once, { type: 'DAILY_CHECK_IN' });
+    expect(twice).toBe(once);
+  });
+
+  it('DAILY_CHECK_IN keeps checkIns sorted', () => {
+    const stateWith = {
+      ...baseState,
+      gamification: { checkIns: ['2020-01-01', '2099-12-31'], seenAchievements: [] },
+    };
+    const state = appReducer(stateWith, { type: 'DAILY_CHECK_IN' });
+    expect(state.gamification.checkIns).toHaveLength(3);
+    expect([...state.gamification.checkIns].sort()).toEqual(state.gamification.checkIns);
+  });
+
+  it('MARK_ACHIEVEMENTS_SEEN unions ids without duplicates', () => {
+    const stateWith = {
+      ...baseState,
+      gamification: { checkIns: [], seenAchievements: ['first-fast'] },
+    };
+    const state = appReducer(stateWith, {
+      type: 'MARK_ACHIEVEMENTS_SEEN',
+      payload: { ids: ['first-fast', 'first-weight'] },
+    });
+    expect(state.gamification.seenAchievements.sort()).toEqual(['first-fast', 'first-weight']);
+  });
+
+  it('MARK_ACHIEVEMENTS_SEEN is a no-op when all ids are already seen', () => {
+    const stateWith = {
+      ...baseState,
+      gamification: { checkIns: [], seenAchievements: ['first-fast'] },
+    };
+    const state = appReducer(stateWith, { type: 'MARK_ACHIEVEMENTS_SEEN', payload: { ids: ['first-fast'] } });
+    expect(state).toBe(stateWith);
+  });
+
+  it('IMPORT_DATA replaces gamification when provided and preserves it otherwise', () => {
+    const stateWith = {
+      ...baseState,
+      gamification: { checkIns: ['2025-01-01'], seenAchievements: ['first-fast'] },
+    };
+    const preserved = appReducer(stateWith, { type: 'IMPORT_DATA', payload: { foodEntries: [], fastingSessions: [] } });
+    expect(preserved.gamification).toBe(stateWith.gamification);
+    const replaced = appReducer(stateWith, {
+      type: 'IMPORT_DATA',
+      payload: { foodEntries: [], fastingSessions: [], gamification: { checkIns: ['2025-02-02'], seenAchievements: [] } },
+    });
+    expect(replaced.gamification.checkIns).toEqual(['2025-02-02']);
   });
 });
 

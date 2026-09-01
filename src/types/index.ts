@@ -182,6 +182,11 @@ export interface WeeklyPlanCache {
   generatedAt: number;
 }
 
+export interface GamificationData {
+  checkIns: string[]; // 'YYYY-MM-DD', sorted, deduped
+  seenAchievements: string[]; // achievement ids already celebrated
+}
+
 export interface AppState {
   foodEntries: FoodEntry[];
   fastingSessions: FastingSession[];
@@ -198,6 +203,7 @@ export interface AppState {
   userProfile: UserProfile | null;
   aiSettings: AiSettings;
   trainingGoal: TrainingGoal | null;
+  gamification: GamificationData;
 }
 
 export type AppAction =
@@ -228,5 +234,7 @@ export type AppAction =
   | { type: 'DELETE_WORKOUT'; payload: { id: string } }
   | { type: 'SAVE_TEMPLATE'; payload: Omit<WorkoutTemplate, 'id' | 'createdAt'> }
   | { type: 'DELETE_TEMPLATE'; payload: { id: string } }
-  | { type: 'IMPORT_DATA'; payload: { foodEntries: FoodEntry[]; fastingSessions: FastingSession[]; weightEntries?: WeightEntry[]; exerciseEntries?: ExerciseEntry[]; workoutSessions?: WorkoutSession[]; workoutTemplates?: WorkoutTemplate[] } }
+  | { type: 'DAILY_CHECK_IN' }
+  | { type: 'MARK_ACHIEVEMENTS_SEEN'; payload: { ids: string[] } }
+  | { type: 'IMPORT_DATA'; payload: { foodEntries: FoodEntry[]; fastingSessions: FastingSession[]; weightEntries?: WeightEntry[]; exerciseEntries?: ExerciseEntry[]; workoutSessions?: WorkoutSession[]; workoutTemplates?: WorkoutTemplate[]; gamification?: GamificationData } }
   | { type: 'HYDRATE'; payload: AppState };

@@ -189,6 +189,25 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         workoutTemplates: state.workoutTemplates.filter((t) => t.id !== action.payload.id),
       };
+    case 'DAILY_CHECK_IN': {
+      const today = dateKey(new Date());
+      if (state.gamification.checkIns.includes(today)) return state;
+      return {
+        ...state,
+        gamification: {
+          ...state.gamification,
+          checkIns: [...state.gamification.checkIns, today].sort(),
+        },
+      };
+    }
+    case 'MARK_ACHIEVEMENTS_SEEN': {
+      const merged = new Set([...state.gamification.seenAchievements, ...action.payload.ids]);
+      if (merged.size === state.gamification.seenAchievements.length) return state;
+      return {
+        ...state,
+        gamification: { ...state.gamification, seenAchievements: [...merged] },
+      };
+    }
     case 'IMPORT_DATA': {
       const workoutSessions = action.payload.workoutSessions ?? state.workoutSessions;
       return {
@@ -199,6 +218,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         exerciseEntries: action.payload.exerciseEntries ?? state.exerciseEntries,
         workoutSessions,
         workoutTemplates: action.payload.workoutTemplates ?? state.workoutTemplates,
+        gamification: action.payload.gamification ?? state.gamification,
         activeFastingId:
           action.payload.fastingSessions.find((s) => s.endTime === null)?.id ?? null,
         activeWorkoutId: workoutSessions.find((s) => s.endTime === null)?.id ?? null,

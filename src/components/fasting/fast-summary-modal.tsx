@@ -6,6 +6,7 @@ import { useAppState } from '../../context/app-context';
 import { useAiReady } from '../../hooks/use-ai';
 import { useFastSummary } from '../../hooks/use-fast-ai';
 import { computeStreaks } from '../../utils/fasting-streak';
+import { XP_RULES } from '../../utils/xp';
 import { formatHoursMinutes } from '../../utils/date-utils';
 import { HEALTH_DISCLAIMER } from '../../utils/ai/prompts';
 import type { FastingSession } from '../../types';
@@ -71,6 +72,11 @@ export function FastSummaryModal({ open, onClose, session }: FastSummaryModalPro
             <p className="text-[10px] text-gray-400">Day streak</p>
           </div>
         </div>
+
+        <p className="text-center text-xs font-semibold text-yellow-600 dark:text-yellow-400">
+          +{XP_RULES.fastCompleted + (targetMet ? XP_RULES.fastTargetMet : 0)} XP earned
+          {targetMet ? ' (incl. target bonus)' : ''}
+        </p>
 
         {aiReady && (
           <div className="bg-brand-50/50 dark:bg-brand-900/10 rounded-xl p-3 border border-brand-100 dark:border-brand-900/40">

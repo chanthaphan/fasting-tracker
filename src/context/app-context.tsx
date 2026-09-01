@@ -5,7 +5,7 @@ import { appReducer } from './app-reducer';
 import {
   KEYS, loadFromStorage, loadFromStorageSync, saveToStorage,
   isFoodEntryArray, isFastingSessionArray, isWeightEntryArray, isExerciseEntryArray, isSettings,
-  isWorkoutSessionArray, isWorkoutTemplateArray,
+  isWorkoutSessionArray, isWorkoutTemplateArray, isGamificationData,
 } from '../utils/storage';
 import { todayKey } from '../utils/date-utils';
 
@@ -27,6 +27,7 @@ const initialState: AppState = {
   userProfile: null,
   aiSettings: DEFAULT_AI_SETTINGS,
   trainingGoal: null,
+  gamification: { checkIns: [], seenAchievements: [] },
 };
 
 const AppContext = createContext<{
@@ -41,6 +42,7 @@ function loadInitialState(): AppState {
   const exerciseEntries = loadFromStorageSync(KEYS.EXERCISE_ENTRIES, initialState.exerciseEntries, isExerciseEntryArray);
   const workoutSessions = loadFromStorageSync(KEYS.WORKOUT_SESSIONS, initialState.workoutSessions, isWorkoutSessionArray);
   const workoutTemplates = loadFromStorageSync(KEYS.WORKOUT_TEMPLATES, initialState.workoutTemplates, isWorkoutTemplateArray);
+  const gamification = loadFromStorageSync(KEYS.GAMIFICATION, initialState.gamification, isGamificationData);
   const settings = loadFromStorageSync(KEYS.SETTINGS, {
     theme: initialState.theme,
     activeFastingId: initialState.activeFastingId,
@@ -64,6 +66,7 @@ function loadInitialState(): AppState {
     userProfile: settings.userProfile ?? null,
     aiSettings: settings.aiSettings ?? DEFAULT_AI_SETTINGS,
     trainingGoal: settings.trainingGoal ?? null,
+    gamification,
   };
 }
 
@@ -74,13 +77,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     async function hydrate() {
-      const [foodEntries, fastingSessions, weightEntries, exerciseEntries, workoutSessions, workoutTemplates, settings] = await Promise.all([
+      const [foodEntries, fastingSessions, weightEntries, exerciseEntries, workoutSessions, workoutTemplates, gamification, settings] = await Promise.all([
         loadFromStorage(KEYS.FOOD_ENTRIES, initialState.foodEntries, isFoodEntryArray),
         loadFromStorage(KEYS.FASTING_SESSIONS, initialState.fastingSessions, isFastingSessionArray),
         loadFromStorage(KEYS.WEIGHT_ENTRIES, initialState.weightEntries, isWeightEntryArray),
         loadFromStorage(KEYS.EXERCISE_ENTRIES, initialState.exerciseEntries, isExerciseEntryArray),
         loadFromStorage(KEYS.WORKOUT_SESSIONS, initialState.workoutSessions, isWorkoutSessionArray),
         loadFromStorage(KEYS.WORKOUT_TEMPLATES, initialState.workoutTemplates, isWorkoutTemplateArray),
+        loadFromStorage(KEYS.GAMIFICATION, initialState.gamification, isGamificationData),
         loadFromStorage(KEYS.SETTINGS, {
           theme: initialState.theme,
           activeFastingId: initialState.activeFastingId,
@@ -108,6 +112,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           userProfile: settings.userProfile ?? null,
           aiSettings: settings.aiSettings ?? DEFAULT_AI_SETTINGS,
           trainingGoal: settings.trainingGoal ?? null,
+          gamification,
         },
       });
     }
@@ -138,6 +143,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     saveToStorage(KEYS.WORKOUT_TEMPLATES, state.workoutTemplates);
   }, [state.workoutTemplates]);
+
+  useEffect(() => {
+    saveToStorage(KEYS.GAMIFICATION, state.gamification);
+  }, [state.gamification]);
 
   useEffect(() => {
     saveToStorage(KEYS.SETTINGS, {
