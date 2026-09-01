@@ -18,6 +18,7 @@ const baseState: AppState = {
   userProfile: null,
   aiSettings: { apiKey: '', model: 'claude-opus-5', language: 'auto' },
   trainingGoal: null,
+  gamification: { checkIns: [], seenAchievements: [] },
 };
 
 describe('appReducer - Food actions', () => {
@@ -310,6 +311,119 @@ describe('appReducer - Workout actions', () => {
     const imported = appReducer(state, { type: 'IMPORT_DATA', payload: { foodEntries: [], fastingSessions: [] } });
     expect(imported.workoutSessions).toHaveLength(1);
     expect(imported.activeWorkoutId).toBe(state.activeWorkoutId);
+  });
+});
+
+describe('appReducer - Auto check-in', () => {
+  const today = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  it("ADD_FOOD with today's date records a check-in", () => {
+    const state = appReducer(baseState, {
+      type: 'ADD_FOOD',
+      payload: { name: 'Rice', calories: 250, protein: 5, carbs: 55, fat: 1, mealType: 'lunch', date: today() },
+    });
+    expect(state.gamification.checkIns).toEqual([today()]);
+  });
+
+  it('ADD_FOOD with a past date does not check in', () => {
+    const state = appReducer(baseState, {
+      type: 'ADD_FOOD',
+      payload: { name: 'Rice', calories: 250, protein: 5, carbs: 55, fat: 1, mealType: 'lunch', date: '2024-01-01' },
+    });
+    expect(state.gamification.checkIns).toHaveLength(0);
+  });
+
+  it("ADD_WEIGHT with today's date checks in, ADD_EXERCISE with a past date does not", () => {
+    const weighed = appReducer(baseState, { type: 'ADD_WEIGHT', payload: { weight: 75, unit: 'kg', date: today() } });
+    expect(weighed.gamification.checkIns).toEqual([today()]);
+    const exercised = appReducer(baseState, {
+      type: 'ADD_EXERCISE',
+      payload: { name: 'Run', calories: 200, durationMin: 20, date: '2024-01-01' },
+    });
+    expect(exercised.gamification.checkIns).toHaveLength(0);
+  });
+
+  it('STOP_FAST records a check-in', () => {
+    const started = appReducer(baseState, { type: 'START_FAST' });
+    const stopped = appReducer(started, { type: 'STOP_FAST' });
+    expect(stopped.gamification.checkIns).toEqual([today()]);
+  });
+
+  it('FINISH_WORKOUT records a check-in, unknown id does not', () => {
+    const started = appReducer(baseState, { type: 'START_WORKOUT' });
+    const finished = appReducer(started, {
+      type: 'FINISH_WORKOUT',
+      payload: { id: started.workoutSessions[0].id, endTime: Date.now() },
+    });
+    expect(finished.gamification.checkIns).toEqual([today()]);
+    const missed = appReducer(started, { type: 'FINISH_WORKOUT', payload: { id: 'nope', endTime: Date.now() } });
+    expect(missed.gamification.checkIns).toHaveLength(0);
+  });
+
+  it('auto check-in when already checked in today keeps a single entry', () => {
+    const checked = appReducer(baseState, { type: 'DAILY_CHECK_IN' });
+    const logged = appReducer(checked, {
+      type: 'ADD_FOOD',
+      payload: { name: 'Rice', calories: 250, protein: 5, carbs: 55, fat: 1, mealType: 'lunch', date: today() },
+    });
+    expect(logged.gamification.checkIns).toEqual([today()]);
+  });
+});
+
+describe('appReducer - Gamification actions', () => {
+  it('DAILY_CHECK_IN records today once and is a no-op on repeat', () => {
+    const once = appReducer(baseState, { type: 'DAILY_CHECK_IN' });
+    expect(once.gamification.checkIns).toHaveLength(1);
+    const twice = appReducer(once, { type: 'DAILY_CHECK_IN' });
+    expect(twice).toBe(once);
+  });
+
+  it('DAILY_CHECK_IN keeps checkIns sorted', () => {
+    const stateWith = {
+      ...baseState,
+      gamification: { checkIns: ['2020-01-01', '2099-12-31'], seenAchievements: [] },
+    };
+    const state = appReducer(stateWith, { type: 'DAILY_CHECK_IN' });
+    expect(state.gamification.checkIns).toHaveLength(3);
+    expect([...state.gamification.checkIns].sort()).toEqual(state.gamification.checkIns);
+  });
+
+  it('MARK_ACHIEVEMENTS_SEEN unions ids without duplicates', () => {
+    const stateWith = {
+      ...baseState,
+      gamification: { checkIns: [], seenAchievements: ['first-fast'] },
+    };
+    const state = appReducer(stateWith, {
+      type: 'MARK_ACHIEVEMENTS_SEEN',
+      payload: { ids: ['first-fast', 'first-weight'] },
+    });
+    expect(state.gamification.seenAchievements.sort()).toEqual(['first-fast', 'first-weight']);
+  });
+
+  it('MARK_ACHIEVEMENTS_SEEN is a no-op when all ids are already seen', () => {
+    const stateWith = {
+      ...baseState,
+      gamification: { checkIns: [], seenAchievements: ['first-fast'] },
+    };
+    const state = appReducer(stateWith, { type: 'MARK_ACHIEVEMENTS_SEEN', payload: { ids: ['first-fast'] } });
+    expect(state).toBe(stateWith);
+  });
+
+  it('IMPORT_DATA replaces gamification when provided and preserves it otherwise', () => {
+    const stateWith = {
+      ...baseState,
+      gamification: { checkIns: ['2025-01-01'], seenAchievements: ['first-fast'] },
+    };
+    const preserved = appReducer(stateWith, { type: 'IMPORT_DATA', payload: { foodEntries: [], fastingSessions: [] } });
+    expect(preserved.gamification).toBe(stateWith.gamification);
+    const replaced = appReducer(stateWith, {
+      type: 'IMPORT_DATA',
+      payload: { foodEntries: [], fastingSessions: [], gamification: { checkIns: ['2025-02-02'], seenAchievements: [] } },
+    });
+    expect(replaced.gamification.checkIns).toEqual(['2025-02-02']);
   });
 });
 

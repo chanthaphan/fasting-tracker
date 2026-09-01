@@ -3,6 +3,7 @@ import type {
   FoodEntry, FastingSession, WeightEntry, ExerciseEntry, MacroGoals, WeightGoal, UserProfile,
   AiSettings, ChatMessageRecord, DailyDigestCache, FastPlanCache,
   WorkoutSession, WorkoutTemplate, TrainingGoal, WeeklyPlanCache, WeeklyPlanDay,
+  GamificationData,
 } from '../types';
 
 const KEYS = {
@@ -17,6 +18,7 @@ const KEYS = {
   WORKOUT_SESSIONS: 'ft_workout_sessions',
   WORKOUT_TEMPLATES: 'ft_workout_templates',
   AI_WEEKLY_PLAN: 'ft_ai_weekly_plan',
+  GAMIFICATION: 'ft_gamification',
 } as const;
 
 type Validator<T> = (value: unknown) => value is T;
@@ -170,5 +172,14 @@ export const isWeeklyPlanCache: Validator<WeeklyPlanCache> = (value: unknown): v
       typeof (d as WeeklyPlanDay).date === 'string' &&
       ((d as WeeklyPlanDay).type === 'workout' || (d as WeeklyPlanDay).type === 'rest')
   );
+
+export const isGamificationData: Validator<GamificationData> = (
+  value: unknown
+): value is GamificationData =>
+  hasKeys(value, 'checkIns', 'seenAchievements') &&
+  Array.isArray((value as GamificationData).checkIns) &&
+  (value as GamificationData).checkIns.every((d) => typeof d === 'string') &&
+  Array.isArray((value as GamificationData).seenAchievements) &&
+  (value as GamificationData).seenAchievements.every((id) => typeof id === 'string');
 
 export { KEYS };

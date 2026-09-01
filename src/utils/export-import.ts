@@ -1,8 +1,8 @@
-import type { FoodEntry, FastingSession, WeightEntry, ExerciseEntry, WorkoutSession, WorkoutTemplate } from '../types';
+import type { FoodEntry, FastingSession, WeightEntry, ExerciseEntry, WorkoutSession, WorkoutTemplate, GamificationData } from '../types';
 import {
   KEYS, loadFromStorage,
   isFoodEntryArray, isFastingSessionArray, isWeightEntryArray, isExerciseEntryArray,
-  isWorkoutSessionArray, isWorkoutTemplateArray,
+  isWorkoutSessionArray, isWorkoutTemplateArray, isGamificationData,
 } from './storage';
 
 interface ExportData {
@@ -14,16 +14,18 @@ interface ExportData {
   exerciseEntries: ExerciseEntry[];
   workoutSessions: WorkoutSession[];
   workoutTemplates: WorkoutTemplate[];
+  gamification?: GamificationData;
 }
 
 export async function exportData(): Promise<void> {
-  const [foodEntries, fastingSessions, weightEntries, exerciseEntries, workoutSessions, workoutTemplates] = await Promise.all([
+  const [foodEntries, fastingSessions, weightEntries, exerciseEntries, workoutSessions, workoutTemplates, gamification] = await Promise.all([
     loadFromStorage<FoodEntry[]>(KEYS.FOOD_ENTRIES, []),
     loadFromStorage<FastingSession[]>(KEYS.FASTING_SESSIONS, []),
     loadFromStorage<WeightEntry[]>(KEYS.WEIGHT_ENTRIES, []),
     loadFromStorage<ExerciseEntry[]>(KEYS.EXERCISE_ENTRIES, []),
     loadFromStorage<WorkoutSession[]>(KEYS.WORKOUT_SESSIONS, []),
     loadFromStorage<WorkoutTemplate[]>(KEYS.WORKOUT_TEMPLATES, []),
+    loadFromStorage<GamificationData>(KEYS.GAMIFICATION, { checkIns: [], seenAchievements: [] }),
   ]);
   const data: ExportData = {
     version: 1,
@@ -34,6 +36,7 @@ export async function exportData(): Promise<void> {
     exerciseEntries,
     workoutSessions,
     workoutTemplates,
+    gamification,
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -51,6 +54,7 @@ export function parseImportFile(file: File): Promise<{
   exerciseEntries?: ExerciseEntry[];
   workoutSessions?: WorkoutSession[];
   workoutTemplates?: WorkoutTemplate[];
+  gamification?: GamificationData;
 }> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -67,6 +71,7 @@ export function parseImportFile(file: File): Promise<{
           exerciseEntries: isExerciseEntryArray(data.exerciseEntries) ? data.exerciseEntries : undefined,
           workoutSessions: isWorkoutSessionArray(data.workoutSessions) ? data.workoutSessions : undefined,
           workoutTemplates: isWorkoutTemplateArray(data.workoutTemplates) ? data.workoutTemplates : undefined,
+          gamification: isGamificationData(data.gamification) ? data.gamification : undefined,
         });
       } catch (e) {
         reject(e);
