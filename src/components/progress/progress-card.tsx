@@ -37,7 +37,7 @@ export function ProgressCard() {
           role="button"
           aria-label="Open progress details"
         >
-          <BodyAvatar fatLevel={avatar.currentFatLevel} gender={avatar.gender} mood={avatar.mood} size={96} level={levelInfo.level} />
+          <BodyAvatar fatLevel={avatar.currentFatLevel} gender={avatar.gender} mood={avatar.mood} muscle={avatar.muscleLevel} size={96} level={levelInfo.level} />
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between">
               <p className="flex items-center gap-1.5 text-sm font-semibold">

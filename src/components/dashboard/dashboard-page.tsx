@@ -145,6 +145,8 @@ export function DashboardPage() {
         </div>
       </div>
 
+      {/* Cards flow in two columns once the viewport is wide enough (landscape phones, tablets) */}
+      <div className="md:grid md:grid-cols-2 md:gap-x-3 md:items-start">
       {/* AI daily check-in */}
       <DailyDigestCard />
 
@@ -304,11 +306,12 @@ export function DashboardPage() {
       {/* Quick add */}
       <button
         onClick={() => navigate('/food')}
-        className="w-full flex items-center justify-center gap-2 py-3 bg-brand-50 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400 font-semibold rounded-2xl hover:bg-brand-100 dark:hover:bg-brand-900/30 transition-colors"
+        className="w-full md:col-span-2 flex items-center justify-center gap-2 py-3 bg-brand-50 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400 font-semibold rounded-2xl hover:bg-brand-100 dark:hover:bg-brand-900/30 transition-colors"
       >
         <Plus size={18} />
         Log Food
       </button>
+      </div>
 
       <GoalsModal
         open={goalsOpen}
