@@ -13,6 +13,8 @@ import { getDynamicPhases, getDynamicPhaseForElapsed, getFactorSummary, type Fas
 import { todayKey } from '../../utils/date-utils';
 import { Play, Square, Pencil, Flame, Trophy, ChevronDown, ChevronUp, Zap, Droplets, Moon, Coffee } from 'lucide-react';
 import type { FastingSession } from '../../types';
+import { DailyBars } from '../charts/daily-bars';
+import { format } from 'date-fns';
 
 const FASTING_TARGETS = [
   { hours: 12, label: '12h', description: 'Beginner' },
@@ -61,6 +63,19 @@ export function FastingPage() {
   const factorEffects = useMemo(() => getFactorSummary(factors), [factors]);
 
   const totalExerciseCals = todayExercise.reduce((s, e) => s + e.calories, 0);
+
+  // Last 10 completed fasts, oldest first, for the recent-fasts chart
+  const recentFasts = useMemo(() => {
+    const done = state.fastingSessions
+      .filter((s): s is FastingSession & { endTime: number } => s.endTime !== null)
+      .sort((a, b) => a.startTime - b.startTime)
+      .slice(-10);
+    return {
+      slots: done.map((s) => ({ key: s.id, label: format(new Date(s.startTime), 'M/d'), title: format(new Date(s.startTime), 'EEE, MMM d') })),
+      hours: done.map((s) => Math.round(((s.endTime - s.startTime) / 3600000) * 10) / 10),
+      lastId: done[done.length - 1]?.id,
+    };
+  }, [state.fastingSessions]);
 
   const handleEditSave = (id: string, startTime: number, endTime: number | null) => {
     dispatch({ type: 'EDIT_FAST', payload: { id, startTime, endTime } });
@@ -304,6 +319,25 @@ export function FastingPage() {
               <Trophy size={18} className="mx-auto mb-1 text-amber-500" />
               <p className="text-2xl font-bold">{streaks.longest}</p>
               <p className="text-xs text-gray-400">Longest Streak</p>
+            </div>
+          </div>
+        )}
+
+        {/* Recent fasts */}
+        {recentFasts.slots.length >= 2 && (
+          <div className="w-full">
+            <h3 className="text-sm font-semibold mb-2 text-gray-500 dark:text-gray-400">Recent Fasts</h3>
+            <div className="bg-white dark:bg-gray-900 rounded-xl p-3 border border-gray-100 dark:border-gray-800">
+              <DailyBars
+                slots={recentFasts.slots}
+                series={[{ name: 'Hours', fill: 'fill-indigo-500 dark:fill-indigo-400' }]}
+                values={[recentFasts.hours]}
+                unit="h"
+                goal={{ value: activeFast?.targetHours ?? selectedTarget, label: `Target ${activeFast?.targetHours ?? selectedTarget}h` }}
+                emphasisKey={recentFasts.lastId}
+                ariaLabel="Duration of your last 10 completed fasts"
+                tableCaption="Show values"
+              />
             </div>
           </div>
         )}

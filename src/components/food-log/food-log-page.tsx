@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Plus } from 'lucide-react';
 import { PageShell } from '../layout/page-shell';
+import { DailyBars } from '../charts/daily-bars';
+import { lastNDays, dailyMacros } from '../../utils/chart-data';
 import { MealGroup } from './meal-group';
 import { AddFoodModal } from './add-food-modal';
 import { useAppState } from '../../context/app-context';
@@ -16,6 +18,9 @@ export function FoodLogPage() {
 
   const todayEntries = state.foodEntries.filter((e) => e.date === todayKey());
   const totals = sumMacros(todayEntries);
+
+  const week = useMemo(() => lastNDays(7), []);
+  const weekMacros = useMemo(() => dailyMacros(state.foodEntries, week), [state.foodEntries, week]);
 
   const handleSave = (data: { name: string; calories: number; protein: number; carbs: number; fat: number; mealType: MealType }) => {
     if (editEntry) {
@@ -71,6 +76,26 @@ export function FoodLogPage() {
           <span>Fat: <b className="text-rose-500">{totals.fat}g</b></span>
         </div>
       </div>
+
+      {/* Last 7 days of macros */}
+      {weekMacros.calories.some((v) => v > 0) && (
+        <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 mt-4 border border-gray-100 dark:border-gray-800">
+          <p className="text-xs font-semibold text-gray-400 mb-1">Macros · Last 7 Days</p>
+          <DailyBars
+            slots={week}
+            series={[
+              { name: 'Carbs', fill: 'fill-amber-600 dark:fill-amber-600' },
+              { name: 'Protein', fill: 'fill-blue-600 dark:fill-blue-500' },
+              { name: 'Fat', fill: 'fill-rose-600 dark:fill-rose-500' },
+            ]}
+            values={[weekMacros.carbs, weekMacros.protein, weekMacros.fat]}
+            unit="g"
+            emphasisKey={todayKey()}
+            ariaLabel="Grams of protein, carbs and fat per day over the last 7 days"
+            tableCaption="Show values"
+          />
+        </div>
+      )}
 
       <AddFoodModal
         open={modalOpen}

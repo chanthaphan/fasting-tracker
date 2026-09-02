@@ -9,11 +9,19 @@ import { ExercisePage } from './components/exercise/exercise-page';
 import { HistoryPage } from './components/history/history-page';
 import { CoachPage } from './components/coach/coach-page';
 import { ActiveWorkoutPage } from './components/workout/active-workout-page';
+import { useTheme } from './hooks/use-theme';
+
+/** Applies the saved theme to <html> on every route, not just the dashboard. */
+function ThemeEffect() {
+  useTheme();
+  return null;
+}
 
 export default function App() {
   return (
     <BrowserRouter>
       <AppProvider>
+        <ThemeEffect />
         <div className="flex-1 flex flex-col min-h-0">
           <Routes>
             <Route path="/" element={<DashboardPage />} />
