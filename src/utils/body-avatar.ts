@@ -5,7 +5,7 @@ export type AvatarMood = 'neutral' | 'smile' | 'joy';
 export interface AvatarModel {
   status: 'no-weight' | 'no-goal' | 'full';
   gender: 'male' | 'female';
-  currentFatLevel: number; // 0..1 — drives the yellow fat overlay
+  currentFatLevel: number; // 0..1 — drives how heavy the avatar silhouette is
   goalFatLevel: number | null; // null when no weight goal is set
   progress: number; // 0..1 toward the weight goal
   currentWeightKg: number | null;

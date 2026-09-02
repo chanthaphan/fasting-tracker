@@ -30,11 +30,11 @@ export interface AvatarGeometry {
   waistband: { x: number; y: number; w: number; h: number };
   topPath: string | null; // female sports top
   feet: { leftCx: number; rightCx: number; cy: number; rx: number };
-  hairDome: string;
-  hairCurtains: string[] | null; // female bob sides
+  hairBack: string | null; // female bob volume, drawn behind the head
+  hairDome: string; // cap + fringe, drawn over the face
+  hairCurtains: string[] | null; // female face-framing strands
   hairBun: { cx: number; cy: number; r: number } | null;
-  bellyBlob: { cx: number; cy: number; rx: number; ry: number };
-  thighBlobs: { cx: number; cy: number; rx: number; ry: number }[];
+  bellyBlob: { cx: number; cy: number; rx: number; ry: number }; // belly roundness shading
 }
 
 export const AVATAR_VIEWBOX = '0 0 140 200';
@@ -119,20 +119,32 @@ export function buildAvatarGeometry(fatLevel: number, gender: 'male' | 'female')
       `L ${CX + chestLoHalf},98 Q ${CX},104 ${CX - chestLoHalf},98 Z`;
 
   // Hair — a dome capping the head; hats/crowns draw over it
-  const hrx = r1(headRx + 1.5);
+  const hrx = r1(headRx + 2);
   const hairDome = male
-    ? `M ${CX - hrx},48 A ${hrx} 32 0 0 1 ${CX + hrx},48 ` +
-      `L ${CX + hrx - 4},36 Q ${CX + 14},28 ${CX + 6},33 Q ${CX},35 ${CX - 8},31 ` +
-      `Q ${CX - 16},27 ${CX - hrx + 4},36 Z`
-    : `M ${CX - hrx},44 A ${hrx} 30 0 0 1 ${CX + hrx},44 ` +
-      `L ${CX + hrx - 5},34 Q ${CX + 12},27 ${CX + 2},31 Q ${CX - 10},33 ${CX - hrx + 5},34 Z`;
+    ? // Short crop with three soft fringe tufts
+      `M ${CX - hrx},47 A ${hrx} 34 0 0 1 ${CX + hrx},47 ` +
+      `Q ${CX + hrx - 1},40 ${CX + hrx - 7},37 ` +
+      `Q ${CX + 13},43 ${CX + 7},34 ` +
+      `Q ${CX - 1},43 ${CX - 8},33 ` +
+      `Q ${CX - 15},43 ${CX - hrx + 7},37 ` +
+      `Q ${CX - hrx + 1},40 ${CX - hrx},47 Z`
+    : // Side-swept bangs
+      `M ${CX - hrx},46 A ${hrx} 33 0 0 1 ${CX + hrx},46 ` +
+      `Q ${CX + hrx - 2},38 ${CX + hrx - 9},34 ` +
+      `Q ${CX + 4},46 ${CX - 4},33 ` +
+      `Q ${CX - hrx + 9},35 ${CX - hrx},46 Z`;
+  const hairBack = male
+    ? null
+    : `M ${CX - hrx - 3},44 A ${hrx + 3} 34 0 0 1 ${CX + hrx + 3},44 ` +
+      `L ${CX + hrx + 3},60 Q ${CX + hrx + 3},74 ${CX + hrx - 9},74 ` +
+      `L ${CX - hrx + 9},74 Q ${CX - hrx - 3},74 ${CX - hrx - 3},60 Z`;
   const hairCurtains = male
     ? null
     : [
-        `M ${CX - hrx},42 L ${CX - hrx - 1},60 Q ${CX - hrx},65 ${CX - hrx + 7},63 L ${CX - hrx + 7},40 Z`,
-        `M ${CX + hrx},42 L ${CX + hrx + 1},60 Q ${CX + hrx},65 ${CX + hrx - 7},63 L ${CX + hrx - 7},40 Z`,
+        `M ${CX - hrx - 1},44 Q ${CX - hrx - 4},58 ${CX - hrx + 1},68 Q ${CX - hrx + 6},60 ${CX - hrx + 5},44 Z`,
+        `M ${CX + hrx + 1},44 Q ${CX + hrx + 4},58 ${CX + hrx - 1},68 Q ${CX + hrx - 6},60 ${CX + hrx - 5},44 Z`,
       ];
-  const hairBun = male ? null : { cx: CX, cy: 16, r: 7 };
+  const hairBun = male ? null : { cx: CX, cy: 15, r: 8 };
 
   return {
     headRx,
@@ -155,13 +167,10 @@ export function buildAvatarGeometry(fatLevel: number, gender: 'male' | 'female')
     waistband: { x: r1(CX - shortsTopHalf), y: 118, w: shortsTopHalf * 2, h: 3 },
     topPath,
     feet: { leftCx: r1(legLeft.x + legW / 2), rightCx: r1(legRight.x + legW / 2), cy: 189, rx: footRx },
+    hairBack,
     hairDome,
     hairCurtains,
     hairBun,
-    bellyBlob: { cx: CX, cy: 112, rx: male ? 28 : 26, ry: male ? 15 : 14 },
-    thighBlobs: [
-      { cx: r1(CX - legGapHalf - legW / 2), cy: 156, rx: r1(legW * 0.35), ry: 9 },
-      { cx: r1(CX + legGapHalf + legW / 2), cy: 156, rx: r1(legW * 0.35), ry: 9 },
-    ],
+    bellyBlob: { cx: CX, cy: 110, rx: r1(bellyHalf * 0.72), ry: r1(lerp(7, 13, f)) },
   };
 }
