@@ -100,7 +100,7 @@ export function ActiveWorkoutPage() {
 
   return (
     <div className="flex-1 overflow-y-auto hide-scrollbar">
-      <div className="max-w-lg mx-auto px-4 pt-4 pb-10">
+      <div className="max-w-lg md:max-w-3xl mx-auto px-4 pt-4 pb-10">
         {/* Header */}
         <div className="flex items-center gap-2 mb-3">
           <button

@@ -24,6 +24,14 @@ html {
   background-color: #f9fafb;
 }
 
+/* Track the dynamic viewport so mobile browser toolbars and rotation
+   don't leave the app shell taller or shorter than the visible area. */
+@supports (height: 100dvh) {
+  html {
+    height: 100dvh;
+  }
+}
+
 html.dark {
   background-color: #030712;
 }
@@ -39,6 +47,8 @@ body {
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
   padding-top: env(safe-area-inset-top);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 .hide-scrollbar::-webkit-scrollbar {

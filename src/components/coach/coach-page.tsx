@@ -94,8 +94,8 @@ function CoachChat() {
       </p>
 
       {/* Input bar pinned above the bottom nav (nav = 3.5rem + safe-area inset) */}
-      <div className="fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom))] left-0 right-0 z-30 bg-white/90 dark:bg-gray-950/90 backdrop-blur-lg border-t border-gray-100 dark:border-gray-800">
-        <div className="max-w-lg mx-auto flex items-center gap-2 px-4 py-2">
+      <div className="fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom))] left-0 right-0 z-30 bg-white/90 dark:bg-gray-950/90 backdrop-blur-lg border-t border-gray-100 dark:border-gray-800 pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
+        <div className="max-w-lg md:max-w-3xl mx-auto flex items-center gap-2 px-4 py-2">
           <input
             type="text"
             value={input}

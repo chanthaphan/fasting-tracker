@@ -86,7 +86,9 @@ export function FastingPage() {
         ) : undefined
       }
     >
-      <div className="flex flex-col items-center gap-6">
+      {/* Ring on the left, controls on the right once the viewport is wide enough (landscape phones, tablets) */}
+      <div className="md:grid md:grid-cols-2 md:gap-x-8 md:items-start">
+      <div className="flex flex-col items-center gap-6 mb-6 md:mb-0 md:sticky md:top-0">
         <FastingRing
           elapsedMs={elapsedMs}
           phase={currentPhase}
@@ -111,7 +113,9 @@ export function FastingPage() {
             </div>
           </div>
         )}
+      </div>
 
+      <div className="flex flex-col items-center gap-6">
         {/* Fasting Factors panel */}
         <div className="w-full">
           <button
@@ -331,6 +335,7 @@ export function FastingPage() {
           <h3 className="text-sm font-semibold mb-2 text-gray-500 dark:text-gray-400">Fasting Phases</h3>
           <PhaseTimeline elapsedMs={elapsedMs} isActive={isActive} phases={dynamicPhases} />
         </div>
+      </div>
       </div>
 
       <EditFastingModal
