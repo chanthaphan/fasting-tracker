@@ -19,10 +19,12 @@ export interface AvatarGeometry {
   armW: number;
   armAngle: number;
   legW: number;
+  muscle: number; // 0..1 training bulk applied on top of the fat morph
   // shapes
   neck: AvatarCapsule;
   armLeft: AvatarCapsule;
   armRight: AvatarCapsule;
+  biceps: { cx: number; cy: number; rx: number; ry: number; transform?: string }[]; // upper-arm bulge, grows with muscle
   legLeft: AvatarCapsule;
   legRight: AvatarCapsule;
   torsoPath: string;
@@ -53,23 +55,31 @@ const r1 = (n: number) => Math.round(n * 10) / 10;
 /**
  * All chibi body dimensions as functions of fatLevel — the silhouette
  * itself widens (belly, waist, hips, cheeks, limbs) as fat increases,
- * so losing weight visibly slims the whole character.
+ * so losing weight visibly slims the whole character. muscleLevel adds
+ * training bulk on top: broader shoulders, a V-taper waist, bigger arms
+ * and thighs.
  */
-export function buildAvatarGeometry(fatLevel: number, gender: 'male' | 'female'): AvatarGeometry {
+export function buildAvatarGeometry(
+  fatLevel: number,
+  gender: 'male' | 'female',
+  muscleLevel = 0
+): AvatarGeometry {
   const f = clamp01(fatLevel);
+  const m = clamp01(muscleLevel);
   const male = gender === 'male';
 
   const headRx = r1(male ? lerp(29, 32, f) : lerp(28, 31, f));
   const jawRx = r1(male ? lerp(18, 27, f) : lerp(17, 26, f));
   const jawRy = r1(male ? lerp(6, 13, f) : lerp(6, 12, f));
-  const neckHalf = r1(male ? lerp(7, 11, f) : lerp(6, 10, f));
-  const shoulderHalf = r1(male ? lerp(20, 27, f) : lerp(17, 25, f));
-  const waistHalf = r1(male ? lerp(13, 33, f) : lerp(11, 31, f));
+  const neckHalf = r1((male ? lerp(7, 11, f) : lerp(6, 10, f)) + (male ? 2 : 1) * m);
+  const shoulderHalf = r1((male ? lerp(20, 27, f) : lerp(17, 25, f)) + (male ? 6 : 4) * m);
+  // Trained bodies taper at the waist; the taper fades as fat covers it
+  const waistHalf = r1((male ? lerp(13, 33, f) : lerp(11, 31, f)) - 2.5 * m * (1 - f));
   const bellyHalf = r1(male ? lerp(15, 38, f) : lerp(13, 35, f));
   const hipHalf = r1(male ? lerp(16, 30, f) : lerp(18, 32, f));
-  const armW = r1(male ? lerp(7, 14, f) : lerp(6, 13, f));
-  const armAngle = r1(male ? lerp(6, 22, f) : lerp(6, 20, f));
-  const legW = r1(male ? lerp(11, 18, f) : lerp(11, 19, f));
+  const armW = r1((male ? lerp(7, 14, f) : lerp(6, 13, f)) + (male ? 3 : 2) * m);
+  const armAngle = r1((male ? lerp(6, 22, f) : lerp(6, 20, f)) + 5 * m);
+  const legW = r1((male ? lerp(11, 18, f) : lerp(11, 19, f)) + 2 * m);
   const legGapHalf = r1(lerp(4, 7, f));
   const footRx = r1(lerp(9, 11, f));
   const bellySag = r1(lerp(118, 124, f)); // belly bottom sags over the waistband when fat
@@ -77,11 +87,11 @@ export function buildAvatarGeometry(fatLevel: number, gender: 'male' | 'female')
   const torsoPath =
     `M ${CX - shoulderHalf},80 ` +
     `Q ${CX},74 ${CX + shoulderHalf},80 ` +
-    `C ${CX + shoulderHalf + 2},90 ${CX + waistHalf + 2},96 ${CX + bellyHalf},112 ` +
+    `C ${CX + shoulderHalf + 2 + 2 * m},90 ${CX + waistHalf + 2},96 ${CX + bellyHalf},112 ` +
     `C ${CX + bellyHalf + 1},${bellySag} ${CX + hipHalf + 2},126 ${CX + hipHalf},132 ` +
     `L ${CX - hipHalf},132 ` +
     `C ${CX - hipHalf - 2},126 ${CX - bellyHalf - 1},${bellySag} ${CX - bellyHalf},112 ` +
-    `C ${CX - waistHalf - 2},96 ${CX - shoulderHalf - 2},90 ${CX - shoulderHalf},80 Z`;
+    `C ${CX - waistHalf - 2},96 ${CX - shoulderHalf - 2 - 2 * m},90 ${CX - shoulderHalf},80 Z`;
 
   const armPivotY = 88;
   const armLeft: AvatarCapsule = {
@@ -100,6 +110,13 @@ export function buildAvatarGeometry(fatLevel: number, gender: 'male' | 'female')
     rx: armW / 2,
     transform: `rotate(${-armAngle} ${r1(CX + shoulderHalf - 3)} ${armPivotY})`,
   };
+
+  // Bicep bulge on the upper arm, rotating with the arm; invisible inside the capsule until muscle grows it
+  const bicepRx = r1(armW / 2 + (male ? 3 : 2) * m);
+  const biceps = [
+    { cx: r1(armLeft.x + armW / 2), cy: 98, rx: bicepRx, ry: 9, transform: armLeft.transform },
+    { cx: r1(armRight.x + armW / 2), cy: 98, rx: bicepRx, ry: 9, transform: armRight.transform },
+  ];
 
   const legLeft: AvatarCapsule = { x: r1(CX - legGapHalf - legW), y: 128, w: legW, h: 58, rx: legW / 2 };
   const legRight: AvatarCapsule = { x: r1(CX + legGapHalf), y: 128, w: legW, h: 58, rx: legW / 2 };
@@ -157,9 +174,11 @@ export function buildAvatarGeometry(fatLevel: number, gender: 'male' | 'female')
     armW,
     armAngle,
     legW,
+    muscle: m,
     neck: { x: r1(CX - neckHalf), y: 72, w: neckHalf * 2, h: 12, rx: 3 },
     armLeft,
     armRight,
+    biceps,
     legLeft,
     legRight,
     torsoPath,

@@ -7,6 +7,8 @@ export interface AvatarModel {
   gender: 'male' | 'female';
   currentFatLevel: number; // 0..1 — drives how heavy the avatar silhouette is
   goalFatLevel: number | null; // null when no weight goal is set
+  muscleLevel: number; // 0..1 — training bulk from recent workouts; with leanness it reveals abs and pecs
+  trainingSessions: number; // workouts + exercise logs in the last TRAINING_WINDOW_DAYS
   progress: number; // 0..1 toward the weight goal
   currentWeightKg: number | null;
   targetWeightKg: number | null;
@@ -31,6 +33,27 @@ export function bodyFatToFatLevel(bfPct: number, gender: 'male' | 'female'): num
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
 
+export const TRAINING_WINDOW_DAYS = 28;
+/** Sessions in the window that count as fully trained (about three a week). */
+export const TRAINING_SESSIONS_FOR_MAX = 12;
+
+/**
+ * How consistently the user has been training lately: completed workouts
+ * count fully, logged cardio/exercise entries count half, over a rolling
+ * window. Returns the session tally and a 0..1 muscle level.
+ */
+export function getTrainingLevel(
+  state: Partial<Pick<AppState, 'workoutSessions' | 'exerciseEntries'>>,
+  now: number = Date.now()
+): { sessions: number; level: number } {
+  const cutoff = new Date(now - TRAINING_WINDOW_DAYS * 86400000);
+  const cutoffKey = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, '0')}-${String(cutoff.getDate()).padStart(2, '0')}`;
+  const workouts = (state.workoutSessions ?? []).filter((w) => w.endTime !== null && w.date >= cutoffKey).length;
+  const cardio = (state.exerciseEntries ?? []).filter((e) => e.date >= cutoffKey).length;
+  const sessions = workouts + cardio * 0.5;
+  return { sessions: Math.round(sessions * 10) / 10, level: clamp01(sessions / TRAINING_SESSIONS_FOR_MAX) };
+}
+
 function toKg(weight: number, unit: 'kg' | 'lbs'): number {
   return unit === 'lbs' ? weight * LBS_TO_KG : weight;
 }
@@ -48,10 +71,14 @@ const FALLBACK_START_LEVEL = 0.8;
 const FALLBACK_TARGET_LEVEL = 0.35;
 
 export function getAvatarModel(
-  state: Pick<AppState, 'weightEntries' | 'weightGoal' | 'userProfile'>
+  state: Pick<AppState, 'weightEntries' | 'weightGoal' | 'userProfile'> &
+    Partial<Pick<AppState, 'workoutSessions' | 'exerciseEntries'>>
 ): AvatarModel {
   const { weightEntries, weightGoal, userProfile } = state;
   const gender = userProfile?.gender ?? 'male';
+  const training = getTrainingLevel(state);
+  const muscleLevel = training.level;
+  const trainingSessions = training.sessions;
 
   const latest = [...weightEntries].sort((a, b) => b.createdAt - a.createdAt)[0] ?? null;
   if (!latest) {
@@ -60,6 +87,8 @@ export function getAvatarModel(
       gender,
       currentFatLevel: 0.6,
       goalFatLevel: null,
+      muscleLevel,
+      trainingSessions,
       progress: 0,
       currentWeightKg: null,
       targetWeightKg: null,
@@ -82,6 +111,8 @@ export function getAvatarModel(
       gender,
       currentFatLevel: levelFromKg ? levelFromKg(currentKg) : 0.6,
       goalFatLevel: null,
+      muscleLevel,
+      trainingSessions,
       progress: 0,
       currentWeightKg: currentKg,
       targetWeightKg: null,
@@ -109,6 +140,8 @@ export function getAvatarModel(
     gender,
     currentFatLevel,
     goalFatLevel,
+    muscleLevel,
+    trainingSessions,
     progress,
     currentWeightKg: currentKg,
     targetWeightKg: targetKg,

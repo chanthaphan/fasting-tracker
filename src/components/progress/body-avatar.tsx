@@ -10,6 +10,7 @@ interface BodyAvatarProps {
   fatLevel: number; // 0..1
   gender: 'male' | 'female';
   mood: AvatarMood;
+  muscle?: number; // 0..1 training bulk; combined with leanness it reveals definition
   size?: number; // rendered height in px
   level?: number; // unlocks accessories; omit for a bare avatar
 }
@@ -51,6 +52,9 @@ function SilhouetteShapes({ geo }: { geo: AvatarGeometry }) {
       <Rect c={geo.legRight} />
       <Rect c={geo.armLeft} />
       <Rect c={geo.armRight} />
+      {geo.biceps.map((b, i) => (
+        <ellipse key={i} cx={b.cx} cy={b.cy} rx={b.rx} ry={b.ry} transform={b.transform} />
+      ))}
       <Rect c={geo.neck} />
       <path d={geo.torsoPath} />
       <ellipse cx={CX} cy={66} rx={geo.jawRx} ry={geo.jawRy} />
@@ -126,18 +130,34 @@ function Accessory({ id, geo }: { id: AccessoryId; geo: AvatarGeometry }) {
   }
 }
 
+/** Mirrored short arc, used for pec lines and ab rows. */
+function AbRow({ y, halfW }: { y: number; halfW: number }) {
+  return (
+    <>
+      <path d={`M ${CX - halfW},${y} Q ${CX - halfW / 2},${y + 2.2} ${CX - 1.5},${y}`} />
+      <path d={`M ${CX + 1.5},${y} Q ${CX + halfW / 2},${y + 2.2} ${CX + halfW},${y}`} />
+    </>
+  );
+}
+
 /**
  * Chibi body avatar whose whole silhouette morphs with fatLevel —
  * belly, waist, hips, cheeks and limbs all widen as fat increases —
  * with soft shading so the body reads as round rather than flat.
+ * Muscle adds bulk to the silhouette, and once the body is lean enough
+ * the definition shows: pecs, a six-pack, shoulder and bicep highlights.
  */
-export function BodyAvatar({ fatLevel, gender, mood, size = 160, level }: BodyAvatarProps) {
+export function BodyAvatar({ fatLevel, gender, mood, muscle = 0, size = 160, level }: BodyAvatarProps) {
   const clipId = useId();
-  const geo = buildAvatarGeometry(fatLevel, gender);
-  const accessories = level !== undefined ? getAccessoriesForLevel(level) : [];
   const fat = Math.min(1, Math.max(0, fatLevel));
+  const bulk = Math.min(1, Math.max(0, muscle));
+  const geo = buildAvatarGeometry(fat, gender, bulk);
+  const accessories = level !== undefined ? getAccessoriesForLevel(level) : [];
   const hair = HAIR[gender];
   const belly = geo.bellyBlob;
+  // Abs and pecs only show through when lean; training makes them pop
+  const definition = Math.pow(1 - fat, 1.6) * (0.35 + 0.65 * bulk);
+  const absHalf = Math.max(6, geo.waistHalf * 0.55);
 
   return (
     <svg
@@ -145,7 +165,7 @@ export function BodyAvatar({ fatLevel, gender, mood, size = 160, level }: BodyAv
       width={size * AVATAR_ASPECT}
       height={size}
       role="img"
-      aria-label={`Body avatar with fat level at ${Math.round(fat * 100)} percent`}
+      aria-label={`Body avatar with fat level at ${Math.round(fat * 100)} percent and muscle at ${Math.round(bulk * 100)} percent`}
     >
       <clipPath id={clipId}>
         <SilhouetteShapes geo={geo} />
@@ -186,7 +206,7 @@ export function BodyAvatar({ fatLevel, gender, mood, size = 160, level }: BodyAv
           rx={belly.rx * 0.8}
           ry={belly.ry * 0.7}
           fill={`url(#${clipId}-glow)`}
-          opacity={0.3 + 0.5 * fat}
+          opacity={(0.3 + 0.5 * fat) * (1 - 0.7 * definition)}
         />
         <path
           d={`M ${CX - belly.rx},${belly.cy + belly.ry - 1} Q ${CX},${belly.cy + belly.ry + 5} ${CX + belly.rx},${belly.cy + belly.ry - 1}`}
@@ -198,6 +218,34 @@ export function BodyAvatar({ fatLevel, gender, mood, size = 160, level }: BodyAv
         />
         {/* Inner-leg shadow keeps the legs from reading as one block */}
         <rect x={CX - 1.5} y={128} width={3} height={58} fill={SKIN_SHADE} opacity={0.18} />
+
+        {/* Muscle definition: highlights on delts, pecs and biceps */}
+        <g fill={SKIN_LIGHT} opacity={0.55 * bulk}>
+          <ellipse cx={CX - geo.shoulderHalf + 3} cy={84} rx={5.5} ry={3.2} />
+          <ellipse cx={CX + geo.shoulderHalf - 3} cy={84} rx={5.5} ry={3.2} />
+          {geo.biceps.map((b, i) => (
+            <ellipse key={i} cx={b.cx - 1} cy={b.cy - 3} rx={b.rx * 0.45} ry={4} transform={b.transform} />
+          ))}
+        </g>
+        <g fill={SKIN_LIGHT} opacity={0.45 * definition}>
+          <ellipse cx={CX - 9} cy={88} rx={7} ry={3.5} />
+          <ellipse cx={CX + 9} cy={88} rx={7} ry={3.5} />
+        </g>
+        {/* Pec lines and six-pack, drawn under the clothes so a top covers the chest */}
+        <g fill="none" stroke={SKIN_SHADE} strokeWidth={1.7} strokeLinecap="round" opacity={0.85 * definition}>
+          <path d={`M ${CX - 16},92 Q ${CX - 8},98 ${CX - 2},93`} />
+          <path d={`M ${CX + 16},92 Q ${CX + 8},98 ${CX + 2},93`} />
+          <path d={`M ${CX},97 L ${CX},${belly.cy + 6}`} strokeWidth={1.4} />
+          {[100, 106, 112].map((y) => (
+            <AbRow key={y} y={y} halfW={absHalf} />
+          ))}
+        </g>
+        {/* Bicep crease */}
+        <g fill="none" stroke={SKIN_SHADE} strokeWidth={1.4} strokeLinecap="round" opacity={0.6 * bulk}>
+          {geo.biceps.map((b, i) => (
+            <path key={i} d={`M ${b.cx - b.rx * 0.7},${b.cy + 6} Q ${b.cx},${b.cy + 9} ${b.cx + b.rx * 0.7},${b.cy + 6}`} transform={b.transform} />
+          ))}
+        </g>
       </g>
 
       {/* Navel */}

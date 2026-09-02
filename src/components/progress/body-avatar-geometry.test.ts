@@ -58,4 +58,21 @@ describe('buildAvatarGeometry', () => {
       expect(geo.bellyBlob.rx).toBeLessThan(geo.bellyHalf);
     }
   });
+
+  it('adds training bulk: broader shoulders, bigger arms and legs, a narrower waist', () => {
+    for (const gender of ['male', 'female'] as const) {
+      const base = buildAvatarGeometry(0.2, gender);
+      const trained = buildAvatarGeometry(0.2, gender, 1);
+      expect(trained.shoulderHalf).toBeGreaterThan(base.shoulderHalf);
+      expect(trained.armW).toBeGreaterThan(base.armW);
+      expect(trained.legW).toBeGreaterThan(base.legW);
+      expect(trained.waistHalf).toBeLessThan(base.waistHalf);
+      expect(trained.biceps[0].rx).toBeGreaterThan(base.biceps[0].rx);
+    }
+  });
+
+  it('defaults to no muscle and clamps muscleLevel to 0..1', () => {
+    expect(buildAvatarGeometry(0.5, 'male')).toEqual(buildAvatarGeometry(0.5, 'male', 0));
+    expect(buildAvatarGeometry(0.5, 'male', 3)).toEqual(buildAvatarGeometry(0.5, 'male', 1));
+  });
 });

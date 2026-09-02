@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { estimateBodyFatPct, bodyFatToFatLevel, getAvatarModel } from './body-avatar';
+import { estimateBodyFatPct, bodyFatToFatLevel, getAvatarModel, getTrainingLevel, TRAINING_SESSIONS_FOR_MAX } from './body-avatar';
+import type { WorkoutSession, ExerciseEntry } from '../types';
 
 const profile = { gender: 'male' as const, age: 30, heightCm: 175, activityLevel: 'moderate' as const };
 const weightAt = (weight: number, unit: 'kg' | 'lbs' = 'kg', createdAt = 1) => ({
@@ -94,5 +95,48 @@ describe('getAvatarModel', () => {
     const degenerate = { ...goal, startWeight: 70, targetWeight: 70 };
     const model = getAvatarModel({ weightEntries: [weightAt(70)], weightGoal: degenerate, userProfile: null });
     expect(model.progress).toBe(0);
+  });
+});
+
+describe('getTrainingLevel', () => {
+  const now = new Date(2026, 8, 2, 12).getTime(); // 2026-09-02 local
+  const workout = (date: string, done = true): WorkoutSession => ({
+    id: date,
+    name: 'Push',
+    date,
+    startTime: 0,
+    endTime: done ? 1 : null,
+    exercises: [],
+  });
+  const cardio = (date: string): ExerciseEntry => ({
+    id: `c-${date}`,
+    name: 'Run',
+    calories: 300,
+    durationMin: 30,
+    date,
+    createdAt: 0,
+  });
+
+  it('is zero with no training logged', () => {
+    expect(getTrainingLevel({}, now)).toEqual({ sessions: 0, level: 0 });
+    expect(getAvatarModel({ weightEntries: [], weightGoal: null, userProfile: null }).muscleLevel).toBe(0);
+  });
+
+  it('counts recent completed workouts fully and cardio entries half', () => {
+    const result = getTrainingLevel(
+      {
+        workoutSessions: [workout('2026-09-01'), workout('2026-08-20'), workout('2026-08-30', false)],
+        exerciseEntries: [cardio('2026-08-28')],
+      },
+      now
+    );
+    expect(result.sessions).toBe(2.5);
+    expect(result.level).toBeCloseTo(2.5 / TRAINING_SESSIONS_FOR_MAX);
+  });
+
+  it('ignores sessions older than the window and caps at 1', () => {
+    expect(getTrainingLevel({ workoutSessions: [workout('2026-07-01')] }, now).level).toBe(0);
+    const many = Array.from({ length: 20 }, (_, i) => workout(`2026-08-${String(10 + (i % 15)).padStart(2, '0')}`));
+    expect(getTrainingLevel({ workoutSessions: many }, now).level).toBe(1);
   });
 });
