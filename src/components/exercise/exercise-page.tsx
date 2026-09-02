@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react';
 import { Plus, Pencil, Trash2, Flame } from 'lucide-react';
 import { PageShell } from '../layout/page-shell';
+import { DailyBars } from '../charts/daily-bars';
+import { lastNDays, dailyTotals } from '../../utils/chart-data';
 import { WorkoutSection } from '../workout/workout-section';
 import { AddExerciseModal } from './add-exercise-modal';
 import { useAppState } from '../../context/app-context';
@@ -57,6 +59,12 @@ export function ExercisePage() {
     dispatch({ type: 'DELETE_EXERCISE', payload: { id } });
   };
 
+  const fortnight = useMemo(() => lastNDays(14), []);
+  const burnedPerDay = useMemo(
+    () => dailyTotals(state.exerciseEntries, fortnight, (e) => e.calories),
+    [state.exerciseEntries, fortnight]
+  );
+
   return (
     <PageShell
       title="Exercise"
@@ -90,6 +98,22 @@ export function ExercisePage() {
           </div>
         </div>
       </div>
+
+      {/* Last 14 days */}
+      {burnedPerDay.some((v) => v > 0) && (
+        <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 mb-4 border border-gray-100 dark:border-gray-800">
+          <p className="text-xs font-semibold text-gray-400 mb-1">Calories Burned · Last 14 Days</p>
+          <DailyBars
+            slots={fortnight}
+            series={[{ name: 'Burned', fill: 'fill-orange-600 dark:fill-orange-400' }]}
+            values={[burnedPerDay]}
+            unit="kcal"
+            emphasisKey={todayKey()}
+            ariaLabel="Calories burned per day over the last 14 days"
+            tableCaption="Show values"
+          />
+        </div>
+      )}
 
       {/* Today's entries */}
       {todayEntries.length > 0 && (

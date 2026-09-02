@@ -13,6 +13,9 @@ import { AiSettingsModal } from '../ai/ai-settings-modal';
 import { DailyDigestCard } from './daily-digest-card';
 import { ProgressCard } from '../progress/progress-card';
 import { getTDEE } from '../../utils/tdee-calc';
+import { lastNDays, dailyTotals, dailyFastingHours } from '../../utils/chart-data';
+import { DailyBars } from '../charts/daily-bars';
+import { Sparkline } from '../charts/sparkline';
 import { useRef, useMemo, useState } from 'react';
 
 export function DashboardPage() {
@@ -58,6 +61,19 @@ export function DashboardPage() {
 
   // Net calories = food intake - exercise burned
   const netCalories = totals.calories - todayExercise;
+
+  // Last 7 days for the mini charts
+  const week = useMemo(() => lastNDays(7), []);
+  const weekCalories = useMemo(() => dailyTotals(state.foodEntries, week, (e) => e.calories), [state.foodEntries, week]);
+  const weekFasting = useMemo(() => dailyFastingHours(state.fastingSessions, week), [state.fastingSessions, week]);
+  const fastingTarget = useMemo(() => {
+    const latest = [...state.fastingSessions].sort((a, b) => b.startTime - a.startTime)[0];
+    return latest?.targetHours ?? 16;
+  }, [state.fastingSessions]);
+  const weightSpark = useMemo(
+    () => [...state.weightEntries].sort((a, b) => a.date.localeCompare(b.date)).slice(-30).map((w) => w.weight),
+    [state.weightEntries]
+  );
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -184,6 +200,39 @@ export function DashboardPage() {
         )}
       </div>
 
+      {/* This week: calories eaten and hours fasted, side by side */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 mb-3 border border-gray-100 dark:border-gray-800 md:col-span-2">
+        <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2">This Week</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <p className="text-xs text-gray-400 mb-1">Calories eaten</p>
+            <DailyBars
+              slots={week}
+              series={[{ name: 'Calories', fill: 'fill-brand-600 dark:fill-brand-400' }]}
+              values={[weekCalories]}
+              unit="kcal"
+              goal={{ value: goals.calories, label: `Goal ${goals.calories.toLocaleString()}` }}
+              emphasisKey={todayKey()}
+              ariaLabel="Calories eaten per day over the last 7 days"
+              tableCaption="Show values"
+            />
+          </div>
+          <div>
+            <p className="text-xs text-gray-400 mb-1">Hours fasted</p>
+            <DailyBars
+              slots={week}
+              series={[{ name: 'Fasting', fill: 'fill-indigo-500 dark:fill-indigo-400' }]}
+              values={[weekFasting]}
+              unit="h"
+              goal={{ value: fastingTarget, label: `Target ${fastingTarget}h` }}
+              emphasisKey={todayKey()}
+              ariaLabel="Hours fasted per day over the last 7 days"
+              tableCaption="Show values"
+            />
+          </div>
+        </div>
+      </div>
+
       {/* TDEE card */}
       {tdeeResult && (
         <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 mb-3 border border-gray-100 dark:border-gray-800">
@@ -290,13 +339,20 @@ export function DashboardPage() {
             <span className="text-2xl font-bold text-brand-600 dark:text-brand-400">{latestWeight.weight}</span>
             <span className="text-sm text-gray-500 mb-0.5">{latestWeight.unit}</span>
             {weightDiff !== null && (
-              <span className={`flex items-center gap-0.5 text-xs font-medium ml-auto mb-0.5 ${
+              <span className={`flex items-center gap-0.5 text-xs font-medium mb-0.5 ${
                 weightDiff < 0 ? 'text-green-500' : weightDiff > 0 ? 'text-red-400' : 'text-gray-400'
               }`}>
                 {weightDiff < 0 ? <TrendingDown size={12} /> : weightDiff > 0 ? <TrendingUp size={12} /> : <Minus size={12} />}
                 {weightDiff > 0 ? '+' : ''}{weightDiff.toFixed(1)}
               </span>
             )}
+            <span className="ml-auto">
+              <Sparkline
+                values={weightSpark}
+                reference={state.weightGoal?.targetWeight ?? null}
+                ariaLabel="Weight trend over the last 30 entries"
+              />
+            </span>
           </div>
         ) : (
           <p className="text-sm text-gray-400 mt-2">Tap to log your weight</p>
