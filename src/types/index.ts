@@ -204,6 +204,29 @@ export interface AppState {
   aiSettings: AiSettings;
   trainingGoal: TrainingGoal | null;
   gamification: GamificationData;
+  /** True once IndexedDB has been read; persistence waits for this so a cold start can't overwrite newer data. */
+  hydrated: boolean;
+}
+
+/** Profile, goals and targets carried in a backup file (never AI settings). */
+export interface ImportedSettings {
+  userProfile?: UserProfile | null;
+  goals?: MacroGoals;
+  weightGoal?: WeightGoal | null;
+  trainingGoal?: TrainingGoal | null;
+}
+
+export interface ImportPayload {
+  foodEntries: FoodEntry[];
+  fastingSessions: FastingSession[];
+  weightEntries?: WeightEntry[];
+  exerciseEntries?: ExerciseEntry[];
+  workoutSessions?: WorkoutSession[];
+  workoutTemplates?: WorkoutTemplate[];
+  gamification?: GamificationData;
+  settings?: ImportedSettings;
+  /** replace = the backup becomes the data; merge = union by id, backup wins on conflict */
+  mode?: 'replace' | 'merge';
 }
 
 export type AppAction =
@@ -236,5 +259,5 @@ export type AppAction =
   | { type: 'DELETE_TEMPLATE'; payload: { id: string } }
   | { type: 'DAILY_CHECK_IN' }
   | { type: 'MARK_ACHIEVEMENTS_SEEN'; payload: { ids: string[] } }
-  | { type: 'IMPORT_DATA'; payload: { foodEntries: FoodEntry[]; fastingSessions: FastingSession[]; weightEntries?: WeightEntry[]; exerciseEntries?: ExerciseEntry[]; workoutSessions?: WorkoutSession[]; workoutTemplates?: WorkoutTemplate[]; gamification?: GamificationData } }
+  | { type: 'IMPORT_DATA'; payload: ImportPayload }
   | { type: 'HYDRATE'; payload: AppState };

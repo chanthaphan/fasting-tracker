@@ -21,7 +21,28 @@ const KEYS = {
   GAMIFICATION: 'ft_gamification',
 } as const;
 
-type Validator<T> = (value: unknown) => value is T;
+/**
+ * A type guard, optionally able to salvage a partially valid value
+ * (for arrays: keep the well-formed rows, drop the rest).
+ */
+type Validator<T> = ((value: unknown) => value is T) & { repair?: (value: unknown) => T | null };
+
+/**
+ * Never silently throw away what a user logged: when stored data fails
+ * validation, keep the raw value under a side key so it can be recovered,
+ * then use the repaired value if the validator can salvage one.
+ */
+function salvage<T>(key: string, raw: unknown, validator: Validator<T>, backend: 'idb' | 'local'): T | null {
+  console.warn(`[storage] ${backend} data for "${key}" failed validation; quarantining`);
+  const quarantineKey = `${key}__corrupt_${Date.now()}`;
+  try {
+    if (backend === 'idb') set(quarantineKey, raw).catch(() => {});
+    else localStorage.setItem(quarantineKey, typeof raw === 'string' ? raw : JSON.stringify(raw));
+  } catch {
+    // quarantine is best-effort
+  }
+  return validator.repair ? validator.repair(raw) : null;
+}
 
 /**
  * Load from IndexedDB (primary) with localStorage fallback.
@@ -34,7 +55,8 @@ export async function loadFromStorage<T>(key: string, fallback: T, validator?: V
     const idbValue = await get<T>(key);
     if (idbValue !== undefined) {
       if (!validator || validator(idbValue)) return idbValue;
-      console.warn(`[storage] IndexedDB data for "${key}" failed validation`);
+      const repaired = salvage(key, idbValue, validator, 'idb');
+      if (repaired !== null) return repaired;
     }
   } catch {
     console.warn(`[storage] Failed to read "${key}" from IndexedDB`);
@@ -46,7 +68,10 @@ export async function loadFromStorage<T>(key: string, fallback: T, validator?: V
     if (!raw) return fallback;
 
     const parsed = JSON.parse(raw);
-    if (validator && !validator(parsed)) return fallback;
+    if (validator && !validator(parsed)) {
+      const repaired = salvage(key, raw, validator, 'local');
+      return repaired ?? fallback;
+    }
 
     // Migrate to IndexedDB
     set(key, parsed).catch(() => {});
@@ -56,8 +81,18 @@ export async function loadFromStorage<T>(key: string, fallback: T, validator?: V
   }
 }
 
-/** Track whether we've already warned the user this session */
-let hasWarnedStorageFull = false;
+/** One warning per backend per session, so a failing IndexedDB doesn't re-fire on every save. */
+const warned = { idb: false, local: false };
+
+function isQuotaError(err: unknown): boolean {
+  if (!(err instanceof DOMException)) return false;
+  return (
+    err.name === 'QuotaExceededError' ||
+    err.name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
+    err.code === 22 ||
+    err.code === 1014
+  );
+}
 
 /**
  * Save to IndexedDB (primary) and localStorage (backup).
@@ -67,8 +102,8 @@ let hasWarnedStorageFull = false;
 export function saveToStorage(key: string, value: unknown): void {
   // Async write to IndexedDB (primary)
   set(key, value).catch((err) => {
-    if (!hasWarnedStorageFull) {
-      hasWarnedStorageFull = true;
+    if (!warned.idb) {
+      warned.idb = true;
       console.error('[storage] IndexedDB write failed:', err);
       window.dispatchEvent(new CustomEvent('storage-full'));
     }
@@ -77,10 +112,10 @@ export function saveToStorage(key: string, value: unknown): void {
   // Sync write to localStorage (backup / fast cold-start reads)
   try {
     localStorage.setItem(key, JSON.stringify(value));
-    hasWarnedStorageFull = false;
+    warned.local = false;
   } catch (err) {
-    if (!hasWarnedStorageFull && err instanceof DOMException && err.name === 'QuotaExceededError') {
-      hasWarnedStorageFull = true;
+    if (!warned.local && isQuotaError(err)) {
+      warned.local = true;
       window.dispatchEvent(new CustomEvent('storage-full'));
     }
   }
@@ -93,7 +128,10 @@ export function loadFromStorageSync<T>(key: string, fallback: T, validator?: Val
     const raw = localStorage.getItem(key);
     if (!raw) return fallback;
     const parsed = JSON.parse(raw);
-    if (validator && !validator(parsed)) return fallback;
+    if (validator && !validator(parsed)) {
+      const repaired = salvage(key, raw, validator, 'local');
+      return repaired ?? fallback;
+    }
     return parsed as T;
   } catch {
     return fallback;
@@ -102,9 +140,12 @@ export function loadFromStorageSync<T>(key: string, fallback: T, validator?: Val
 
 // --- Validators for each data type ---
 
+/** Array validator that can also repair by keeping only the well-formed rows. */
 function isArrayOf<T>(check: (item: unknown) => boolean): Validator<T[]> {
-  return (value: unknown): value is T[] =>
-    Array.isArray(value) && (value.length === 0 || value.every(check));
+  const validator = ((value: unknown): value is T[] =>
+    Array.isArray(value) && (value.length === 0 || value.every(check))) as Validator<T[]>;
+  validator.repair = (value: unknown) => (Array.isArray(value) ? (value.filter(check) as T[]) : null);
+  return validator;
 }
 
 const hasKeys = (v: unknown, ...keys: string[]): boolean =>

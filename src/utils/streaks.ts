@@ -93,7 +93,7 @@ export function computeStreaksFromDates(dates: Iterable<string>): { current: num
   for (let i = 1; i < sorted.length; i++) {
     const prev = new Date(sorted[i - 1] + 'T00:00:00');
     const curr = new Date(sorted[i] + 'T00:00:00');
-    const diffDays = (curr.getTime() - prev.getTime()) / 86400000;
+    const diffDays = Math.round((curr.getTime() - prev.getTime()) / 86400000);
     if (diffDays === 1) {
       run++;
       if (run > longest) longest = run;

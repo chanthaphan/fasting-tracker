@@ -10,6 +10,7 @@ import { HistoryPage } from './components/history/history-page';
 import { CoachPage } from './components/coach/coach-page';
 import { ActiveWorkoutPage } from './components/workout/active-workout-page';
 import { useTheme } from './hooks/use-theme';
+import { ErrorBoundary } from './components/layout/error-boundary';
 
 /** Applies the saved theme to <html> on every route, not just the dashboard. */
 function ThemeEffect() {
@@ -23,6 +24,7 @@ export default function App() {
       <AppProvider>
         <ThemeEffect />
         <div className="flex-1 flex flex-col min-h-0">
+          <ErrorBoundary>
           <Routes>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/food" element={<FoodLogPage />} />
@@ -33,6 +35,7 @@ export default function App() {
             <Route path="/coach" element={<CoachPage />} />
             <Route path="/workout" element={<ActiveWorkoutPage />} />
           </Routes>
+          </ErrorBoundary>
           <BottomNav />
         </div>
       </AppProvider>

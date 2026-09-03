@@ -2,6 +2,7 @@ import { useMemo, useState, type KeyboardEvent, type PointerEvent } from 'react'
 import { format, parseISO, startOfDay, addDays } from 'date-fns';
 import type { WeightEntry, WeightGoal } from '../../types';
 import { niceTicks, linearTrend } from '../../utils/chart-data';
+import { convertWeight } from '../../utils/units';
 
 interface WeightChartProps {
   entries: WeightEntry[];
@@ -24,15 +25,31 @@ const fmtW = (w: number) => (Math.round(w * 10) / 10).toString();
  * target, the target as a reference line, today, and where the recent
  * pace is heading.
  */
-export function WeightChart({ entries, weightGoal }: WeightChartProps) {
+export function WeightChart({ entries, weightGoal: rawGoal }: WeightChartProps) {
   const [active, setActive] = useState<number | null>(null);
 
-  const data = useMemo(
-    () => [...entries].sort((a, b) => a.date.localeCompare(b.date)).slice(-MAX_POINTS),
-    [entries]
+  // Plot everything in the unit of the latest entry, converting older entries and the goal
+  const data = useMemo(() => {
+    const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date)).slice(-MAX_POINTS);
+    const unit = sorted[sorted.length - 1]?.unit ?? 'kg';
+    return sorted.map((e) => ({ ...e, weight: convertWeight(e.weight, e.unit, unit), unit }));
+  }, [entries]);
+  const displayUnit = data[data.length - 1]?.unit ?? 'kg';
+  const goalInUnit = useMemo(
+    () =>
+      rawGoal
+        ? {
+            ...rawGoal,
+            startWeight: convertWeight(rawGoal.startWeight, rawGoal.unit, displayUnit),
+            targetWeight: convertWeight(rawGoal.targetWeight, rawGoal.unit, displayUnit),
+            unit: displayUnit,
+          }
+        : rawGoal,
+    [rawGoal, displayUnit]
   );
 
   const model = useMemo(() => {
+    const weightGoal = goalInUnit;
     if (data.length < 2) return null;
     const today = startOfDay(new Date()).getTime();
     const firstT = dayStart(data[0].date);
@@ -102,7 +119,7 @@ export function WeightChart({ entries, weightGoal }: WeightChartProps) {
     const unit = data[data.length - 1].unit;
 
     return { t0, t1, ticks, yMin, yMax, chartW, chartH, toX, toY, points, plan, planAt, projection, paceDate, paceHeading, todayX, unit, goalEndT };
-  }, [data, weightGoal]);
+  }, [data, goalInUnit]);
 
   if (!model) {
     return (
@@ -113,6 +130,7 @@ export function WeightChart({ entries, weightGoal }: WeightChartProps) {
   }
 
   const { ticks, chartW, chartH, toY, points, plan, planAt, projection, paceDate, paceHeading, todayX, unit, t0, t1, goalEndT } = model;
+  const weightGoal = goalInUnit;
   const baseline = PAD.top + chartH;
   const last = points[points.length - 1];
   const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');

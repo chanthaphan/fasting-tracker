@@ -28,6 +28,7 @@ const initialState: AppState = {
   aiSettings: DEFAULT_AI_SETTINGS,
   trainingGoal: null,
   gamification: { checkIns: [], seenAchievements: [] },
+  hydrated: false,
 };
 
 const AppContext = createContext<{
@@ -67,6 +68,7 @@ function loadInitialState(): AppState {
     aiSettings: settings.aiSettings ?? DEFAULT_AI_SETTINGS,
     trainingGoal: settings.trainingGoal ?? null,
     gamification,
+    hydrated: false,
   };
 }
 
@@ -113,6 +115,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           aiSettings: settings.aiSettings ?? DEFAULT_AI_SETTINGS,
           trainingGoal: settings.trainingGoal ?? null,
           gamification,
+          hydrated: true,
         },
       });
     }
@@ -121,34 +124,44 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (!state.hydrated) return;
     saveToStorage(KEYS.FOOD_ENTRIES, state.foodEntries);
-  }, [state.foodEntries]);
+  }, [state.hydrated, state.foodEntries]);
 
   useEffect(() => {
+    if (!state.hydrated) return;
     saveToStorage(KEYS.FASTING_SESSIONS, state.fastingSessions);
-  }, [state.fastingSessions]);
+  }, [state.hydrated, state.fastingSessions]);
 
   useEffect(() => {
+    if (!state.hydrated) return;
     saveToStorage(KEYS.WEIGHT_ENTRIES, state.weightEntries);
-  }, [state.weightEntries]);
+  }, [state.hydrated, state.weightEntries]);
 
   useEffect(() => {
+    if (!state.hydrated) return;
     saveToStorage(KEYS.EXERCISE_ENTRIES, state.exerciseEntries);
-  }, [state.exerciseEntries]);
+  }, [state.hydrated, state.exerciseEntries]);
 
   useEffect(() => {
+    if (!state.hydrated) return;
     saveToStorage(KEYS.WORKOUT_SESSIONS, state.workoutSessions);
-  }, [state.workoutSessions]);
+  }, [state.hydrated, state.workoutSessions]);
 
   useEffect(() => {
+    if (!state.hydrated) return;
     saveToStorage(KEYS.WORKOUT_TEMPLATES, state.workoutTemplates);
-  }, [state.workoutTemplates]);
+  }, [state.hydrated, state.workoutTemplates]);
 
   useEffect(() => {
+    if (!state.hydrated) return;
     saveToStorage(KEYS.GAMIFICATION, state.gamification);
-  }, [state.gamification]);
+  }, [state.hydrated, state.gamification]);
 
+  // Persistence waits for hydration: the sync localStorage snapshot may be stale or evicted,
+  // and writing it back before IndexedDB has been read would overwrite the real data.
   useEffect(() => {
+    if (!state.hydrated) return;
     saveToStorage(KEYS.SETTINGS, {
       theme: state.theme,
       activeFastingId: state.activeFastingId,
@@ -159,7 +172,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       activeWorkoutId: state.activeWorkoutId,
       trainingGoal: state.trainingGoal,
     });
-  }, [state.theme, state.activeFastingId, state.goals, state.weightGoal, state.userProfile, state.aiSettings, state.activeWorkoutId, state.trainingGoal]);
+  }, [state.hydrated, state.theme, state.activeFastingId, state.goals, state.weightGoal, state.userProfile, state.aiSettings, state.activeWorkoutId, state.trainingGoal]);
 
   const [storageFull, setStorageFull] = useState(false);
 

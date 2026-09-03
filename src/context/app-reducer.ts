@@ -1,6 +1,26 @@
 import type { AppState, AppAction } from '../types';
 import { STRENGTH_CALORIES_PER_30MIN } from '../constants/lift-presets';
 import { dateKey } from '../utils/date-utils';
+import { getUnlockedAchievements } from '../utils/achievements';
+
+/** Mark every currently unlocked achievement as seen (no-op when nothing is new). */
+function withUnlockedMarkedSeen(state: AppState): AppState {
+  const unseen = [...getUnlockedAchievements(state)].filter(
+    (id) => !state.gamification.seenAchievements.includes(id)
+  );
+  if (unseen.length === 0) return state;
+  return {
+    ...state,
+    gamification: { ...state.gamification, seenAchievements: [...state.gamification.seenAchievements, ...unseen] },
+  };
+}
+
+/** Union two lists by id; items from `incoming` win on conflict, order preserved. */
+function mergeById<T extends { id: string }>(existing: T[], incoming: T[]): T[] {
+  const byId = new Map(existing.map((e) => [e.id, e]));
+  for (const item of incoming) byId.set(item.id, item);
+  return [...byId.values()];
+}
 
 /** Record today as a check-in (no-op when already checked in). */
 function withTodayCheckIn(state: AppState): AppState {
@@ -43,6 +63,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         foodEntries: state.foodEntries.filter((e) => e.id !== action.payload.id),
       };
     case 'START_FAST': {
+      if (state.activeFastingId) return state;
       const session = {
         id: crypto.randomUUID(),
         startTime: Date.now(),
@@ -71,6 +92,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
           state.activeFastingId === action.payload.id ? null : state.activeFastingId,
       };
     case 'EDIT_FAST':
+      if (action.payload.endTime !== null && action.payload.endTime <= action.payload.startTime) return state;
       return {
         ...state,
         fastingSessions: state.fastingSessions.map((s) =>
@@ -211,30 +233,49 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return withTodayCheckIn(state);
     case 'MARK_ACHIEVEMENTS_SEEN': {
       const merged = new Set([...state.gamification.seenAchievements, ...action.payload.ids]);
-      if (merged.size === state.gamification.seenAchievements.length) return state;
+      if (merged.size === new Set(state.gamification.seenAchievements).size) return state;
       return {
         ...state,
         gamification: { ...state.gamification, seenAchievements: [...merged] },
       };
     }
     case 'IMPORT_DATA': {
-      const workoutSessions = action.payload.workoutSessions ?? state.workoutSessions;
-      return {
+      const p = action.payload;
+      const merge = p.mode === 'merge';
+      const pick = <T extends { id: string }>(current: T[], incoming: T[] | undefined): T[] =>
+        incoming === undefined ? current : merge ? mergeById(current, incoming) : incoming;
+      const workoutSessions = pick(state.workoutSessions, p.workoutSessions);
+      const fastingSessions = pick(state.fastingSessions, p.fastingSessions);
+      const gamification = p.gamification
+        ? merge
+          ? {
+              checkIns: [...new Set([...state.gamification.checkIns, ...p.gamification.checkIns])].sort(),
+              seenAchievements: [...new Set([...state.gamification.seenAchievements, ...p.gamification.seenAchievements])],
+            }
+          : { ...p.gamification, seenAchievements: [...new Set([...state.gamification.seenAchievements, ...p.gamification.seenAchievements])] }
+        : state.gamification;
+      const next: AppState = {
         ...state,
-        foodEntries: action.payload.foodEntries,
-        fastingSessions: action.payload.fastingSessions,
-        weightEntries: action.payload.weightEntries ?? state.weightEntries,
-        exerciseEntries: action.payload.exerciseEntries ?? state.exerciseEntries,
+        foodEntries: pick(state.foodEntries, p.foodEntries),
+        fastingSessions,
+        weightEntries: pick(state.weightEntries, p.weightEntries),
+        exerciseEntries: pick(state.exerciseEntries, p.exerciseEntries),
         workoutSessions,
-        workoutTemplates: action.payload.workoutTemplates ?? state.workoutTemplates,
-        gamification: action.payload.gamification ?? state.gamification,
-        activeFastingId:
-          action.payload.fastingSessions.find((s) => s.endTime === null)?.id ?? null,
+        workoutTemplates: pick(state.workoutTemplates, p.workoutTemplates),
+        gamification,
+        userProfile: p.settings?.userProfile !== undefined ? p.settings.userProfile : state.userProfile,
+        goals: p.settings?.goals ?? state.goals,
+        weightGoal: p.settings?.weightGoal !== undefined ? p.settings.weightGoal : state.weightGoal,
+        trainingGoal: p.settings?.trainingGoal !== undefined ? p.settings.trainingGoal : state.trainingGoal,
+        activeFastingId: fastingSessions.find((s) => s.endTime === null)?.id ?? null,
         activeWorkoutId: workoutSessions.find((s) => s.endTime === null)?.id ?? null,
       };
+      // Restoring history is not an achievement moment: mark whatever it unlocks as already seen
+      return withUnlockedMarkedSeen(next);
     }
     case 'HYDRATE':
-      return action.payload;
+      // Badges earned before this session began were never "just unlocked" — don't celebrate them now
+      return withUnlockedMarkedSeen(action.payload);
     default:
       return state;
   }
