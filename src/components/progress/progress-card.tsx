@@ -31,10 +31,10 @@ export function ProgressCard() {
   return (
     <>
       <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 mb-3 border border-gray-100 dark:border-gray-800">
-        <div
+        <button
+          type="button"
           onClick={() => setDetailOpen(true)}
-          className="flex items-center gap-4 cursor-pointer"
-          role="button"
+          className="w-full flex items-center gap-4 text-left rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
           aria-label="Open progress details"
         >
           <BodyAvatar fatLevel={avatar.currentFatLevel} gender={avatar.gender} mood={avatar.mood} muscle={avatar.muscleLevel} size={96} level={levelInfo.level} />
@@ -68,7 +68,7 @@ export function ProgressCard() {
               )}
             </p>
           </div>
-        </div>
+        </button>
         <button
           onClick={() => dispatch({ type: 'DAILY_CHECK_IN' })}
           disabled={checkedInToday}

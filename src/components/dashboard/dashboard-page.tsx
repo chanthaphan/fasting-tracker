@@ -19,6 +19,8 @@ import { getTDEE } from '../../utils/tdee-calc';
 import { lastNDays, dailyTotals, dailyFastingHours } from '../../utils/chart-data';
 import { DailyBars } from '../charts/daily-bars';
 import { Sparkline } from '../charts/sparkline';
+import { InstallBanner } from '../layout/install-banner';
+import { DashboardSkeleton } from './dashboard-skeleton';
 import { convertWeight } from '../../utils/units';
 import { useRef, useMemo, useState, useEffect } from 'react';
 
@@ -222,6 +224,10 @@ export function DashboardPage() {
       </div>
       )}
 
+      <InstallBanner />
+
+      {!state.hydrated ? <DashboardSkeleton /> : (
+      <>
       {/* Cards flow in two columns once the viewport is wide enough (landscape phones, tablets) */}
       <div className="md:grid md:grid-cols-2 md:gap-x-3 md:items-start">
       {/* AI daily check-in */}
@@ -387,9 +393,11 @@ export function DashboardPage() {
       </div>
 
       {/* Weight card */}
-      <div
+      <button
+        type="button"
         onClick={() => navigate('/weight')}
-        className="bg-white dark:bg-gray-900 rounded-2xl p-4 mb-3 border border-gray-100 dark:border-gray-800 cursor-pointer hover:border-brand-200 dark:hover:border-brand-800 transition-colors"
+        aria-label={latestWeight ? `Weight ${latestWeight.weight} ${latestWeight.unit}, open weight log` : 'Log your weight'}
+        className="w-full text-left bg-white dark:bg-gray-900 rounded-2xl p-4 mb-3 border border-gray-100 dark:border-gray-800 cursor-pointer hover:border-brand-200 dark:hover:border-brand-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
       >
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400">Weight</h2>
@@ -418,7 +426,7 @@ export function DashboardPage() {
         ) : (
           <p className="text-sm text-gray-400 mt-2">Tap to log your weight</p>
         )}
-      </div>
+      </button>
 
       {/* Quick add */}
       <button
@@ -429,6 +437,8 @@ export function DashboardPage() {
         Log Food
       </button>
       </div>
+      </>
+      )}
 
       <GoalsModal
         open={goalsOpen}

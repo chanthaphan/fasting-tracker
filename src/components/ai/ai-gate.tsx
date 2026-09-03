@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Sparkles } from 'lucide-react';
 import { useAiReady } from '../../hooks/use-ai';
 import { AiSettingsModal } from './ai-settings-modal';
+import { OfflineNotice } from './offline-notice';
 
 interface AiGateProps {
   /** Short description shown on the CTA card, e.g. "get a daily check-in" */
@@ -17,7 +18,7 @@ export function AiGate({ feature, children }: AiGateProps) {
   const ready = useAiReady();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  if (ready) return <>{children}</>;
+  if (ready) return <><OfflineNotice className="mb-2 px-1" />{children}</>;
 
   return (
     <>

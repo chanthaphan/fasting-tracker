@@ -199,12 +199,14 @@ export function WeightPage() {
                 <div className="flex gap-1 ml-2">
                   <button
                     onClick={() => handleEdit(entry)}
+                    aria-label={`Edit weight entry for ${entry.date}`}
                     className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400"
                   >
                     <Pencil size={16} />
                   </button>
                   <button
                     onClick={() => handleDelete(entry.id)}
+                    aria-label={`Delete weight entry for ${entry.date}`}
                     className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500"
                   >
                     <Trash2 size={16} />

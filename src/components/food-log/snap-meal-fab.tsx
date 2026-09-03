@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Camera } from 'lucide-react';
+import { Camera, WifiOff } from 'lucide-react';
+import { useOnline } from '../../hooks/use-online';
 import { useAppState } from '../../context/use-app-state';
 import { useAiReady, useAiSettings } from '../../hooks/use-ai';
 import { compressImage, parseFoodInput } from '../../utils/ai/food-parse';
@@ -26,6 +27,7 @@ export function SnapMealFab() {
   const { aiSettings } = useAiSettings();
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const online = useOnline();
   const [open, setOpen] = useState(false);
   const [phase, setPhase] = useState<SnapPhase>('prompt');
   const [preview, setPreview] = useState<string | null>(null);
@@ -134,10 +136,15 @@ export function SnapMealFab() {
         <button
           type="button"
           onClick={openCamera}
-          aria-label="Snap a meal"
+          aria-label={online ? "Snap a meal" : "Snap a meal (offline: add manually)"}
           className="fixed right-4 bottom-[calc(3.5rem+env(safe-area-inset-bottom)+0.75rem)] z-40 w-14 h-14 rounded-full bg-brand-600 hover:bg-brand-700 active:scale-95 text-white shadow-lg shadow-brand-600/30 flex items-center justify-center transition-all"
         >
           <Camera size={24} />
+          {!online && (
+            <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-gray-700 dark:bg-gray-200 text-white dark:text-gray-900 flex items-center justify-center ring-2 ring-white dark:ring-gray-950">
+              <WifiOff size={11} />
+            </span>
+          )}
         </button>
       )}
       <input
