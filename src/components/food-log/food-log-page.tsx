@@ -6,7 +6,7 @@ import { DailyBars } from '../charts/daily-bars';
 import { lastNDays, dailyMacros } from '../../utils/chart-data';
 import { MealGroup } from './meal-group';
 import { AddFoodModal } from './add-food-modal';
-import { useAppState } from '../../context/app-context';
+import { useAppState } from '../../context/use-app-state';
 import { MEAL_TYPES } from '../../constants/meal-types';
 import { sumMacros } from '../../utils/macro-calc';
 import { todayKey } from '../../utils/date-utils';

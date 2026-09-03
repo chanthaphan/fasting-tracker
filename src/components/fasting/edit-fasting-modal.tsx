@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Modal } from '../ui/modal';
 import type { FastingSession } from '../../types';
 
@@ -20,23 +20,16 @@ function fromLocalDatetime(value: string): number {
   return new Date(value).getTime();
 }
 
-export function EditFastingModal({ open, onClose, onSave, session }: EditFastingModalProps) {
-  const [startStr, setStartStr] = useState('');
-  const [endStr, setEndStr] = useState('');
-  const [hasEnd, setHasEnd] = useState(false);
+/** Mounted only while open, so the form below starts fresh (or from the entry) on every open. */
+export function EditFastingModal(props: EditFastingModalProps) {
+  if (!props.open) return null;
+  return <EditFastingForm key={props.session?.id ?? 'none'} {...props} />;
+}
 
-  useEffect(() => {
-    if (session) {
-      setStartStr(toLocalDatetime(session.startTime));
-      if (session.endTime) {
-        setEndStr(toLocalDatetime(session.endTime));
-        setHasEnd(true);
-      } else {
-        setEndStr('');
-        setHasEnd(false);
-      }
-    }
-  }, [session, open]);
+function EditFastingForm({ open, onClose, onSave, session }: EditFastingModalProps) {
+  const [startStr, setStartStr] = useState(() => (session ? toLocalDatetime(session.startTime) : ''));
+  const [endStr, setEndStr] = useState(() => (session?.endTime ? toLocalDatetime(session.endTime) : ''));
+  const [hasEnd, setHasEnd] = useState(() => Boolean(session?.endTime));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

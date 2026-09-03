@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ChevronLeft, Info } from 'lucide-react';
 import { Modal } from '../ui/modal';
-import { useAppState } from '../../context/app-context';
+import { useAppState } from '../../context/use-app-state';
 import { computeLiftRecords, listLifts, normalizeLiftName } from '../../utils/workout-stats';
 import { LiftProgressChart } from './lift-progress-chart';
 import { ExerciseInfoModal } from './exercise-info-modal';

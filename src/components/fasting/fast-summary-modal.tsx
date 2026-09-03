@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { CheckCircle2, Flame, Sparkles, Timer, XCircle } from 'lucide-react';
 import { Modal } from '../ui/modal';
 import { AiMarkdown } from '../ai/ai-markdown';
-import { useAppState } from '../../context/app-context';
+import { useAppState } from '../../context/use-app-state';
 import { useAiReady } from '../../hooks/use-ai';
 import { useFastSummary } from '../../hooks/use-fast-ai';
 import { computeStreaks } from '../../utils/fasting-streak';

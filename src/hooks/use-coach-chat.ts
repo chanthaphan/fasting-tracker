@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import Anthropic from '@anthropic-ai/sdk';
-import { useAppState } from '../context/app-context';
-import { createAiClient, describeAiError } from '../utils/ai/client';
+import type Anthropic from '@anthropic-ai/sdk';
+import { useAppState } from '../context/use-app-state';
+import { createAiClient, describeAiError, isAbortError } from '../utils/ai/client';
 import { COACH_SYSTEM, languageDirective } from '../utils/ai/prompts';
 import { buildHealthContext } from '../utils/ai/context-builder';
 import { KEYS, isChatHistory, loadFromStorage, saveToStorage } from '../utils/storage';
@@ -47,7 +47,7 @@ export function useCoachChat() {
       setPartial('');
       partialRef.current = '';
 
-      const client = createAiClient(aiSettings);
+      const client = await createAiClient(aiSettings);
       try {
         const stream = client.messages.stream({
           model: aiSettings.model,
@@ -74,7 +74,7 @@ export function useCoachChat() {
           .join('');
         setMessages((prev) => persist([...prev, { role: 'assistant', content: reply }]));
       } catch (err) {
-        if (err instanceof Anthropic.APIUserAbortError) {
+        if (isAbortError(err)) {
           // Keep whatever streamed before the user stopped it
           const partialText = partialRef.current;
           if (partialText) {

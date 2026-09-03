@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { parseImportFile } from './export-import';
 
-describe('Security - Import file validation', () => {
+describe('parseImportFile', () => {
   function makeFile(content: string): File {
     return new File([content], 'test.json', { type: 'application/json' });
   }

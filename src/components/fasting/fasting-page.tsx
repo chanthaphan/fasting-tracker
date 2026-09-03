@@ -6,7 +6,7 @@ import { EditFastingModal } from './edit-fasting-modal';
 import { AiFastSuggestion } from './ai-fast-suggestion';
 import { FastSummaryModal } from './fast-summary-modal';
 import { useFastingTimer } from '../../hooks/use-fasting-timer';
-import { useAppState } from '../../context/app-context';
+import { useAppState } from '../../context/use-app-state';
 import { computeStreaks } from '../../utils/fasting-streak';
 import { getFastingInsights } from '../../utils/fasting-science';
 import { getDynamicPhases, getDynamicPhaseForElapsed, getFactorSummary, type FastingFactors } from '../../utils/dynamic-phases';

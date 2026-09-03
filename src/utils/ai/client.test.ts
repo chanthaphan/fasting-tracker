@@ -13,8 +13,9 @@ describe('effortConfig', () => {
 });
 
 describe('describeAiError', () => {
-  const makeError = (Cls: typeof Anthropic.APIError, status: number) =>
-    new Cls(status, { type: 'error' }, 'boom', new Headers());
+  type ErrorCtor = new (status: number, error: object | undefined, message: string | undefined, headers: Headers) => Error;
+  const makeError = (Cls: unknown, status: number) =>
+    new (Cls as ErrorCtor)(status, { type: 'error' }, 'boom', new Headers());
 
   it('maps AuthenticationError to an invalid-key message', () => {
     const err = makeError(Anthropic.AuthenticationError, 401);

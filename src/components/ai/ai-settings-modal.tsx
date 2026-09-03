@@ -51,7 +51,7 @@ export function AiSettingsModal({ open, onClose }: AiSettingsModalProps) {
     setTesting(true);
     setTestResult(null);
     try {
-      const client = createAiClient({ apiKey: apiKey.trim(), model, language });
+      const client = await createAiClient({ apiKey: apiKey.trim(), model, language });
       await client.messages.create({
         model,
         max_tokens: 32,

@@ -3,7 +3,7 @@ import { CheckCircle2, Flame, Snowflake, Star, ChevronRight } from 'lucide-react
 import { BodyAvatar } from './body-avatar';
 import { ProgressModal } from './progress-modal';
 import { AchievementUnlockModal } from './achievement-unlock-modal';
-import { useAppState } from '../../context/app-context';
+import { useAppState } from '../../context/use-app-state';
 import { useAchievements } from '../../hooks/use-achievements';
 import { getAvatarModel } from '../../utils/body-avatar';
 import { computeXp, getLevelInfo, XP_RULES } from '../../utils/xp';

@@ -1,12 +1,51 @@
-import Anthropic from '@anthropic-ai/sdk';
+import type Anthropic from '@anthropic-ai/sdk';
 import type { AiLanguage, AiModel, AiSettings } from '../../types';
+
+type Sdk = typeof import('@anthropic-ai/sdk');
+let sdk: Sdk | null = null;
+
+/**
+ * The SDK is a large dependency that most sessions never need (no key
+ * set), so it is loaded on first use rather than in the main bundle.
+ */
+export async function loadSdk(): Promise<Sdk> {
+  if (!sdk) sdk = await import('@anthropic-ai/sdk');
+  return sdk;
+}
 
 /**
  * The user brings their own API key (stored on-device); requests go
  * straight from the browser to the Anthropic API — there is no backend.
  */
-export function createAiClient(settings: AiSettings): Anthropic {
-  return new Anthropic({ apiKey: settings.apiKey, dangerouslyAllowBrowser: true });
+export async function createAiClient(settings: AiSettings): Promise<Anthropic> {
+  const { default: AnthropicClient } = await loadSdk();
+  return new AnthropicClient({ apiKey: settings.apiKey, dangerouslyAllowBrowser: true });
+}
+
+/** Error class names, for when the SDK hasn't been loaded through loadSdk (e.g. tests). */
+function errorKind(err: unknown): 'auth' | 'rate' | 'connection' | 'abort' | 'api' | 'unknown' {
+  if (typeof err !== 'object' || err === null) return 'unknown';
+  if (sdk) {
+    const A = sdk.default;
+    if (err instanceof A.APIUserAbortError) return 'abort';
+    if (err instanceof A.AuthenticationError) return 'auth';
+    if (err instanceof A.RateLimitError) return 'rate';
+    if (err instanceof A.APIConnectionError) return 'connection';
+    if (err instanceof A.APIError) return 'api';
+  }
+  const name = err.constructor?.name ?? '';
+  const status = (err as { status?: unknown }).status;
+  if (name === 'APIUserAbortError') return 'abort';
+  if (status === 401 || name === 'AuthenticationError') return 'auth';
+  if (status === 429 || name === 'RateLimitError') return 'rate';
+  if (name === 'APIConnectionError' || name === 'APIConnectionTimeoutError') return 'connection';
+  if (typeof status === 'number') return 'api';
+  return 'unknown';
+}
+
+/** True when the request was cancelled by the user (stream.abort()). */
+export function isAbortError(err: unknown): boolean {
+  return errorKind(err) === 'abort';
 }
 
 export type AiEffort = 'low' | 'medium' | 'high';
@@ -44,11 +83,13 @@ const ERROR_MESSAGES: Record<string, { en: string; th: string }> = {
 
 export function describeAiError(err: unknown, language: AiLanguage = 'auto'): string {
   const lang = language === 'th' ? 'th' : 'en';
-  if (err instanceof Anthropic.AuthenticationError) return ERROR_MESSAGES.auth[lang];
-  if (err instanceof Anthropic.RateLimitError) return ERROR_MESSAGES.rate[lang];
-  if (err instanceof Anthropic.APIConnectionError) return ERROR_MESSAGES.connection[lang];
-  if (err instanceof Anthropic.APIError) return `${ERROR_MESSAGES.api[lang]} (${err.status ?? '?'}).`;
-  return ERROR_MESSAGES.unknown[lang];
+  switch (errorKind(err)) {
+    case 'auth': return ERROR_MESSAGES.auth[lang];
+    case 'rate': return ERROR_MESSAGES.rate[lang];
+    case 'connection': return ERROR_MESSAGES.connection[lang];
+    case 'api': return `${ERROR_MESSAGES.api[lang]} (${(err as { status?: number }).status ?? '?'}).`;
+    default: return ERROR_MESSAGES.unknown[lang];
+  }
 }
 
 export const AI_MODELS: { id: AiModel; label: string; hint: string }[] = [

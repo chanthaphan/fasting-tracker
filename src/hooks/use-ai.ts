@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useAppState } from '../context/app-context';
+import { useAppState } from '../context/use-app-state';
 import type { AiSettings } from '../types';
 
 export function useAiSettings() {

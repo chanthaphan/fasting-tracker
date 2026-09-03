@@ -1,9 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Search } from 'lucide-react';
 import { Modal } from '../ui/modal';
 import { MEAL_TYPES } from '../../constants/meal-types';
 import { FOOD_PRESET_CATEGORIES, type FoodPreset } from '../../constants/food-presets';
-import { useAppState } from '../../context/app-context';
+import { useAppState } from '../../context/use-app-state';
 import { AiGate } from '../ai/ai-gate';
 import { AiFoodInput } from './ai-food-input';
 import type { FoodEntry, MealType, ParsedFoodItem } from '../../types';
@@ -19,37 +19,22 @@ interface AddFoodModalProps {
   initialMode?: EntryMode;
 }
 
-export function AddFoodModal({ open, onClose, onSave, editEntry, initialMode = 'presets' }: AddFoodModalProps) {
-  const { state } = useAppState();
-  const [name, setName] = useState('');
-  const [calories, setCalories] = useState('');
-  const [protein, setProtein] = useState('');
-  const [carbs, setCarbs] = useState('');
-  const [fat, setFat] = useState('');
-  const [mealType, setMealType] = useState<MealType>('breakfast');
-  const [presetSearch, setPresetSearch] = useState('');
-  const [mode, setMode] = useState<EntryMode>('presets');
+/** Mounted only while open, so the form below starts fresh (or from the entry) on every open. */
+export function AddFoodModal(props: AddFoodModalProps) {
+  if (!props.open) return null;
+  return <AddFoodForm key={props.editEntry?.id ?? `new-${props.initialMode ?? 'presets'}`} {...props} />;
+}
 
-  useEffect(() => {
-    if (editEntry) {
-      setName(editEntry.name);
-      setCalories(String(editEntry.calories));
-      setProtein(String(editEntry.protein));
-      setCarbs(String(editEntry.carbs));
-      setFat(String(editEntry.fat));
-      setMealType(editEntry.mealType);
-      setMode('manual');
-    } else {
-      setName('');
-      setCalories('');
-      setProtein('');
-      setCarbs('');
-      setFat('');
-      setMealType('breakfast');
-      setPresetSearch('');
-      setMode(initialMode);
-    }
-  }, [editEntry, open, initialMode]);
+function AddFoodForm({ open, onClose, onSave, editEntry, initialMode = 'presets' }: AddFoodModalProps) {
+  const { state } = useAppState();
+  const [name, setName] = useState(() => editEntry?.name ?? '');
+  const [calories, setCalories] = useState(() => (editEntry ? String(editEntry.calories) : ''));
+  const [protein, setProtein] = useState(() => (editEntry ? String(editEntry.protein) : ''));
+  const [carbs, setCarbs] = useState(() => (editEntry ? String(editEntry.carbs) : ''));
+  const [fat, setFat] = useState(() => (editEntry ? String(editEntry.fat) : ''));
+  const [mealType, setMealType] = useState<MealType>(() => editEntry?.mealType ?? 'breakfast');
+  const [presetSearch, setPresetSearch] = useState('');
+  const [mode, setMode] = useState<EntryMode>(() => (editEntry ? 'manual' : initialMode));
 
   const handleSelectPreset = (preset: FoodPreset) => {
     setName(preset.name);

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useAppState } from '../context/app-context';
+import { useAppState } from '../context/use-app-state';
 
 export function useTheme() {
   const { state, dispatch } = useAppState();

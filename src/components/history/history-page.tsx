@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { PageShell } from '../layout/page-shell';
 import { CalendarGrid } from './calendar-grid';
 import { EditFastingModal } from '../fasting/edit-fasting-modal';
-import { useAppState } from '../../context/app-context';
+import { useAppState } from '../../context/use-app-state';
 import { sumMacros } from '../../utils/macro-calc';
 import { formatHoursMinutes, dateKey } from '../../utils/date-utils';
 import { format } from 'date-fns';

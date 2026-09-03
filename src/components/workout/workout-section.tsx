@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart3, Dumbbell, LayoutTemplate, Play, Trash2, X } from 'lucide-react';
-import { useAppState } from '../../context/app-context';
+import { useAppState } from '../../context/use-app-state';
 import { sessionSetCount, sessionVolume } from '../../utils/workout-stats';
 import { formatHoursMinutes } from '../../utils/date-utils';
 import { LiftRecordsModal } from './lift-records-modal';

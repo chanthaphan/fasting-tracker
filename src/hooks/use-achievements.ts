@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { useAppState } from '../context/app-context';
+import { useAppState } from '../context/use-app-state';
 import { getUnlockedAchievements } from '../utils/achievements';
 
 /**

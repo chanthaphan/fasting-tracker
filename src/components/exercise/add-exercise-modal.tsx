@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Search } from 'lucide-react';
 import { Modal } from '../ui/modal';
 import { EXERCISE_PRESET_CATEGORIES, type ExercisePreset } from '../../constants/exercise-presets';
-import { useAppState } from '../../context/app-context';
+import { useAppState } from '../../context/use-app-state';
 import { todayKey } from '../../utils/date-utils';
 import type { ExerciseEntry } from '../../types';
 
@@ -13,34 +13,21 @@ interface AddExerciseModalProps {
   editEntry?: ExerciseEntry | null;
 }
 
-export function AddExerciseModal({ open, onClose, onSave, editEntry }: AddExerciseModalProps) {
-  const { state } = useAppState();
-  const [name, setName] = useState('');
-  const [calories, setCalories] = useState('');
-  const [duration, setDuration] = useState('30');
-  const [date, setDate] = useState(todayKey());
-  const [note, setNote] = useState('');
-  const [presetSearch, setPresetSearch] = useState('');
-  const [showPresets, setShowPresets] = useState(true);
+/** Mounted only while open, so the form below starts fresh (or from the entry) on every open. */
+export function AddExerciseModal(props: AddExerciseModalProps) {
+  if (!props.open) return null;
+  return <AddExerciseForm key={props.editEntry?.id ?? 'new'} {...props} />;
+}
 
-  useEffect(() => {
-    if (editEntry) {
-      setName(editEntry.name);
-      setCalories(String(editEntry.calories));
-      setDuration(String(editEntry.durationMin));
-      setDate(editEntry.date);
-      setNote(editEntry.note ?? '');
-      setShowPresets(false);
-    } else {
-      setName('');
-      setCalories('');
-      setDuration('30');
-      setDate(todayKey());
-      setNote('');
-      setPresetSearch('');
-      setShowPresets(true);
-    }
-  }, [editEntry, open]);
+function AddExerciseForm({ open, onClose, onSave, editEntry }: AddExerciseModalProps) {
+  const { state } = useAppState();
+  const [name, setName] = useState(() => editEntry?.name ?? '');
+  const [calories, setCalories] = useState(() => (editEntry ? String(editEntry.calories) : ''));
+  const [duration, setDuration] = useState(() => (editEntry ? String(editEntry.durationMin) : '30'));
+  const [date, setDate] = useState(() => editEntry?.date ?? todayKey());
+  const [note, setNote] = useState(() => editEntry?.note ?? '');
+  const [presetSearch, setPresetSearch] = useState('');
+  const [showPresets, setShowPresets] = useState(() => !editEntry);
 
   const handleSelectPreset = (preset: ExercisePreset) => {
     const dur = Number(duration) || 30;

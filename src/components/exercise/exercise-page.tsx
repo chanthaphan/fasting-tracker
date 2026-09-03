@@ -5,7 +5,7 @@ import { DailyBars } from '../charts/daily-bars';
 import { lastNDays, dailyTotals } from '../../utils/chart-data';
 import { WorkoutSection } from '../workout/workout-section';
 import { AddExerciseModal } from './add-exercise-modal';
-import { useAppState } from '../../context/app-context';
+import { useAppState } from '../../context/use-app-state';
 import { todayKey } from '../../utils/date-utils';
 import { format } from 'date-fns';
 import type { ExerciseEntry } from '../../types';

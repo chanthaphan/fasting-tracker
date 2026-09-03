@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type Anthropic from '@anthropic-ai/sdk';
-import { useAppState } from '../context/app-context';
+import { useAppState } from '../context/use-app-state';
 import { createAiClient, describeAiError, effortConfig } from '../utils/ai/client';
 import { DIGEST_SYSTEM, languageDirective } from '../utils/ai/prompts';
 import { buildHealthContext } from '../utils/ai/context-builder';
@@ -27,7 +27,7 @@ export function useDailyDigest() {
     setLoading(true);
     setError(null);
     try {
-      const client = createAiClient(aiSettings);
+      const client = await createAiClient(aiSettings);
       const response = await client.messages.create({
         model: aiSettings.model,
         max_tokens: 1024,

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Modal } from '../ui/modal';
 import type { UserProfile, ActivityLevel } from '../../types';
 import { ACTIVITY_LABELS } from '../../utils/tdee-calc';
@@ -12,25 +12,17 @@ interface ProfileModalProps {
 
 const ACTIVITY_LEVELS: ActivityLevel[] = ['sedentary', 'light', 'moderate', 'active', 'very_active'];
 
-export function ProfileModal({ open, onClose, onSave, currentProfile }: ProfileModalProps) {
-  const [gender, setGender] = useState<'male' | 'female'>('male');
-  const [age, setAge] = useState('');
-  const [height, setHeight] = useState('');
-  const [activityLevel, setActivityLevel] = useState<ActivityLevel>('moderate');
+/** Mounted only while open, so the form below starts fresh (or from the entry) on every open. */
+export function ProfileModal(props: ProfileModalProps) {
+  if (!props.open) return null;
+  return <ProfileForm key={'profile'} {...props} />;
+}
 
-  useEffect(() => {
-    if (currentProfile) {
-      setGender(currentProfile.gender);
-      setAge(String(currentProfile.age));
-      setHeight(String(currentProfile.heightCm));
-      setActivityLevel(currentProfile.activityLevel);
-    } else {
-      setGender('male');
-      setAge('');
-      setHeight('');
-      setActivityLevel('moderate');
-    }
-  }, [currentProfile, open]);
+function ProfileForm({ open, onClose, onSave, currentProfile }: ProfileModalProps) {
+  const [gender, setGender] = useState<'male' | 'female'>(() => currentProfile?.gender ?? 'male');
+  const [age, setAge] = useState(() => (currentProfile ? String(currentProfile.age) : ''));
+  const [height, setHeight] = useState(() => (currentProfile ? String(currentProfile.heightCm) : ''));
+  const [activityLevel, setActivityLevel] = useState<ActivityLevel>(() => currentProfile?.activityLevel ?? 'moderate');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Modal } from '../ui/modal';
 import type { WeightEntry } from '../../types';
 import { todayKey } from '../../utils/date-utils';
@@ -10,25 +10,17 @@ interface AddWeightModalProps {
   editEntry?: WeightEntry | null;
 }
 
-export function AddWeightModal({ open, onClose, onSave, editEntry }: AddWeightModalProps) {
-  const [weight, setWeight] = useState('');
-  const [unit, setUnit] = useState<'kg' | 'lbs'>('kg');
-  const [date, setDate] = useState(todayKey());
-  const [note, setNote] = useState('');
+/** Mounted only while open, so the form below starts fresh (or from the entry) on every open. */
+export function AddWeightModal(props: AddWeightModalProps) {
+  if (!props.open) return null;
+  return <AddWeightForm key={props.editEntry?.id ?? 'new'} {...props} />;
+}
 
-  useEffect(() => {
-    if (editEntry) {
-      setWeight(String(editEntry.weight));
-      setUnit(editEntry.unit);
-      setDate(editEntry.date);
-      setNote(editEntry.note ?? '');
-    } else {
-      setWeight('');
-      setUnit('kg');
-      setDate(todayKey());
-      setNote('');
-    }
-  }, [editEntry, open]);
+function AddWeightForm({ open, onClose, onSave, editEntry }: AddWeightModalProps) {
+  const [weight, setWeight] = useState(() => (editEntry ? String(editEntry.weight) : ''));
+  const [unit, setUnit] = useState<'kg' | 'lbs'>(() => editEntry?.unit ?? 'kg');
+  const [date, setDate] = useState(() => editEntry?.date ?? todayKey());
+  const [note, setNote] = useState(() => editEntry?.note ?? '');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

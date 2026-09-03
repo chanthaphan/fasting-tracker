@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CalendarDays, Loader2, Play, RefreshCw, Settings2, Sparkles } from 'lucide-react';
-import { useAppState } from '../../context/app-context';
+import { useAppState } from '../../context/use-app-state';
 import { useAiReady } from '../../hooks/use-ai';
 import { useWeeklyPlan } from '../../hooks/use-weekly-plan';
 import { TrainingGoalModal } from './training-goal-modal';

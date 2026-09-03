@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Modal } from '../ui/modal';
 import type { MacroGoals } from '../../types';
 
@@ -9,18 +9,17 @@ interface GoalsModalProps {
   currentGoals: MacroGoals;
 }
 
-export function GoalsModal({ open, onClose, onSave, currentGoals }: GoalsModalProps) {
-  const [calories, setCalories] = useState('');
-  const [protein, setProtein] = useState('');
-  const [carbs, setCarbs] = useState('');
-  const [fat, setFat] = useState('');
+/** Mounted only while open, so the form below starts fresh (or from the entry) on every open. */
+export function GoalsModal(props: GoalsModalProps) {
+  if (!props.open) return null;
+  return <GoalsForm key={'goals'} {...props} />;
+}
 
-  useEffect(() => {
-    setCalories(String(currentGoals.calories));
-    setProtein(String(currentGoals.protein));
-    setCarbs(String(currentGoals.carbs));
-    setFat(String(currentGoals.fat));
-  }, [currentGoals, open]);
+function GoalsForm({ open, onClose, onSave, currentGoals }: GoalsModalProps) {
+  const [calories, setCalories] = useState(() => String(currentGoals.calories));
+  const [protein, setProtein] = useState(() => String(currentGoals.protein));
+  const [carbs, setCarbs] = useState(() => String(currentGoals.carbs));
+  const [fat, setFat] = useState(() => String(currentGoals.fat));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
