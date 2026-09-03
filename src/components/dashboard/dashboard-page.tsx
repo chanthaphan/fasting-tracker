@@ -5,7 +5,8 @@ import { useFastingTimer } from '../../hooks/use-fasting-timer';
 import { sumMacros } from '../../utils/macro-calc';
 import { todayKey, formatDuration } from '../../utils/date-utils';
 import { useTheme } from '../../hooks/use-theme';
-import { Settings, Plus, Moon, Sun, Monitor, Weight, TrendingDown, TrendingUp, Minus, Target, User, Flame, Sparkles } from 'lucide-react';
+import { Settings, Plus, Moon, Sun, Monitor, Weight, TrendingDown, TrendingUp, Minus, Target, User, Flame, Sparkles, Bell, BellOff } from 'lucide-react';
+import { useNotificationsPref, notificationsSupported } from '../../utils/notify';
 import { exportData, parseImportFile, type ImportSummary } from '../../utils/export-import';
 import { ImportBackupModal } from './import-backup-modal';
 import type { ImportPayload } from '../../types';
@@ -19,7 +20,7 @@ import { lastNDays, dailyTotals, dailyFastingHours } from '../../utils/chart-dat
 import { DailyBars } from '../charts/daily-bars';
 import { Sparkline } from '../charts/sparkline';
 import { convertWeight } from '../../utils/units';
-import { useRef, useMemo, useState } from 'react';
+import { useRef, useMemo, useState, useEffect } from 'react';
 
 export function DashboardPage() {
   const { state, dispatch } = useAppState();
@@ -30,6 +31,9 @@ export function DashboardPage() {
   const [goalsOpen, setGoalsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [notifyOn, setNotifyOn] = useNotificationsPref();
   const [pendingImport, setPendingImport] = useState<{ payload: ImportPayload; summary: ImportSummary } | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
 
@@ -86,6 +90,21 @@ export function DashboardPage() {
       .map((w) => convertWeight(w.weight, w.unit, unit));
   }, [state.weightEntries, latestWeight?.unit]);
 
+  // Close the settings menu on outside tap or Escape
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onPointer = (e: PointerEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false); };
+    document.addEventListener('pointerdown', onPointer);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onPointer);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
+
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -115,10 +134,10 @@ export function DashboardPage() {
       title="Dashboard"
       action={
         <button
-          onClick={() => {
-            const menu = document.getElementById('settings-menu');
-            menu?.classList.toggle('hidden');
-          }}
+          onClick={() => setMenuOpen((o) => !o)}
+          aria-label="Settings"
+          aria-expanded={menuOpen}
+          aria-controls="settings-menu"
           className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800"
         >
           <Settings size={20} className="text-gray-500" />
@@ -126,7 +145,8 @@ export function DashboardPage() {
       }
     >
       {/* Settings dropdown */}
-      <div id="settings-menu" className="hidden mb-4 p-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
+      {menuOpen && (
+      <div id="settings-menu" ref={menuRef} className="mb-4 p-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
         <p className="text-xs font-semibold text-gray-400 mb-2">Theme</p>
         <div className="flex gap-2 mb-3">
           {([
@@ -182,7 +202,25 @@ export function DashboardPage() {
           </button>
           <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
         </div>
+        {notificationsSupported() && (
+          <>
+            <p className="text-xs font-semibold text-gray-400 mb-2 mt-3">Alerts</p>
+            <button
+              onClick={() => { void setNotifyOn(!notifyOn); }}
+              role="switch"
+              aria-checked={notifyOn}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                notifyOn ? 'bg-brand-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+              }`}
+            >
+              {notifyOn ? <Bell size={14} /> : <BellOff size={14} />}
+              {notifyOn ? 'Notifications on' : 'Notifications off'}
+            </button>
+            <p className="text-[10px] text-gray-400 mt-1">Rest timer over and fast target reached. The phone buzzes either way.</p>
+          </>
+        )}
       </div>
+      )}
 
       {/* Cards flow in two columns once the viewport is wide enough (landscape phones, tablets) */}
       <div className="md:grid md:grid-cols-2 md:gap-x-3 md:items-start">

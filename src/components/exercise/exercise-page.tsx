@@ -9,6 +9,8 @@ import { useAppState } from '../../context/use-app-state';
 import { todayKey } from '../../utils/date-utils';
 import { format } from 'date-fns';
 import type { ExerciseEntry } from '../../types';
+import { useUndo } from '../../hooks/use-undo';
+import { UndoToast } from '../ui/undo-toast';
 
 export function ExercisePage() {
   const { state, dispatch } = useAppState();
@@ -55,9 +57,25 @@ export function ExercisePage() {
     setModalOpen(true);
   };
 
+  const { pending, offer, undoNow } = useUndo();
   const handleDelete = (id: string) => {
+    const entry = state.exerciseEntries.find((e) => e.id === id);
     dispatch({ type: 'DELETE_EXERCISE', payload: { id } });
+    if (entry) offer(`Deleted ${entry.name}`, () => dispatch({ type: 'RESTORE_EXERCISE', payload: entry }));
   };
+
+  // Past entries grouped by day, newest first, revealed in pages
+  const [historyLimit, setHistoryLimit] = useState(20);
+  const historyGroups = useMemo(() => {
+    const shown = pastEntries.slice(0, historyLimit);
+    const groups: { date: string; entries: ExerciseEntry[] }[] = [];
+    for (const e of shown) {
+      const last = groups[groups.length - 1];
+      if (last && last.date === e.date) last.entries.push(e);
+      else groups.push({ date: e.date, entries: [e] });
+    }
+    return groups;
+  }, [pastEntries, historyLimit]);
 
   const fortnight = useMemo(() => lastNDays(14), []);
   const burnedPerDay = useMemo(
@@ -138,11 +156,29 @@ export function ExercisePage() {
       {pastEntries.length > 0 && (
         <div>
           <p className="text-xs font-semibold text-gray-400 mb-2">History</p>
-          <div className="space-y-2">
-            {pastEntries.slice(0, 20).map((entry) => (
-              <ExerciseCard key={entry.id} entry={entry} onEdit={handleEdit} onDelete={handleDelete} showDate />
+          <div className="space-y-3">
+            {historyGroups.map((g) => (
+              <div key={g.date}>
+                <p className="text-[11px] font-medium text-gray-400 mb-1">
+                  {format(new Date(g.date + 'T00:00:00'), 'EEE, MMM d, yyyy')}
+                  <span className="ml-2 text-orange-500">{g.entries.reduce((s, e) => s + e.calories, 0)} cal</span>
+                </p>
+                <div className="space-y-2">
+                  {g.entries.map((entry) => (
+                    <ExerciseCard key={entry.id} entry={entry} onEdit={handleEdit} onDelete={handleDelete} />
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
+          {pastEntries.length > historyLimit && (
+            <button
+              onClick={() => setHistoryLimit((n) => n + 20)}
+              className="w-full mt-3 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 text-sm font-medium text-gray-600 dark:text-gray-300"
+            >
+              Show more ({pastEntries.length - historyLimit} older)
+            </button>
+          )}
         </div>
       )}
 
@@ -152,6 +188,7 @@ export function ExercisePage() {
         onSave={handleSave}
         editEntry={editEntry}
       />
+      <UndoToast pending={pending} onUndo={undoNow} />
     </PageShell>
   );
 }

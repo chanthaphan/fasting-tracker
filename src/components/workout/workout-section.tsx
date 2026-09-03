@@ -9,11 +9,13 @@ import { SaveTemplateModal } from './save-template-modal';
 import { WeeklyPlanCard } from './weekly-plan-card';
 import { WorkoutDetailModal } from './workout-detail-modal';
 import type { WorkoutSession, WorkoutTemplate } from '../../types';
+import { ConfirmModal } from '../ui/confirm-modal';
 
 export function WorkoutSection() {
   const { state, dispatch } = useAppState();
   const navigate = useNavigate();
   const [recordsOpen, setRecordsOpen] = useState(false);
+  const [confirm, setConfirm] = useState<{ title: string; message: string; action: () => void } | null>(null);
   const [templateSource, setTemplateSource] = useState<WorkoutSession | null>(null);
   const [detailSession, setDetailSession] = useState<WorkoutSession | null>(null);
 
@@ -56,9 +58,11 @@ export function WorkoutSection() {
   };
 
   const deleteTemplate = (template: WorkoutTemplate) => {
-    if (window.confirm(`Delete template "${template.name}"?`)) {
-      dispatch({ type: 'DELETE_TEMPLATE', payload: { id: template.id } });
-    }
+    setConfirm({
+      title: 'Delete template?',
+      message: `"${template.name}" will be removed. Past workouts are kept.`,
+      action: () => dispatch({ type: 'DELETE_TEMPLATE', payload: { id: template.id } }),
+    });
   };
 
   return (
@@ -143,11 +147,13 @@ export function WorkoutSection() {
                 <LayoutTemplate size={15} />
               </button>
               <button
-                onClick={() => {
-                  if (window.confirm('Delete this workout?')) {
-                    dispatch({ type: 'DELETE_WORKOUT', payload: { id: w.id } });
-                  }
-                }}
+                onClick={() =>
+                  setConfirm({
+                    title: 'Delete this workout?',
+                    message: `${w.name} and its sets will be removed.`,
+                    action: () => dispatch({ type: 'DELETE_WORKOUT', payload: { id: w.id } }),
+                  })
+                }
                 aria-label={`Delete workout ${w.name}`}
                 className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500"
               >
@@ -161,6 +167,15 @@ export function WorkoutSection() {
       <LiftRecordsModal open={recordsOpen} onClose={() => setRecordsOpen(false)} />
       <SaveTemplateModal open={templateSource !== null} onClose={() => setTemplateSource(null)} session={templateSource} />
       <WorkoutDetailModal open={detailSession !== null} onClose={() => setDetailSession(null)} session={detailSession} />
+      <ConfirmModal
+        open={confirm !== null}
+        title={confirm?.title ?? ''}
+        message={confirm?.message ?? ''}
+        confirmLabel="Delete"
+        danger
+        onConfirm={() => confirm?.action()}
+        onClose={() => setConfirm(null)}
+      />
     </div>
   );
 }

@@ -86,10 +86,33 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return withTodayCheckIn({
         ...state,
         fastingSessions: state.fastingSessions.map((s) =>
-          s.id === state.activeFastingId ? { ...s, endTime: Date.now() } : s
+          s.id === state.activeFastingId
+            ? { ...s, endTime: Date.now(), ...(action.payload?.factors ? { factors: action.payload.factors } : {}) }
+            : s
         ),
         activeFastingId: null,
       });
+    case 'RESTORE_FAST':
+      if (state.fastingSessions.some((s) => s.id === action.payload.id)) return state;
+      return {
+        ...state,
+        fastingSessions: [...state.fastingSessions, action.payload].sort((a, b) => a.startTime - b.startTime),
+        activeFastingId: action.payload.endTime === null && !state.activeFastingId ? action.payload.id : state.activeFastingId,
+      };
+    case 'RESTORE_FOOD':
+      if (state.foodEntries.some((e) => e.id === action.payload.id)) return state;
+      return { ...state, foodEntries: [...state.foodEntries, action.payload] };
+    case 'RESTORE_WEIGHT':
+      if (state.weightEntries.some((e) => e.id === action.payload.id)) return state;
+      return { ...state, weightEntries: [...state.weightEntries, action.payload] };
+    case 'RESTORE_EXERCISE':
+      if (state.exerciseEntries.some((e) => e.id === action.payload.id)) return state;
+      return { ...state, exerciseEntries: [...state.exerciseEntries, action.payload] };
+    case 'SET_FASTING_FACTORS':
+      return {
+        ...state,
+        fastingFactors: { ...state.fastingFactors, [action.payload.date]: action.payload.factors },
+      };
     case 'DELETE_FAST':
       return {
         ...state,

@@ -10,11 +10,16 @@ import { useAppState } from '../../context/use-app-state';
 import { computeStreaks } from '../../utils/fasting-streak';
 import { getFastingInsights } from '../../utils/fasting-science';
 import { getDynamicPhases, getDynamicPhaseForElapsed, getFactorSummary, type FastingFactors } from '../../utils/dynamic-phases';
-import { todayKey } from '../../utils/date-utils';
+import { useTodayKey } from '../../hooks/use-today-key';
 import { Play, Square, Pencil, Flame, Trophy, ChevronDown, ChevronUp, Zap, Droplets, Moon, Coffee } from 'lucide-react';
 import type { FastingSession } from '../../types';
 import { DailyBars } from '../charts/daily-bars';
 import { format } from 'date-fns';
+import { ConfirmModal } from '../ui/confirm-modal';
+import { formatHoursMinutes } from '../../utils/date-utils';
+import type { DayFactors } from '../../types';
+
+const DEFAULT_DAY_FACTORS: DayFactors = { sleepHours: null, hydration: 'normal', caffeine: false };
 
 const FASTING_TARGETS = [
   { hours: 12, label: '12h', description: 'Beginner' },
@@ -37,13 +42,19 @@ export function FastingPage() {
   const [showFactors, setShowFactors] = useState(false);
   const [summarySession, setSummarySession] = useState<FastingSession | null>(null);
 
-  // Factor states
-  const [sleepHours, setSleepHours] = useState(7);
-  const [hydration, setHydration] = useState<'low' | 'normal' | 'high'>('normal');
-  const [caffeine, setCaffeine] = useState(false);
+  // Today's factors live in app state so they survive navigation and reloads
+  const today = useTodayKey();
+  const dayFactors: DayFactors = state.fastingFactors[today] ?? DEFAULT_DAY_FACTORS;
+  const { sleepHours, hydration, caffeine } = dayFactors;
+  const setFactors = (patch: Partial<DayFactors>) =>
+    dispatch({ type: 'SET_FASTING_FACTORS', payload: { date: today, factors: { ...dayFactors, ...patch } } });
+  const setSleepHours = (h: number) => setFactors({ sleepHours: h });
+  const setHydration = (h: DayFactors['hydration']) => setFactors({ hydration: h });
+  const setCaffeine = (update: boolean | ((v: boolean) => boolean)) =>
+    setFactors({ caffeine: typeof update === 'function' ? update(caffeine) : update });
+  const [confirmStop, setConfirmStop] = useState(false);
 
   // Get today's exercise data from app state
-  const today = todayKey();
   const todayExercise = useMemo(
     () => state.exerciseEntries.filter((e) => e.date === today),
     [state.exerciseEntries, today],
@@ -83,6 +94,11 @@ export function FastingPage() {
 
   const targetMs = activeFast?.targetHours ? activeFast.targetHours * 3600000 : selectedTarget * 3600000;
   const progressPercent = isActive ? Math.min((elapsedMs / targetMs) * 100, 100) : 0;
+
+  const endFast = () => {
+    if (activeFast) setSummarySession({ ...activeFast, endTime: activeFast.startTime + elapsedMs, factors: dayFactors });
+    stopFast(dayFactors);
+  };
 
   return (
     <PageShell
@@ -172,14 +188,14 @@ export function FastingPage() {
                 <div className="flex items-center gap-2 mb-1.5">
                   <Moon size={14} className="text-indigo-500" />
                   <span className="text-xs font-semibold">Sleep Last Night</span>
-                  <span className="text-xs font-bold text-gray-600 dark:text-gray-300 ml-auto">{sleepHours}h</span>
+                  <span className="text-xs font-bold text-gray-600 dark:text-gray-300 ml-auto">{sleepHours === null ? 'Not set' : `${sleepHours}h`}</span>
                 </div>
                 <input
                   type="range"
                   min={0}
                   max={12}
                   step={0.5}
-                  value={sleepHours}
+                  value={sleepHours ?? 7}
                   onChange={(e) => setSleepHours(Number(e.target.value))}
                   className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full appearance-none cursor-pointer accent-indigo-500"
                 />
@@ -251,7 +267,7 @@ export function FastingPage() {
         {/* AI target suggestion (only when not fasting) */}
         {!isActive && (
           <AiFastSuggestion
-            factors={{ sleepHours, hydration, caffeine, exerciseCals: totalExerciseCals }}
+            factors={{ sleepHours: sleepHours ?? 7, hydration, caffeine, exerciseCals: totalExerciseCals }}
             onApply={setSelectedTarget}
           />
         )}
@@ -281,12 +297,9 @@ export function FastingPage() {
 
         <button
           onClick={() => {
-            if (isActive) {
-              if (activeFast) setSummarySession({ ...activeFast, endTime: Date.now() });
-              stopFast();
-            } else {
-              startFast(selectedTarget);
-            }
+            if (!isActive) startFast(selectedTarget);
+            else if (elapsedMs < targetMs) setConfirmStop(true); // guard against a stray tap ending a fast early
+            else endFast();
           }}
           className={`flex items-center gap-2 px-8 py-3 rounded-2xl font-semibold text-white transition-all shadow-lg active:scale-95 ${
             isActive
@@ -383,6 +396,16 @@ export function FastingPage() {
         open={summarySession !== null}
         onClose={() => setSummarySession(null)}
         session={summarySession}
+      />
+
+      <ConfirmModal
+        open={confirmStop}
+        title="End fast early?"
+        message={`You're ${formatHoursMinutes(elapsedMs)} into a ${activeFast?.targetHours ?? selectedTarget}h target. End it now?`}
+        confirmLabel="End fast"
+        danger
+        onConfirm={endFast}
+        onClose={() => setConfirmStop(false)}
       />
     </PageShell>
   );

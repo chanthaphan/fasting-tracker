@@ -26,6 +26,7 @@ const emptyState: AppState = {
   aiSettings: { apiKey: '', model: 'claude-opus-5', language: 'auto' },
   trainingGoal: null,
   gamification: { checkIns: [], seenAchievements: [] },
+  fastingFactors: {},
   hydrated: true,
 };
 

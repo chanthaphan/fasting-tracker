@@ -29,6 +29,7 @@ const initialState: AppState = {
   aiSettings: DEFAULT_AI_SETTINGS,
   trainingGoal: null,
   gamification: { checkIns: [], seenAchievements: [] },
+  fastingFactors: {},
   hydrated: false,
 };
 
@@ -64,6 +65,7 @@ function loadInitialState(): AppState {
     aiSettings: settings.aiSettings ?? DEFAULT_AI_SETTINGS,
     trainingGoal: settings.trainingGoal ?? null,
     gamification,
+    fastingFactors: settings.fastingFactors ?? {},
     hydrated: false,
   };
 }
@@ -111,6 +113,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           aiSettings: settings.aiSettings ?? DEFAULT_AI_SETTINGS,
           trainingGoal: settings.trainingGoal ?? null,
           gamification,
+          fastingFactors: settings.fastingFactors ?? {},
           hydrated: true,
         },
       });
@@ -167,8 +170,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       aiSettings: state.aiSettings,
       activeWorkoutId: state.activeWorkoutId,
       trainingGoal: state.trainingGoal,
+      fastingFactors: state.fastingFactors,
     });
-  }, [state.hydrated, state.theme, state.activeFastingId, state.goals, state.weightGoal, state.userProfile, state.aiSettings, state.activeWorkoutId, state.trainingGoal]);
+  }, [state.hydrated, state.theme, state.activeFastingId, state.goals, state.weightGoal, state.userProfile, state.aiSettings, state.activeWorkoutId, state.trainingGoal, state.fastingFactors]);
 
   const [storageFull, setStorageFull] = useState(false);
 
