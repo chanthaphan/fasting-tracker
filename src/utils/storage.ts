@@ -3,7 +3,7 @@ import type {
   FoodEntry, FastingSession, WeightEntry, ExerciseEntry, MacroGoals, WeightGoal, UserProfile,
   AiSettings, ChatMessageRecord, DailyDigestCache, FastPlanCache,
   WorkoutSession, WorkoutTemplate, TrainingGoal, WeeklyPlanCache, WeeklyPlanDay,
-  GamificationData,
+  GamificationData, DayFactors,
 } from '../types';
 
 const KEYS = {
@@ -176,6 +176,7 @@ export interface StoredSettings {
   aiSettings?: AiSettings;
   activeWorkoutId?: string | null;
   trainingGoal?: TrainingGoal | null;
+  fastingFactors?: Record<string, DayFactors>;
 }
 
 export const isSettings: Validator<StoredSettings> = (

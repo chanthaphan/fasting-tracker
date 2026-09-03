@@ -24,6 +24,15 @@ export interface FastingSession {
   startTime: number; // Unix ms
   endTime: number | null; // null = active
   targetHours?: number;
+  /** The day's factors at the time the fast ended, for summaries */
+  factors?: DayFactors;
+}
+
+/** Per-day inputs that shift the fasting phase timeline. */
+export interface DayFactors {
+  sleepHours: number | null; // null = not entered
+  hydration: 'low' | 'normal' | 'high';
+  caffeine: boolean;
 }
 
 export interface FastingPhase {
@@ -204,6 +213,8 @@ export interface AppState {
   aiSettings: AiSettings;
   trainingGoal: TrainingGoal | null;
   gamification: GamificationData;
+  /** Fasting factors by 'YYYY-MM-DD', so they survive navigation and reloads */
+  fastingFactors: Record<string, DayFactors>;
   /** True once IndexedDB has been read; persistence waits for this so a cold start can't overwrite newer data. */
   hydrated: boolean;
 }
@@ -234,7 +245,12 @@ export type AppAction =
   | { type: 'EDIT_FOOD'; payload: FoodEntry }
   | { type: 'DELETE_FOOD'; payload: { id: string } }
   | { type: 'START_FAST'; payload?: { targetHours?: number } }
-  | { type: 'STOP_FAST' }
+  | { type: 'STOP_FAST'; payload?: { factors?: DayFactors } }
+  | { type: 'RESTORE_FAST'; payload: FastingSession }
+  | { type: 'RESTORE_FOOD'; payload: FoodEntry }
+  | { type: 'RESTORE_WEIGHT'; payload: WeightEntry }
+  | { type: 'RESTORE_EXERCISE'; payload: ExerciseEntry }
+  | { type: 'SET_FASTING_FACTORS'; payload: { date: string; factors: DayFactors } }
   | { type: 'DELETE_FAST'; payload: { id: string } }
   | { type: 'EDIT_FAST'; payload: { id: string; startTime: number; endTime: number | null } }
   | { type: 'ADD_WEIGHT'; payload: Omit<WeightEntry, 'id' | 'createdAt'> }

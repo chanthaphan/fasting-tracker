@@ -19,6 +19,7 @@ const baseState: AppState = {
   aiSettings: { apiKey: '', model: 'claude-opus-5', language: 'auto' },
   trainingGoal: null,
   gamification: { checkIns: [], seenAchievements: [] },
+  fastingFactors: {},
   hydrated: true,
 };
 
@@ -435,3 +436,28 @@ describe('appReducer - unknown action', () => {
     expect(state).toBe(baseState);
   });
 });
+
+describe('appReducer - restore and factors', () => {
+  it('RESTORE_* re-inserts a deleted entry with its original id, idempotently', () => {
+    const entry = { id: 'f1', name: 'Rice', calories: 200, protein: 4, carbs: 45, fat: 1, mealType: 'lunch' as const, date: '2026-01-01', createdAt: 1 };
+    const withEntry = appReducer(baseState, { type: 'RESTORE_FOOD', payload: entry });
+    expect(withEntry.foodEntries).toEqual([entry]);
+    expect(appReducer(withEntry, { type: 'RESTORE_FOOD', payload: entry })).toBe(withEntry);
+
+    const fast = { id: 's1', startTime: 1000, endTime: 5000 };
+    const withFast = appReducer(baseState, { type: 'RESTORE_FAST', payload: fast });
+    expect(withFast.fastingSessions).toEqual([fast]);
+    expect(withFast.activeFastingId).toBeNull();
+  });
+
+  it('SET_FASTING_FACTORS stores factors per day and STOP_FAST stamps them on the session', () => {
+    const factors = { sleepHours: 6, hydration: 'low' as const, caffeine: true };
+    let state = appReducer(baseState, { type: 'SET_FASTING_FACTORS', payload: { date: '2026-01-01', factors } });
+    expect(state.fastingFactors['2026-01-01']).toEqual(factors);
+    state = appReducer(state, { type: 'START_FAST', payload: { targetHours: 16 } });
+    state = appReducer(state, { type: 'STOP_FAST', payload: { factors } });
+    expect(state.fastingSessions[0].factors).toEqual(factors);
+    expect(state.activeFastingId).toBeNull();
+  });
+});
+

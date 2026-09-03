@@ -2,17 +2,23 @@ import { useMemo, useState } from 'react';
 import { PageShell } from '../layout/page-shell';
 import { CalendarGrid } from './calendar-grid';
 import { EditFastingModal } from '../fasting/edit-fasting-modal';
+import { AddFoodModal } from '../food-log/add-food-modal';
+import { FoodEntryCard } from '../food-log/food-entry-card';
+import { useUndo } from '../../hooks/use-undo';
+import { UndoToast } from '../ui/undo-toast';
 import { useAppState } from '../../context/use-app-state';
 import { sumMacros } from '../../utils/macro-calc';
 import { formatHoursMinutes, dateKey } from '../../utils/date-utils';
 import { format } from 'date-fns';
 import { Pencil, Trash2 } from 'lucide-react';
-import type { FastingSession } from '../../types';
+import type { FastingSession, FoodEntry, MealType } from '../../types';
 
 export function HistoryPage() {
   const { state, dispatch } = useAppState();
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editSession, setEditSession] = useState<FastingSession | null>(null);
+  const [editFood, setEditFood] = useState<FoodEntry | null>(null);
+  const { pending, offer, undoNow } = useUndo();
 
   const datesWithFood = useMemo(
     () => new Set(state.foodEntries.map((e) => e.date)),
@@ -31,10 +37,13 @@ export function HistoryPage() {
   const selectedEntries = state.foodEntries.filter((e) => e.date === state.selectedDate);
   const selectedTotals = sumMacros(selectedEntries);
 
-  const selectedFasts = state.fastingSessions.filter((s) => {
-    const d = dateKey(new Date(s.startTime));
-    return d === state.selectedDate;
-  });
+  // Fasts that overlap the selected day, so an overnight fast shows on the morning it ended too
+  const selectedFasts = useMemo(() => {
+    const dayStart = new Date(state.selectedDate + 'T00:00:00').getTime();
+    const dayEnd = dayStart + 86400000;
+    // An active fast (no end yet) overlaps every day since it started
+    return state.fastingSessions.filter((s) => s.startTime < dayEnd && (s.endTime ?? Infinity) >= dayStart);
+  }, [state.fastingSessions, state.selectedDate]);
 
   const completedFasts = state.fastingSessions
     .filter((s) => s.endTime !== null)
@@ -51,7 +60,20 @@ export function HistoryPage() {
   };
 
   const handleDeleteFast = (id: string) => {
+    const session = state.fastingSessions.find((s) => s.id === id);
     dispatch({ type: 'DELETE_FAST', payload: { id } });
+    if (session) offer('Deleted fast', () => dispatch({ type: 'RESTORE_FAST', payload: session }));
+  };
+
+  const handleDeleteFood = (id: string) => {
+    const entry = state.foodEntries.find((e) => e.id === id);
+    dispatch({ type: 'DELETE_FOOD', payload: { id } });
+    if (entry) offer(`Deleted ${entry.name}`, () => dispatch({ type: 'RESTORE_FOOD', payload: entry }));
+  };
+
+  const handleSaveFood = (data: { name: string; calories: number; protein: number; carbs: number; fat: number; mealType: MealType; date: string }) => {
+    if (editFood) dispatch({ type: 'EDIT_FOOD', payload: { ...editFood, ...data } });
+    setEditFood(null);
   };
 
   return (
@@ -72,11 +94,16 @@ export function HistoryPage() {
         {selectedEntries.length > 0 ? (
           <div className="mb-3">
             <p className="text-xs text-gray-400 mb-1">Food ({selectedEntries.length} entries)</p>
-            <div className="flex gap-4 text-sm">
+            <div className="flex gap-4 text-sm mb-2">
               <span className="font-bold text-brand-600 dark:text-brand-400">{selectedTotals.calories} cal</span>
               <span className="text-gray-500">P {selectedTotals.protein}g</span>
               <span className="text-gray-500">C {selectedTotals.carbs}g</span>
               <span className="text-gray-500">F {selectedTotals.fat}g</span>
+            </div>
+            <div className="-mx-1">
+              {[...selectedEntries].sort((a, b) => a.createdAt - b.createdAt).map((e) => (
+                <FoodEntryCard key={e.id} entry={e} onEdit={setEditFood} onDelete={handleDeleteFood} />
+              ))}
             </div>
           </div>
         ) : (
@@ -157,6 +184,8 @@ export function HistoryPage() {
         onSave={handleEditSave}
         session={editSession}
       />
+      <AddFoodModal open={editFood !== null} onClose={() => setEditFood(null)} onSave={handleSaveFood} editEntry={editFood} />
+      <UndoToast pending={pending} onUndo={undoNow} />
     </PageShell>
   );
 }

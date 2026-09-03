@@ -8,6 +8,8 @@ import { useAppState } from '../../context/use-app-state';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import type { WeightEntry, WeightGoal } from '../../types';
 import { convertWeight } from '../../utils/units';
+import { useUndo } from '../../hooks/use-undo';
+import { UndoToast } from '../ui/undo-toast';
 
 export function WeightPage() {
   const { state, dispatch } = useAppState();
@@ -42,8 +44,11 @@ export function WeightPage() {
     setModalOpen(true);
   };
 
+  const { pending, offer, undoNow } = useUndo();
   const handleDelete = (id: string) => {
+    const entry = state.weightEntries.find((e) => e.id === id);
     dispatch({ type: 'DELETE_WEIGHT', payload: { id } });
+    if (entry) offer(`Deleted ${entry.weight} ${entry.unit}`, () => dispatch({ type: 'RESTORE_WEIGHT', payload: entry }));
   };
 
   const handleSaveGoal = (goal: WeightGoal | null) => {
@@ -226,6 +231,7 @@ export function WeightPage() {
         currentWeight={latestWeight}
         currentUnit={latestUnit}
       />
+      <UndoToast pending={pending} onUndo={undoNow} />
     </PageShell>
   );
 }

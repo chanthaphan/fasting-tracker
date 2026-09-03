@@ -7,16 +7,19 @@ import { useAppState } from '../../context/use-app-state';
 import { AiGate } from '../ai/ai-gate';
 import { AiFoodInput } from './ai-food-input';
 import type { FoodEntry, MealType, ParsedFoodItem } from '../../types';
+import { todayKey } from '../../utils/date-utils';
 
 type EntryMode = 'presets' | 'ai' | 'manual';
 
 interface AddFoodModalProps {
   open: boolean;
   onClose: () => void;
-  onSave: (data: { name: string; calories: number; protein: number; carbs: number; fat: number; mealType: MealType }) => void;
+  onSave: (data: { name: string; calories: number; protein: number; carbs: number; fat: number; mealType: MealType; date: string }) => void;
   editEntry?: FoodEntry | null;
   /** Tab to open on when adding (ignored while editing) */
   initialMode?: EntryMode;
+  /** Day the entry is logged to when adding; defaults to today */
+  date?: string;
 }
 
 /** Mounted only while open, so the form below starts fresh (or from the entry) on every open. */
@@ -25,7 +28,7 @@ export function AddFoodModal(props: AddFoodModalProps) {
   return <AddFoodForm key={props.editEntry?.id ?? `new-${props.initialMode ?? 'presets'}`} {...props} />;
 }
 
-function AddFoodForm({ open, onClose, onSave, editEntry, initialMode = 'presets' }: AddFoodModalProps) {
+function AddFoodForm({ open, onClose, onSave, editEntry, initialMode = 'presets', date: defaultDate }: AddFoodModalProps) {
   const { state } = useAppState();
   const [name, setName] = useState(() => editEntry?.name ?? '');
   const [calories, setCalories] = useState(() => (editEntry ? String(editEntry.calories) : ''));
@@ -35,6 +38,7 @@ function AddFoodForm({ open, onClose, onSave, editEntry, initialMode = 'presets'
   const [mealType, setMealType] = useState<MealType>(() => editEntry?.mealType ?? 'breakfast');
   const [presetSearch, setPresetSearch] = useState('');
   const [mode, setMode] = useState<EntryMode>(() => (editEntry ? 'manual' : initialMode));
+  const [date, setDate] = useState(() => editEntry?.date ?? defaultDate ?? todayKey());
 
   const handleSelectPreset = (preset: FoodPreset) => {
     setName(preset.name);
@@ -46,7 +50,7 @@ function AddFoodForm({ open, onClose, onSave, editEntry, initialMode = 'presets'
   };
 
   const handleAiAddItems = (items: ParsedFoodItem[]) => {
-    for (const item of items) onSave(item);
+    for (const item of items) onSave({ ...item, date });
     onClose();
   };
 
@@ -70,6 +74,7 @@ function AddFoodForm({ open, onClose, onSave, editEntry, initialMode = 'presets'
       carbs: Number(carbs) || 0,
       fat: Number(fat) || 0,
       mealType,
+      date,
     });
     onClose();
   };
@@ -283,6 +288,17 @@ function AddFoodForm({ open, onClose, onSave, editEntry, initialMode = 'presets'
                   className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm"
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">Date</label>
+              <input
+                type="date"
+                value={date}
+                max={todayKey()}
+                onChange={(e) => setDate(e.target.value || todayKey())}
+                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm"
+              />
             </div>
 
             <button

@@ -20,6 +20,7 @@ export function makeAppState(overrides: Partial<AppState> = {}): AppState {
     aiSettings: DEFAULT_AI_SETTINGS,
     trainingGoal: null,
     gamification: { checkIns: [], seenAchievements: [] },
+    fastingFactors: {},
     hydrated: true,
     ...overrides,
   };

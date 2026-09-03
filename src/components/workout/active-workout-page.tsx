@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { Plus, X } from 'lucide-react';
 import { useAppState } from '../../context/use-app-state';
@@ -10,6 +10,8 @@ import { getPreviousSets } from '../../utils/workout-stats';
 import { formatDuration } from '../../utils/date-utils';
 import { DEFAULT_REST_SECONDS } from '../../constants/lift-presets';
 import type { WorkoutExercise, WorkoutSession } from '../../types';
+import { ConfirmModal } from '../ui/confirm-modal';
+import { alertUser } from '../../utils/notify';
 
 export function ActiveWorkoutPage() {
   const { state, dispatch } = useAppState();
@@ -17,6 +19,7 @@ export function ActiveWorkoutPage() {
   const [addLiftOpen, setAddLiftOpen] = useState(false);
   const [finishedSession, setFinishedSession] = useState<WorkoutSession | null>(null);
   const [now, setNow] = useState(0);
+  const [confirmCancel, setConfirmCancel] = useState(false);
 
   const session = state.workoutSessions.find((s) => s.id === state.activeWorkoutId) ?? null;
 
@@ -27,6 +30,16 @@ export function ActiveWorkoutPage() {
     const interval = setInterval(update, 1000);
     return () => { clearTimeout(timeout); clearInterval(interval); };
   }, []);
+
+  // Buzz when the rest timer runs out
+  const restEndsAt = session?.restTimerEndsAt ?? null;
+  const prevNow = useRef(0);
+  useEffect(() => {
+    if (restEndsAt && prevNow.current > 0 && prevNow.current < restEndsAt && now >= restEndsAt) {
+      alertUser('Rest over', 'Time for your next set', 'rest-timer');
+    }
+    prevNow.current = now;
+  }, [now, restEndsAt]);
 
   const previousByLift = useMemo(() => {
     if (!session) return new Map<string, ReturnType<typeof getPreviousSets>>();
@@ -91,7 +104,6 @@ export function ActiveWorkoutPage() {
   };
 
   const handleCancel = () => {
-    if (!window.confirm('Discard this workout? Logged sets will be lost.')) return;
     dispatch({ type: 'CANCEL_WORKOUT', payload: { id: session.id } });
     navigate('/exercise');
   };
@@ -104,7 +116,7 @@ export function ActiveWorkoutPage() {
         {/* Header */}
         <div className="flex items-center gap-2 mb-3">
           <button
-            onClick={handleCancel}
+            onClick={() => setConfirmCancel(true)}
             aria-label="Cancel workout"
             className="p-2 rounded-xl text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
           >
@@ -166,6 +178,15 @@ export function ActiveWorkoutPage() {
       </div>
 
       <AddLiftModal open={addLiftOpen} onClose={() => setAddLiftOpen(false)} onSelect={addExercise} />
+      <ConfirmModal
+        open={confirmCancel}
+        title="Discard this workout?"
+        message="Logged sets will be lost."
+        confirmLabel="Discard"
+        danger
+        onConfirm={handleCancel}
+        onClose={() => setConfirmCancel(false)}
+      />
     </div>
   );
 }

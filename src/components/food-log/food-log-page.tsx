@@ -1,6 +1,9 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, UtensilsCrossed } from 'lucide-react';
+import { addDays, format, parseISO, isToday as isTodayDate } from 'date-fns';
+import { useUndo } from '../../hooks/use-undo';
+import { UndoToast } from '../ui/undo-toast';
 import { PageShell } from '../layout/page-shell';
 import { DailyBars } from '../charts/daily-bars';
 import { lastNDays, dailyMacros } from '../../utils/chart-data';
@@ -9,7 +12,7 @@ import { AddFoodModal } from './add-food-modal';
 import { useAppState } from '../../context/use-app-state';
 import { MEAL_TYPES } from '../../constants/meal-types';
 import { sumMacros } from '../../utils/macro-calc';
-import { todayKey } from '../../utils/date-utils';
+import { todayKey, dateKey } from '../../utils/date-utils';
 import type { FoodEntry, MealType } from '../../types';
 
 export function FoodLogPage() {
@@ -33,17 +36,23 @@ export function FoodLogPage() {
     if (addParam) setParams((p) => { p.delete('add'); return p; }, { replace: true });
   }, [addParam, setParams]);
 
-  const todayEntries = state.foodEntries.filter((e) => e.date === todayKey());
-  const totals = sumMacros(todayEntries);
+  // The page shows one day; ‹ › move it, and adds go to that day
+  const day = state.selectedDate;
+  const isToday = isTodayDate(parseISO(day));
+  const setDay = (next: string) => dispatch({ type: 'SET_SELECTED_DATE', payload: next });
+  const dayEntries = state.foodEntries.filter((e) => e.date === day);
+  const totals = sumMacros(dayEntries);
+  const { pending, offer, undoNow } = useUndo();
 
   const week = useMemo(() => lastNDays(7), []);
   const weekMacros = useMemo(() => dailyMacros(state.foodEntries, week), [state.foodEntries, week]);
 
-  const handleSave = (data: { name: string; calories: number; protein: number; carbs: number; fat: number; mealType: MealType }) => {
+  const handleSave = (data: { name: string; calories: number; protein: number; carbs: number; fat: number; mealType: MealType; date: string }) => {
     if (editEntry) {
       dispatch({ type: 'EDIT_FOOD', payload: { ...editEntry, ...data } });
     } else {
-      dispatch({ type: 'ADD_FOOD', payload: { ...data, date: todayKey() } });
+      dispatch({ type: 'ADD_FOOD', payload: data });
+      if (data.date !== day) setDay(data.date);
     }
     setEditEntry(null);
   };
@@ -54,7 +63,9 @@ export function FoodLogPage() {
   };
 
   const handleDelete = (id: string) => {
+    const entry = state.foodEntries.find((e) => e.id === id);
     dispatch({ type: 'DELETE_FOOD', payload: { id } });
+    if (entry) offer(`Deleted ${entry.name}`, () => dispatch({ type: 'RESTORE_FOOD', payload: entry }));
   };
 
   return (
@@ -70,21 +81,58 @@ export function FoodLogPage() {
         </button>
       }
     >
-      {MEAL_TYPES.map((m) => (
-        <MealGroup
-          key={m.value}
-          icon={m.icon}
-          label={m.label}
-          entries={todayEntries.filter((e) => e.mealType === m.value)}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-        />
-      ))}
+      {/* Day picker */}
+      <div className="flex items-center justify-between mb-3">
+        <button
+          onClick={() => setDay(dateKey(addDays(parseISO(day), -1)))}
+          aria-label="Previous day"
+          className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500"
+        >
+          <ChevronLeft size={18} />
+        </button>
+        <div className="text-center">
+          <p className="text-sm font-semibold">{isToday ? 'Today' : format(parseISO(day), 'EEEE')}</p>
+          <p className="text-xs text-gray-400">{format(parseISO(day), 'MMM d, yyyy')}</p>
+        </div>
+        <div className="flex items-center gap-1">
+          {!isToday && (
+            <button onClick={() => setDay(todayKey())} className="px-2 py-1 rounded-lg text-xs font-medium text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/20">
+              Today
+            </button>
+          )}
+          <button
+            onClick={() => setDay(dateKey(addDays(parseISO(day), 1)))}
+            disabled={isToday}
+            aria-label="Next day"
+            className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 disabled:opacity-30"
+          >
+            <ChevronRight size={18} />
+          </button>
+        </div>
+      </div>
+
+      {dayEntries.length === 0 ? (
+        <button
+          onClick={() => { setEditEntry(null); setInitialMode('presets'); setModalOpen(true); }}
+          className="w-full text-center py-10 mb-3 bg-white dark:bg-gray-900 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 text-gray-400"
+        >
+          <UtensilsCrossed size={24} className="mx-auto mb-2 text-gray-300 dark:text-gray-600" />
+          <p className="text-sm">Nothing logged {isToday ? 'yet today' : 'on this day'}</p>
+          <p className="text-xs mt-1">Tap to add a meal, or use the camera button</p>
+        </button>
+      ) : (
+        MEAL_TYPES.map((m) => {
+          const entries = dayEntries.filter((e) => e.mealType === m.value);
+          return entries.length > 0 ? (
+            <MealGroup key={m.value} icon={m.icon} label={m.label} entries={entries} onEdit={handleEdit} onDelete={handleDelete} />
+          ) : null;
+        })
+      )}
 
       {/* Daily totals bar */}
       <div className="sticky bottom-16 mt-4 p-3 pr-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg rounded-xl border border-gray-200 dark:border-gray-800">
         <div className="flex items-center justify-between text-sm">
-          <span className="font-semibold">Today's Total</span>
+          <span className="font-semibold">{isToday ? "Today's Total" : `${format(parseISO(day), 'MMM d')} Total`}</span>
           <span className="font-bold text-brand-600 dark:text-brand-400">{totals.calories} cal</span>
         </div>
         <div className="flex gap-4 mt-1 text-xs text-gray-500">
@@ -120,7 +168,9 @@ export function FoodLogPage() {
         onSave={handleSave}
         editEntry={editEntry}
         initialMode={initialMode}
+        date={day}
       />
+      <UndoToast pending={pending} onUndo={undoNow} />
     </PageShell>
   );
 }
