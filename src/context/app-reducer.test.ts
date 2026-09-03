@@ -19,6 +19,7 @@ const baseState: AppState = {
   aiSettings: { apiKey: '', model: 'claude-opus-5', language: 'auto' },
   trainingGoal: null,
   gamification: { checkIns: [], seenAchievements: [] },
+  hydrated: true,
 };
 
 describe('appReducer - Food actions', () => {

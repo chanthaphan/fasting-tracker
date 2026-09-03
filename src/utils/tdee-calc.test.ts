@@ -128,7 +128,7 @@ describe('calcDataDrivenTDEE', () => {
     expect(result!.tdee).toBeLessThan(2600);
   });
 
-  it('accounts for exercise calories', () => {
+  it('does not add exercise on top of the weight trend (it is already reflected there)', () => {
     const weights = makeWeightEntries(80, 79, 14);
     const foods = makeFoodEntries(14, 1500);
     const exercise: ExerciseEntry[] = foods.map((f, i) => ({
@@ -141,7 +141,7 @@ describe('calcDataDrivenTDEE', () => {
     }));
     const result = calcDataDrivenTDEE(foods, exercise, weights);
     const resultNoExercise = calcDataDrivenTDEE(foods, [], weights);
-    expect(result!.tdee).toBeGreaterThan(resultNoExercise!.tdee);
+    expect(result!.tdee).toBe(resultNoExercise!.tdee);
   });
 
   it('returns low confidence for 7-13 day range', () => {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Modal } from '../ui/modal';
 import type { WeightGoal } from '../../types';
-import { todayKey } from '../../utils/date-utils';
+import { todayKey, dateKey } from '../../utils/date-utils';
 
 interface WeightGoalModalProps {
   open: boolean;
@@ -28,7 +28,7 @@ export function WeightGoalModal({ open, onClose, onSave, currentGoal, currentWei
       // Default target date: 3 months from now
       const d = new Date();
       d.setMonth(d.getMonth() + 3);
-      setTargetDate(d.toISOString().split('T')[0]);
+      setTargetDate(dateKey(d));
     }
   }, [currentGoal, currentUnit, open]);
 

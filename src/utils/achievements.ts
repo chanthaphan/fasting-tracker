@@ -2,6 +2,7 @@ import type { AppState } from '../types';
 import { computeStreaks } from './fasting-streak';
 import { computeStreaksWithFreeze } from './streaks';
 import { getAvatarModel } from './body-avatar';
+import { isMeaningfulFast } from './fasting-session';
 
 type AchievementState = Pick<
   AppState,
@@ -17,7 +18,7 @@ export function getUnlockedAchievements(state: AchievementState): Set<string> {
   const unlocked = new Set<string>();
   const hour = 3600000;
 
-  const completedFasts = state.fastingSessions.filter((s) => s.endTime !== null);
+  const completedFasts = state.fastingSessions.filter(isMeaningfulFast);
   if (completedFasts.length > 0) unlocked.add('first-fast');
   if (completedFasts.some((s) => s.endTime! - s.startTime >= 16 * hour)) unlocked.add('fast-16h');
   if (completedFasts.some((s) => s.endTime! - s.startTime >= 24 * hour)) unlocked.add('fast-24h');

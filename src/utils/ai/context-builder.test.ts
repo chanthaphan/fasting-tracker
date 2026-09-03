@@ -25,6 +25,7 @@ const emptyState: AppState = {
   userProfile: null,
   aiSettings: { apiKey: '', model: 'claude-opus-5', language: 'auto' },
   trainingGoal: null,
+  hydrated: true,
 };
 
 function makeFood(daysAgo: number, name = 'Rice'): FoodEntry {

@@ -5,8 +5,8 @@ import { todayKey } from './date-utils';
 export interface FastingFactors {
   /** Today's exercise entries */
   exerciseEntries: ExerciseEntry[];
-  /** Hours of sleep last night (0-12) */
-  sleepHours: number;
+  /** Hours of sleep last night (0-12); null when not entered, which applies no adjustment */
+  sleepHours: number | null;
   /** Hydration level: low | normal | high */
   hydration: 'low' | 'normal' | 'high';
   /** Whether caffeine was consumed today */
@@ -15,10 +15,71 @@ export interface FastingFactors {
 
 const DEFAULT_FACTORS: FastingFactors = {
   exerciseEntries: [],
-  sleepHours: 7,
+  sleepHours: null,
   hydration: 'normal',
   caffeine: false,
 };
+
+export interface FactorEffects {
+  multiplier: number;
+  effects: string[];
+}
+
+/**
+ * The single source of truth for how factors shift the phases: returns
+ * the multiplier and, for each adjustment applied, the sentence shown to
+ * the user, so the summary can never disagree with the timeline.
+ */
+export function computeFactorEffects(factors: FastingFactors): FactorEffects {
+  let multiplier = 1.0;
+  const effects: string[] = [];
+
+  const today = todayKey();
+  const todayExercise = factors.exerciseEntries.filter((e) => e.date === today);
+  const totalCalsBurned = todayExercise.reduce((sum, e) => sum + e.calories, 0);
+  const totalMinutes = todayExercise.reduce((sum, e) => sum + e.durationMin, 0);
+
+  // Exercise depletes glycogen faster → fat-burning and ketosis arrive earlier
+  if (totalCalsBurned >= 400 || totalMinutes >= 60) {
+    multiplier -= 0.15;
+    effects.push('Intense exercise: phases accelerated 15%');
+  } else if (totalCalsBurned >= 200 || totalMinutes >= 30) {
+    multiplier -= 0.10;
+    effects.push('Moderate exercise: phases accelerated 10%');
+  } else if (totalCalsBurned >= 100 || totalMinutes >= 15) {
+    multiplier -= 0.05;
+    effects.push('Light exercise: phases accelerated 5%');
+  }
+
+  // Sleep affects insulin sensitivity; no entry means no adjustment
+  if (factors.sleepHours !== null) {
+    if (factors.sleepHours >= 7 && factors.sleepHours <= 9) {
+      multiplier -= 0.05;
+      effects.push('Good sleep: phases accelerated 5%');
+    } else if (factors.sleepHours < 5) {
+      multiplier += 0.10;
+      effects.push('Poor sleep: phases delayed 10%');
+    } else if (factors.sleepHours < 7) {
+      multiplier += 0.03;
+      effects.push('Short sleep: phases delayed 3%');
+    }
+  }
+
+  if (factors.hydration === 'high') {
+    multiplier -= 0.05;
+    effects.push('High hydration: phases accelerated 5%');
+  } else if (factors.hydration === 'low') {
+    multiplier += 0.08;
+    effects.push('Low hydration: phases delayed 8%');
+  }
+
+  if (factors.caffeine) {
+    multiplier -= 0.05;
+    effects.push('Caffeine: phases accelerated 5%');
+  }
+
+  return { multiplier: Math.max(0.70, Math.min(1.20, multiplier)), effects };
+}
 
 /**
  * Computes a time-shift multiplier based on fasting factors.
@@ -32,46 +93,7 @@ const DEFAULT_FACTORS: FastingFactors = {
  * - Caffeine stimulates lipolysis & slightly boosts metabolic rate
  */
 export function computePhaseMultiplier(factors: FastingFactors): number {
-  let multiplier = 1.0;
-
-  // Exercise effect: calories burned today shift phases earlier
-  const today = todayKey();
-  const todayExercise = factors.exerciseEntries.filter((e) => e.date === today);
-  const totalCalsBurned = todayExercise.reduce((sum, e) => sum + e.calories, 0);
-  const totalMinutes = todayExercise.reduce((sum, e) => sum + e.durationMin, 0);
-
-  // Light exercise (100-200 cal): -5%, moderate (200-400): -10%, intense (400+): -15%
-  if (totalCalsBurned >= 400 || totalMinutes >= 60) {
-    multiplier -= 0.15;
-  } else if (totalCalsBurned >= 200 || totalMinutes >= 30) {
-    multiplier -= 0.10;
-  } else if (totalCalsBurned >= 100 || totalMinutes >= 15) {
-    multiplier -= 0.05;
-  }
-
-  // Sleep: good sleep (7-9h) helps, poor sleep slows things
-  if (factors.sleepHours >= 7 && factors.sleepHours <= 9) {
-    multiplier -= 0.05; // optimal sleep
-  } else if (factors.sleepHours < 5) {
-    multiplier += 0.10; // poor sleep impairs metabolism
-  } else if (factors.sleepHours < 7) {
-    multiplier += 0.03; // suboptimal
-  }
-
-  // Hydration
-  if (factors.hydration === 'high') {
-    multiplier -= 0.05;
-  } else if (factors.hydration === 'low') {
-    multiplier += 0.08;
-  }
-
-  // Caffeine: stimulates lipolysis
-  if (factors.caffeine) {
-    multiplier -= 0.05;
-  }
-
-  // Clamp to reasonable range [0.70, 1.20]
-  return Math.max(0.70, Math.min(1.20, multiplier));
+  return computeFactorEffects(factors).multiplier;
 }
 
 /**
@@ -108,37 +130,7 @@ export function getDynamicPhaseForElapsed(
  * Get a human-readable summary of the factor effects.
  */
 export function getFactorSummary(factors: Partial<FastingFactors> = {}): string[] {
-  const merged = { ...DEFAULT_FACTORS, ...factors };
-  const effects: string[] = [];
-  const today = todayKey();
-  const todayExercise = merged.exerciseEntries.filter((e) => e.date === today);
-  const totalCals = todayExercise.reduce((sum, e) => sum + e.calories, 0);
-
-  if (totalCals >= 400) {
-    effects.push('Intense exercise: phases accelerated 15%');
-  } else if (totalCals >= 200) {
-    effects.push('Moderate exercise: phases accelerated 10%');
-  } else if (totalCals >= 100) {
-    effects.push('Light exercise: phases accelerated 5%');
-  }
-
-  if (merged.sleepHours >= 7 && merged.sleepHours <= 9) {
-    effects.push('Good sleep: phases accelerated 5%');
-  } else if (merged.sleepHours < 5) {
-    effects.push('Poor sleep: phases delayed 10%');
-  }
-
-  if (merged.hydration === 'high') {
-    effects.push('High hydration: phases accelerated 5%');
-  } else if (merged.hydration === 'low') {
-    effects.push('Low hydration: phases delayed 8%');
-  }
-
-  if (merged.caffeine) {
-    effects.push('Caffeine: phases accelerated 5%');
-  }
-
-  return effects;
+  return computeFactorEffects({ ...DEFAULT_FACTORS, ...factors }).effects;
 }
 
 function round1(n: number): number {

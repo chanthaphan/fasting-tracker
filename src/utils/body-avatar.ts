@@ -1,4 +1,5 @@
 import type { AppState } from '../types';
+import { toKg } from './units';
 
 export type AvatarMood = 'neutral' | 'smile' | 'joy';
 
@@ -15,7 +16,6 @@ export interface AvatarModel {
   mood: AvatarMood;
 }
 
-const LBS_TO_KG = 0.453592;
 
 /** Deurenberg formula — body fat % estimated from BMI, age, and gender. */
 export function estimateBodyFatPct(bmi: number, age: number, gender: 'male' | 'female'): number {
@@ -54,9 +54,6 @@ export function getTrainingLevel(
   return { sessions: Math.round(sessions * 10) / 10, level: clamp01(sessions / TRAINING_SESSIONS_FOR_MAX) };
 }
 
-function toKg(weight: number, unit: 'kg' | 'lbs'): number {
-  return unit === 'lbs' ? weight * LBS_TO_KG : weight;
-}
 
 function moodForProgress(progress: number): AvatarMood {
   if (progress >= 0.75) return 'joy';

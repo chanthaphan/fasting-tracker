@@ -6,15 +6,23 @@ import { getUnlockedAchievements } from '../utils/achievements';
  * Unlocked achievements are derived from state; only the ids the user
  * has already celebrated are persisted. `newlyUnlocked` is the diff to
  * show in the celebration modal.
+ *
+ * Anything already unlocked when the data loads (HYDRATE) or is restored
+ * (IMPORT_DATA) is marked seen by the reducer, so only badges earned in
+ * this session are celebrated, and nothing is shown before hydration.
  */
 export function useAchievements() {
   const { state, dispatch } = useAppState();
+  const { fastingSessions, weightEntries, weightGoal, userProfile, workoutSessions, gamification, hydrated } = state;
 
-  const unlocked = useMemo(() => getUnlockedAchievements(state), [state]);
+  const unlocked = useMemo(
+    () => getUnlockedAchievements({ fastingSessions, weightEntries, weightGoal, userProfile, workoutSessions, gamification }),
+    [fastingSessions, weightEntries, weightGoal, userProfile, workoutSessions, gamification]
+  );
 
   const newlyUnlocked = useMemo(
-    () => [...unlocked].filter((id) => !state.gamification.seenAchievements.includes(id)),
-    [unlocked, state.gamification.seenAchievements]
+    () => (hydrated ? [...unlocked].filter((id) => !gamification.seenAchievements.includes(id)) : []),
+    [hydrated, unlocked, gamification.seenAchievements]
   );
 
   const markSeen = useCallback(

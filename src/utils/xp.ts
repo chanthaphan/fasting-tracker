@@ -1,4 +1,5 @@
 import type { AppState } from '../types';
+import { isMeaningfulFast } from './fasting-session';
 
 export const XP_RULES = {
   checkIn: 10, // per check-in date
@@ -42,9 +43,9 @@ export function computeXp(state: XpState): number {
   let xp = state.gamification.checkIns.length * XP_RULES.checkIn;
 
   for (const s of state.fastingSessions) {
-    if (s.endTime === null) continue;
+    if (!isMeaningfulFast(s)) continue;
     xp += XP_RULES.fastCompleted;
-    if (s.targetHours !== undefined && s.endTime - s.startTime >= s.targetHours * 3600000) {
+    if (s.targetHours !== undefined && s.endTime! - s.startTime >= s.targetHours * 3600000) {
       xp += XP_RULES.fastTargetMet;
     }
   }

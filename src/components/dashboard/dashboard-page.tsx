@@ -6,7 +6,9 @@ import { sumMacros } from '../../utils/macro-calc';
 import { todayKey, formatDuration } from '../../utils/date-utils';
 import { useTheme } from '../../hooks/use-theme';
 import { Settings, Plus, Moon, Sun, Monitor, Weight, TrendingDown, TrendingUp, Minus, Target, User, Flame, Sparkles } from 'lucide-react';
-import { exportData, parseImportFile } from '../../utils/export-import';
+import { exportData, parseImportFile, type ImportSummary } from '../../utils/export-import';
+import { ImportBackupModal } from './import-backup-modal';
+import type { ImportPayload } from '../../types';
 import { GoalsModal } from './goals-modal';
 import { ProfileModal } from './profile-modal';
 import { AiSettingsModal } from '../ai/ai-settings-modal';
@@ -16,6 +18,7 @@ import { getTDEE } from '../../utils/tdee-calc';
 import { lastNDays, dailyTotals, dailyFastingHours } from '../../utils/chart-data';
 import { DailyBars } from '../charts/daily-bars';
 import { Sparkline } from '../charts/sparkline';
+import { convertWeight } from '../../utils/units';
 import { useRef, useMemo, useState } from 'react';
 
 export function DashboardPage() {
@@ -27,6 +30,8 @@ export function DashboardPage() {
   const [goalsOpen, setGoalsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
+  const [pendingImport, setPendingImport] = useState<{ payload: ImportPayload; summary: ImportSummary } | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
 
   const todayEntries = state.foodEntries.filter((e) => e.date === todayKey());
   const totals = sumMacros(todayEntries);
@@ -39,7 +44,10 @@ export function DashboardPage() {
   );
   const latestWeight = sortedWeights[0] ?? null;
   const previousWeight = sortedWeights[1] ?? null;
-  const weightDiff = latestWeight && previousWeight ? latestWeight.weight - previousWeight.weight : null;
+  const weightDiff =
+    latestWeight && previousWeight
+      ? latestWeight.weight - convertWeight(previousWeight.weight, previousWeight.unit, latestWeight.unit)
+      : null;
 
   // Today's exercise
   const todayExercise = useMemo(
@@ -70,21 +78,36 @@ export function DashboardPage() {
     const latest = [...state.fastingSessions].sort((a, b) => b.startTime - a.startTime)[0];
     return latest?.targetHours ?? 16;
   }, [state.fastingSessions]);
-  const weightSpark = useMemo(
-    () => [...state.weightEntries].sort((a, b) => a.date.localeCompare(b.date)).slice(-30).map((w) => w.weight),
-    [state.weightEntries]
-  );
+  const weightSpark = useMemo(() => {
+    const unit = latestWeight?.unit ?? 'kg';
+    return [...state.weightEntries]
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(-30)
+      .map((w) => convertWeight(w.weight, w.unit, unit));
+  }, [state.weightEntries, latestWeight?.unit]);
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    try {
-      const data = await parseImportFile(file);
-      dispatch({ type: 'IMPORT_DATA', payload: data });
-    } catch {
-      alert('Invalid backup file');
-    }
     e.target.value = '';
+    setImportError(null);
+    try {
+      setPendingImport(await parseImportFile(file));
+    } catch (err) {
+      setPendingImport(null);
+      setImportError(
+        err instanceof SyntaxError
+          ? "That file isn't a valid backup (it's not JSON)."
+          : err instanceof Error ? err.message : 'Invalid backup file'
+      );
+    }
+  };
+
+  const confirmImport = async (mode: 'replace' | 'merge') => {
+    if (!pendingImport) return;
+    if (mode === 'replace') await exportData(); // safety net before anything is overwritten
+    dispatch({ type: 'IMPORT_DATA', payload: { ...pendingImport.payload, mode } });
+    setPendingImport(null);
   };
 
   return (
@@ -349,7 +372,7 @@ export function DashboardPage() {
             <span className="ml-auto">
               <Sparkline
                 values={weightSpark}
-                reference={state.weightGoal?.targetWeight ?? null}
+                reference={state.weightGoal ? convertWeight(state.weightGoal.targetWeight, state.weightGoal.unit, latestWeight.unit) : null}
                 ariaLabel="Weight trend over the last 30 entries"
               />
             </span>
@@ -384,6 +407,14 @@ export function DashboardPage() {
       />
 
       <AiSettingsModal open={aiOpen} onClose={() => setAiOpen(false)} />
+
+      <ImportBackupModal
+        open={pendingImport !== null || importError !== null}
+        summary={pendingImport?.summary ?? null}
+        error={importError}
+        onClose={() => { setPendingImport(null); setImportError(null); }}
+        onConfirm={confirmImport}
+      />
     </PageShell>
   );
 }

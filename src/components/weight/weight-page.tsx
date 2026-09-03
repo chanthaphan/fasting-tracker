@@ -7,6 +7,7 @@ import { WeightChart } from './weight-chart';
 import { useAppState } from '../../context/app-context';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import type { WeightEntry, WeightGoal } from '../../types';
+import { convertWeight } from '../../utils/units';
 
 export function WeightPage() {
   const { state, dispatch } = useAppState();
@@ -19,10 +20,13 @@ export function WeightPage() {
     [state.weightEntries]
   );
 
-  const latestWeight = sortedEntries[0]?.weight ?? null;
-  const previousWeight = sortedEntries[1]?.weight ?? null;
-  const weightDiff = latestWeight !== null && previousWeight !== null ? latestWeight - previousWeight : null;
+  // Everything on this page is shown in the unit of the latest entry; older entries
+  // and the goal are converted so a kg entry next to an lbs entry never reads as a jump
   const latestUnit = sortedEntries[0]?.unit ?? 'kg';
+  const inDisplayUnit = (weight: number, unit: string) => convertWeight(weight, unit, latestUnit);
+  const latestWeight = sortedEntries[0]?.weight ?? null;
+  const previousWeight = sortedEntries[1] ? inDisplayUnit(sortedEntries[1].weight, sortedEntries[1].unit) : null;
+  const weightDiff = latestWeight !== null && previousWeight !== null ? latestWeight - previousWeight : null;
 
   const handleSave = (data: { weight: number; unit: 'kg' | 'lbs'; date: string; note?: string }) => {
     if (editEntry) {
@@ -51,12 +55,14 @@ export function WeightPage() {
   // Goal progress calculation
   const goalProgress = useMemo(() => {
     if (!goal || latestWeight === null) return null;
-    const totalChange = goal.targetWeight - goal.startWeight;
+    const target = inDisplayUnit(goal.targetWeight, goal.unit);
+    const start = inDisplayUnit(goal.startWeight, goal.unit);
+    const totalChange = target - start;
     if (totalChange === 0) return { percent: 100, remaining: 0, daysLeft: 0, onTrack: true };
 
-    const currentChange = latestWeight - goal.startWeight;
+    const currentChange = latestWeight - start;
     const percent = Math.min(100, Math.max(0, (currentChange / totalChange) * 100));
-    const remaining = goal.targetWeight - latestWeight;
+    const remaining = target - latestWeight;
     const daysLeft = differenceInDays(parseISO(goal.targetDate), new Date());
 
     // Expected progress based on time elapsed
@@ -66,7 +72,7 @@ export function WeightPage() {
     const onTrack = totalChange < 0 ? percent >= expectedPercent - 10 : percent >= expectedPercent - 10;
 
     return { percent, remaining, daysLeft, onTrack };
-  }, [goal, latestWeight]);
+  }, [goal, latestWeight, latestUnit]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <PageShell
@@ -136,11 +142,11 @@ export function WeightPage() {
           <div className="grid grid-cols-3 gap-2 text-center">
             <div>
               <p className="text-xs text-gray-400">Target</p>
-              <p className="text-sm font-bold">{goal.targetWeight} {goal.unit}</p>
+              <p className="text-sm font-bold">{inDisplayUnit(goal.targetWeight, goal.unit)} {latestUnit}</p>
             </div>
             <div>
               <p className="text-xs text-gray-400">Remaining</p>
-              <p className="text-sm font-bold">{goalProgress.remaining > 0 ? '+' : ''}{goalProgress.remaining.toFixed(1)} {goal.unit}</p>
+              <p className="text-sm font-bold">{goalProgress.remaining > 0 ? '+' : ''}{goalProgress.remaining.toFixed(1)} {latestUnit}</p>
             </div>
             <div>
               <p className="text-xs text-gray-400">Days Left</p>
@@ -166,7 +172,7 @@ export function WeightPage() {
         <div className="space-y-2">
           {sortedEntries.map((entry, i) => {
             const prev = sortedEntries[i + 1];
-            const diff = prev ? entry.weight - prev.weight : null;
+            const diff = prev ? entry.weight - convertWeight(prev.weight, prev.unit, entry.unit) : null;
             return (
               <div key={entry.id} className="flex items-center justify-between py-3 px-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800">
                 <div className="flex-1 min-w-0">

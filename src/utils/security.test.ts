@@ -35,8 +35,8 @@ describe('Security - Import file validation', () => {
       weightEntries: [],
       exerciseEntries: [],
     })));
-    expect(data.foodEntries).toEqual([]);
-    expect(data.fastingSessions).toEqual([]);
+    expect(data.payload.foodEntries).toEqual([]);
+    expect(data.payload.fastingSessions).toEqual([]);
   });
 
   it('handles missing optional fields gracefully', async () => {
@@ -46,8 +46,8 @@ describe('Security - Import file validation', () => {
       fastingSessions: [],
       // no weightEntries, exerciseEntries
     })));
-    expect(data.weightEntries).toBeUndefined();
-    expect(data.exerciseEntries).toBeUndefined();
+    expect(data.payload.weightEntries).toBeUndefined();
+    expect(data.payload.exerciseEntries).toBeUndefined();
   });
 });
 

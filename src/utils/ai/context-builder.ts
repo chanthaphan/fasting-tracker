@@ -1,3 +1,4 @@
+import { toKg } from '../units';
 import type { AppState, FastingSession, FoodEntry } from '../../types';
 import { DAY_NAMES, dateKey } from '../date-utils';
 import { sumMacros } from '../macro-calc';
@@ -13,9 +14,6 @@ const MAX_WORKOUTS = 8;
 const MAX_LIFTS_PER_LINE = 6;
 const MAX_LIFT_BESTS = 8;
 
-function toKg(weight: number, unit: string): number {
-  return unit === 'lbs' ? weight * 0.453592 : weight;
-}
 
 function round1(n: number): string {
   return (Math.round(n * 10) / 10).toString();

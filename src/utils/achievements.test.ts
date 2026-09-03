@@ -35,10 +35,10 @@ describe('getUnlockedAchievements', () => {
   });
 
   it('unlocks fasting streak badges from the longest streak', () => {
-    // 7 consecutive short completed fasts, one per day
+    // 7 consecutive completed fasts, one per day (a 2h fast would be a false start and not count)
     const sessions = Array.from({ length: 7 }, (_, i) => {
       const dayStart = new Date(daysAgo(i) + 'T08:00:00').getTime();
-      return { id: `s${i}`, startTime: dayStart, endTime: dayStart + 2 * hour };
+      return { id: `s${i}`, startTime: dayStart, endTime: dayStart + 5 * hour };
     });
     const unlocked = getUnlockedAchievements({ ...emptyState, fastingSessions: sessions });
     expect(unlocked.has('fast-streak-3')).toBe(true);
