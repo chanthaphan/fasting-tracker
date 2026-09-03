@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { PageShell } from '../layout/page-shell';
 import { DailyBars } from '../charts/daily-bars';
@@ -14,7 +15,23 @@ import type { FoodEntry, MealType } from '../../types';
 export function FoodLogPage() {
   const { state, dispatch } = useAppState();
   const [modalOpen, setModalOpen] = useState(false);
+  const [initialMode, setInitialMode] = useState<'presets' | 'ai' | 'manual'>('presets');
   const [editEntry, setEditEntry] = useState<FoodEntry | null>(null);
+
+  // ?add=manual|ai opens the modal on that tab (used by the snap-a-meal fallbacks)
+  const [params, setParams] = useSearchParams();
+  const addParam = params.get('add');
+  const [handledAdd, setHandledAdd] = useState<string | null>(null);
+  if ((addParam === 'manual' || addParam === 'ai') && handledAdd !== addParam) {
+    setHandledAdd(addParam);
+    setInitialMode(addParam);
+    setEditEntry(null);
+    setModalOpen(true);
+  }
+  if (!addParam && handledAdd !== null) setHandledAdd(null);
+  useEffect(() => {
+    if (addParam) setParams((p) => { p.delete('add'); return p; }, { replace: true });
+  }, [addParam, setParams]);
 
   const todayEntries = state.foodEntries.filter((e) => e.date === todayKey());
   const totals = sumMacros(todayEntries);
@@ -65,7 +82,7 @@ export function FoodLogPage() {
       ))}
 
       {/* Daily totals bar */}
-      <div className="sticky bottom-16 mt-4 p-3 bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg rounded-xl border border-gray-200 dark:border-gray-800">
+      <div className="sticky bottom-16 mt-4 p-3 pr-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg rounded-xl border border-gray-200 dark:border-gray-800">
         <div className="flex items-center justify-between text-sm">
           <span className="font-semibold">Today's Total</span>
           <span className="font-bold text-brand-600 dark:text-brand-400">{totals.calories} cal</span>
@@ -102,6 +119,7 @@ export function FoodLogPage() {
         onClose={() => { setModalOpen(false); setEditEntry(null); }}
         onSave={handleSave}
         editEntry={editEntry}
+        initialMode={initialMode}
       />
     </PageShell>
   );

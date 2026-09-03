@@ -117,7 +117,7 @@ const MAX_IMAGE_DIMENSION = 1024;
  * Returns base64 without the data-URL prefix (and without newlines).
  */
 export async function compressImage(file: File): Promise<{ mediaType: 'image/jpeg'; base64: string }> {
-  const bitmap = await createImageBitmap(file);
+  const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
   const scale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(bitmap.width, bitmap.height));
   const width = Math.round(bitmap.width * scale);
   const height = Math.round(bitmap.height * scale);

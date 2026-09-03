@@ -11,6 +11,7 @@ import { CoachPage } from './components/coach/coach-page';
 import { ActiveWorkoutPage } from './components/workout/active-workout-page';
 import { useTheme } from './hooks/use-theme';
 import { ErrorBoundary } from './components/layout/error-boundary';
+import { SnapMealFab } from './components/food-log/snap-meal-fab';
 
 /** Applies the saved theme to <html> on every route, not just the dashboard. */
 function ThemeEffect() {
@@ -36,6 +37,7 @@ export default function App() {
             <Route path="/workout" element={<ActiveWorkoutPage />} />
           </Routes>
           </ErrorBoundary>
+          <SnapMealFab />
           <BottomNav />
         </div>
       </AppProvider>
