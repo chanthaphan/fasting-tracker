@@ -4,6 +4,7 @@ import { AppProvider } from './context/app-context';
 import { BottomNav } from './components/layout/bottom-nav';
 import { ErrorBoundary } from './components/layout/error-boundary';
 import { SnapMealFab } from './components/food-log/snap-meal-fab';
+import { UpdateToast } from './components/layout/update-toast';
 import { useTheme } from './hooks/use-theme';
 
 // Each page is its own chunk; the dashboard is the start_url so it loads first
@@ -47,6 +48,7 @@ export default function App() {
             </Suspense>
           </ErrorBoundary>
           <SnapMealFab />
+          <UpdateToast />
           <BottomNav />
         </div>
       </AppProvider>

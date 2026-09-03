@@ -20,6 +20,7 @@ export function MealGroup({ icon, label, entries, onEdit, onDelete }: MealGroupP
     <div className="mb-3">
       <button
         onClick={() => setOpen(!open)}
+        aria-expanded={open}
         className="flex items-center justify-between w-full py-2 px-1"
       >
         <div className="flex items-center gap-2">
@@ -33,6 +34,7 @@ export function MealGroup({ icon, label, entries, onEdit, onDelete }: MealGroupP
           )}
           <ChevronDown
             size={16}
+            aria-hidden="true"
             className={`text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}
           />
         </div>

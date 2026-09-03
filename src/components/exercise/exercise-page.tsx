@@ -220,12 +220,14 @@ function ExerciseCard({
       <div className="flex gap-1 ml-2">
         <button
           onClick={() => onEdit(entry)}
+          aria-label={`Edit ${entry.name}`}
           className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400"
         >
           <Pencil size={16} />
         </button>
         <button
           onClick={() => onDelete(entry.id)}
+          aria-label={`Delete ${entry.name}`}
           className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500"
         >
           <Trash2 size={16} />

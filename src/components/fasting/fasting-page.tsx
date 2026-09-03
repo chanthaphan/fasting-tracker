@@ -110,6 +110,7 @@ export function FastingPage() {
               setEditSession(activeFast);
               setEditModalOpen(true);
             }}
+            aria-label="Edit start time"
             className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800"
           >
             <Pencil size={18} className="text-gray-500" />

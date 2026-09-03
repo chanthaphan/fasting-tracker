@@ -187,7 +187,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <AppContext.Provider value={store}>
       {storageFull && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-red-500 text-white text-center text-sm py-2 px-4">
+        <div role="alert" className="fixed top-0 left-0 right-0 z-50 bg-red-500 text-white text-center text-sm px-4 py-2 pt-[calc(0.5rem+env(safe-area-inset-top))]">
           Storage is full — your data may not be saved. Please export a backup from Dashboard settings.
           <button onClick={() => setStorageFull(false)} className="ml-3 underline font-medium">Dismiss</button>
         </div>
