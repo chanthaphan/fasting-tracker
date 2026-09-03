@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import { Modal } from '../ui/modal';
 import { LIFT_PRESET_CATEGORIES } from '../../constants/lift-presets';
-import { useAppState } from '../../context/app-context';
+import { useAppState } from '../../context/use-app-state';
 import { listLifts } from '../../utils/workout-stats';
 
 interface AddLiftModalProps {

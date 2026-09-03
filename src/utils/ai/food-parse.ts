@@ -69,8 +69,9 @@ export interface FoodParseInput {
 export async function parseFoodInput(
   settings: AiSettings,
   input: FoodParseInput,
-  client: Anthropic = createAiClient(settings)
+  client?: Anthropic
 ): Promise<ParsedFoodItem[]> {
+  const api = client ?? (await createAiClient(settings));
   const now = input.now ?? new Date();
   const localTime = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
 
@@ -86,7 +87,7 @@ export async function parseFoodInput(
     text: input.text?.trim() || 'Identify the food in this photo and estimate nutrition per item.',
   });
 
-  const response = await client.messages.create({
+  const response = await api.messages.create({
     model: settings.model,
     max_tokens: 2048,
     system: [

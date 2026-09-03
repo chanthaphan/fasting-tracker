@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Modal } from '../ui/modal';
-import { useAppState } from '../../context/app-context';
+import { useAppState } from '../../context/use-app-state';
 import type { WorkoutSession, WorkoutTemplateExercise } from '../../types';
 
 interface SaveTemplateModalProps {

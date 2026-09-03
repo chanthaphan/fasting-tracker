@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Modal } from '../ui/modal';
 import type { WeightGoal } from '../../types';
 import { todayKey, dateKey } from '../../utils/date-utils';
@@ -12,25 +12,22 @@ interface WeightGoalModalProps {
   currentUnit: 'kg' | 'lbs';
 }
 
-export function WeightGoalModal({ open, onClose, onSave, currentGoal, currentWeight, currentUnit }: WeightGoalModalProps) {
-  const [targetWeight, setTargetWeight] = useState('');
-  const [unit, setUnit] = useState<'kg' | 'lbs'>(currentUnit);
-  const [targetDate, setTargetDate] = useState('');
+/** Mounted only while open, so the form below starts fresh (or from the entry) on every open. */
+export function WeightGoalModal(props: WeightGoalModalProps) {
+  if (!props.open) return null;
+  return <WeightGoalForm key={'goal'} {...props} />;
+}
 
-  useEffect(() => {
-    if (currentGoal) {
-      setTargetWeight(String(currentGoal.targetWeight));
-      setUnit(currentGoal.unit);
-      setTargetDate(currentGoal.targetDate);
-    } else {
-      setTargetWeight('');
-      setUnit(currentUnit);
-      // Default target date: 3 months from now
-      const d = new Date();
-      d.setMonth(d.getMonth() + 3);
-      setTargetDate(dateKey(d));
-    }
-  }, [currentGoal, currentUnit, open]);
+function WeightGoalForm({ open, onClose, onSave, currentGoal, currentWeight, currentUnit }: WeightGoalModalProps) {
+  const [targetWeight, setTargetWeight] = useState(() => (currentGoal ? String(currentGoal.targetWeight) : ''));
+  const [unit, setUnit] = useState<'kg' | 'lbs'>(() => currentGoal?.unit ?? currentUnit);
+  const [targetDate, setTargetDate] = useState(() => {
+    if (currentGoal) return currentGoal.targetDate;
+    // Default target date: 3 months from now
+    const d = new Date();
+    d.setMonth(d.getMonth() + 3);
+    return dateKey(d);
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

@@ -5,7 +5,7 @@ import { Modal } from '../ui/modal';
 import { BodyAvatar } from './body-avatar';
 import { AchievementGallery } from './achievement-gallery';
 import { ACHIEVEMENTS } from '../../constants/achievements';
-import { useAppState } from '../../context/app-context';
+import { useAppState } from '../../context/use-app-state';
 import { getAvatarModel, TRAINING_WINDOW_DAYS } from '../../utils/body-avatar';
 import { computeXp, getLevelInfo } from '../../utils/xp';
 import { computeStreaks } from '../../utils/fasting-streak';

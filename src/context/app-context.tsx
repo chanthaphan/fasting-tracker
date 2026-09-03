@@ -1,5 +1,6 @@
-import { createContext, useContext, useReducer, useEffect, useState, type ReactNode } from 'react';
-import type { AppState, AppAction } from '../types';
+import { useReducer, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { AppContext } from './use-app-state';
+import type { AppState } from '../types';
 import { DEFAULT_AI_SETTINGS } from '../constants/ai';
 import { appReducer } from './app-reducer';
 import {
@@ -30,11 +31,6 @@ const initialState: AppState = {
   gamification: { checkIns: [], seenAchievements: [] },
   hydrated: false,
 };
-
-const AppContext = createContext<{
-  state: AppState;
-  dispatch: React.Dispatch<AppAction>;
-}>({ state: initialState, dispatch: () => {} });
 
 function loadInitialState(): AppState {
   const foodEntries = loadFromStorageSync(KEYS.FOOD_ENTRIES, initialState.foodEntries, isFoodEntryArray);
@@ -182,8 +178,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('storage-full', handler);
   }, []);
 
+  const store = useMemo(() => ({ state, dispatch }), [state]);
+
   return (
-    <AppContext.Provider value={{ state, dispatch }}>
+    <AppContext.Provider value={store}>
       {storageFull && (
         <div className="fixed top-0 left-0 right-0 z-50 bg-red-500 text-white text-center text-sm py-2 px-4">
           Storage is full — your data may not be saved. Please export a backup from Dashboard settings.
@@ -195,6 +193,3 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useAppState() {
-  return useContext(AppContext);
-}

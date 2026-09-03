@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Camera } from 'lucide-react';
-import { useAppState } from '../../context/app-context';
+import { useAppState } from '../../context/use-app-state';
 import { useAiReady, useAiSettings } from '../../hooks/use-ai';
 import { compressImage, parseFoodInput } from '../../utils/ai/food-parse';
 import { describeAiError } from '../../utils/ai/client';

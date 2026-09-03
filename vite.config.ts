@@ -6,6 +6,17 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
   base: process.env.BASE_URL || '/',
+  build: {
+    rollupOptions: {
+      output: {
+        // Keep the React runtime in its own long-lived chunk so page chunks stay small and cacheable
+        manualChunks(id: string) {
+          if (/node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler)[\\/]/.test(id)) return 'react';
+          return undefined;
+        },
+      },
+    },
+  },
   test: {
     globals: true,
     environment: 'jsdom',

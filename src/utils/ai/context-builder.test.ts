@@ -25,6 +25,7 @@ const emptyState: AppState = {
   userProfile: null,
   aiSettings: { apiKey: '', model: 'claude-opus-5', language: 'auto' },
   trainingGoal: null,
+  gamification: { checkIns: [], seenAchievements: [] },
   hydrated: true,
 };
 

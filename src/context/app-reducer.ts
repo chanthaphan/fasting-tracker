@@ -15,6 +15,14 @@ function withUnlockedMarkedSeen(state: AppState): AppState {
   };
 }
 
+function replaceById<T extends { id: string }>(list: T[], item: T): T[] {
+  return list.map((e) => (e.id === item.id ? item : e));
+}
+
+function removeById<T extends { id: string }>(list: T[], id: string): T[] {
+  return list.filter((e) => e.id !== id);
+}
+
 /** Union two lists by id; items from `incoming` win on conflict, order preserved. */
 function mergeById<T extends { id: string }>(existing: T[], incoming: T[]): T[] {
   const byId = new Map(existing.map((e) => [e.id, e]));
@@ -53,14 +61,12 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case 'EDIT_FOOD':
       return {
         ...state,
-        foodEntries: state.foodEntries.map((e) =>
-          e.id === action.payload.id ? action.payload : e
-        ),
+        foodEntries: replaceById(state.foodEntries, action.payload),
       };
     case 'DELETE_FOOD':
       return {
         ...state,
-        foodEntries: state.foodEntries.filter((e) => e.id !== action.payload.id),
+        foodEntries: removeById(state.foodEntries, action.payload.id),
       };
     case 'START_FAST': {
       if (state.activeFastingId) return state;
@@ -87,7 +93,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case 'DELETE_FAST':
       return {
         ...state,
-        fastingSessions: state.fastingSessions.filter((s) => s.id !== action.payload.id),
+        fastingSessions: removeById(state.fastingSessions, action.payload.id),
         activeFastingId:
           state.activeFastingId === action.payload.id ? null : state.activeFastingId,
       };
@@ -112,14 +118,12 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case 'EDIT_WEIGHT':
       return {
         ...state,
-        weightEntries: state.weightEntries.map((e) =>
-          e.id === action.payload.id ? action.payload : e
-        ),
+        weightEntries: replaceById(state.weightEntries, action.payload),
       };
     case 'DELETE_WEIGHT':
       return {
         ...state,
-        weightEntries: state.weightEntries.filter((e) => e.id !== action.payload.id),
+        weightEntries: removeById(state.weightEntries, action.payload.id),
       };
     case 'ADD_EXERCISE': {
       const entry = {
@@ -132,14 +136,12 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case 'EDIT_EXERCISE':
       return {
         ...state,
-        exerciseEntries: state.exerciseEntries.map((e) =>
-          e.id === action.payload.id ? action.payload : e
-        ),
+        exerciseEntries: replaceById(state.exerciseEntries, action.payload),
       };
     case 'DELETE_EXERCISE':
       return {
         ...state,
-        exerciseEntries: state.exerciseEntries.filter((e) => e.id !== action.payload.id),
+        exerciseEntries: removeById(state.exerciseEntries, action.payload.id),
       };
     case 'SET_SELECTED_DATE':
       return { ...state, selectedDate: action.payload };
@@ -176,9 +178,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case 'UPDATE_WORKOUT':
       return {
         ...state,
-        workoutSessions: state.workoutSessions.map((s) =>
-          s.id === action.payload.id ? action.payload : s
-        ),
+        workoutSessions: replaceById(state.workoutSessions, action.payload),
       };
     case 'FINISH_WORKOUT': {
       const session = state.workoutSessions.find((s) => s.id === action.payload.id);
@@ -212,7 +212,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case 'DELETE_WORKOUT':
       return {
         ...state,
-        workoutSessions: state.workoutSessions.filter((s) => s.id !== action.payload.id),
+        workoutSessions: removeById(state.workoutSessions, action.payload.id),
         activeWorkoutId:
           state.activeWorkoutId === action.payload.id ? null : state.activeWorkoutId,
       };
@@ -227,7 +227,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case 'DELETE_TEMPLATE':
       return {
         ...state,
-        workoutTemplates: state.workoutTemplates.filter((t) => t.id !== action.payload.id),
+        workoutTemplates: removeById(state.workoutTemplates, action.payload.id),
       };
     case 'DAILY_CHECK_IN':
       return withTodayCheckIn(state);

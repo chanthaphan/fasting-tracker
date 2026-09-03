@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { Modal } from '../ui/modal';
-import { useAppState } from '../../context/app-context';
+import { useAppState } from '../../context/use-app-state';
 import { LIFT_PRESET_CATEGORIES } from '../../constants/lift-presets';
 import { listLifts } from '../../utils/workout-stats';
 import { DAY_NAMES } from '../../utils/date-utils';

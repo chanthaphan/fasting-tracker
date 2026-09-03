@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { PageShell } from '../layout/page-shell';
-import { useAppState } from '../../context/app-context';
+import { useAppState } from '../../context/use-app-state';
 import { useFastingTimer } from '../../hooks/use-fasting-timer';
 import { sumMacros } from '../../utils/macro-calc';
 import { todayKey, formatDuration } from '../../utils/date-utils';

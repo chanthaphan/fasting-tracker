@@ -4,7 +4,7 @@ import { PageShell } from '../layout/page-shell';
 import { AddWeightModal } from './add-weight-modal';
 import { WeightGoalModal } from './weight-goal-modal';
 import { WeightChart } from './weight-chart';
-import { useAppState } from '../../context/app-context';
+import { useAppState } from '../../context/use-app-state';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import type { WeightEntry, WeightGoal } from '../../types';
 import { convertWeight } from '../../utils/units';

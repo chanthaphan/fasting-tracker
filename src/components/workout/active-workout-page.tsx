@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { Plus, X } from 'lucide-react';
-import { useAppState } from '../../context/app-context';
+import { useAppState } from '../../context/use-app-state';
 import { WorkoutExerciseBlock } from './workout-exercise-block';
 import { RestTimerBar } from './rest-timer-bar';
 import { AddLiftModal } from './add-lift-modal';

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type Anthropic from '@anthropic-ai/sdk';
-import { useAppState } from '../context/app-context';
+import { useAppState } from '../context/use-app-state';
 import { createAiClient, describeAiError, effortConfig } from '../utils/ai/client';
 import { WEEKLY_PLAN_SYSTEM, languageDirective } from '../utils/ai/prompts';
 import { buildHealthContext } from '../utils/ai/context-builder';
@@ -61,7 +61,7 @@ export function useWeeklyPlan() {
       // Capture the start moment once — the request may cross midnight
       const startDate = new Date();
       const startKey = dateKey(startDate);
-      const client = createAiClient(current.aiSettings);
+      const client = await createAiClient(current.aiSettings);
       const response = await client.messages.create({
         model: current.aiSettings.model,
         max_tokens: 4096,

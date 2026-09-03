@@ -1,26 +1,29 @@
 import { useState, useEffect } from 'react';
-import { useAppState } from '../context/app-context';
+import { useAppState } from '../context/use-app-state';
 import { getPhaseForElapsed } from '../utils/fasting-phase';
 import type { FastingPhase, FastingSession } from '../types';
 
+/**
+ * Ticks once a second while a fast is active. Elapsed time is derived
+ * from a ticking clock rather than stored, so the interval only restarts
+ * when the active session actually changes.
+ */
 export function useFastingTimer() {
   const { state, dispatch } = useAppState();
-  const [elapsedMs, setElapsedMs] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
 
   const activeFast: FastingSession | null =
     state.fastingSessions.find((s) => s.id === state.activeFastingId) ?? null;
+  const activeId = activeFast?.id ?? null;
 
   useEffect(() => {
-    if (!activeFast) {
-      setElapsedMs(0);
-      return;
-    }
-    const update = () => setElapsedMs(Date.now() - activeFast.startTime);
-    update();
-    const id = setInterval(update, 1000);
+    if (!activeId) return;
+    const tick = () => setNow(Date.now());
+    const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [activeFast]);
+  }, [activeId]);
 
+  const elapsedMs = activeFast ? Math.max(0, now - activeFast.startTime) : 0;
   const currentPhase: FastingPhase | null = activeFast ? getPhaseForElapsed(elapsedMs) : null;
 
   const startFast = (targetHours?: number) => {

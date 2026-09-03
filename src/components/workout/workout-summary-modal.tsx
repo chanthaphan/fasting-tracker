@@ -4,7 +4,7 @@ import { Modal } from '../ui/modal';
 import { SaveTemplateModal } from './save-template-modal';
 import { detectPrs, sessionSetCount, sessionVolume } from '../../utils/workout-stats';
 import { formatHoursMinutes } from '../../utils/date-utils';
-import { useAppState } from '../../context/app-context';
+import { useAppState } from '../../context/use-app-state';
 import type { WorkoutSession } from '../../types';
 
 interface WorkoutSummaryModalProps {
