@@ -15,9 +15,11 @@ interface AddFoodModalProps {
   onClose: () => void;
   onSave: (data: { name: string; calories: number; protein: number; carbs: number; fat: number; mealType: MealType }) => void;
   editEntry?: FoodEntry | null;
+  /** Tab to open on when adding (ignored while editing) */
+  initialMode?: EntryMode;
 }
 
-export function AddFoodModal({ open, onClose, onSave, editEntry }: AddFoodModalProps) {
+export function AddFoodModal({ open, onClose, onSave, editEntry, initialMode = 'presets' }: AddFoodModalProps) {
   const { state } = useAppState();
   const [name, setName] = useState('');
   const [calories, setCalories] = useState('');
@@ -45,9 +47,9 @@ export function AddFoodModal({ open, onClose, onSave, editEntry }: AddFoodModalP
       setFat('');
       setMealType('breakfast');
       setPresetSearch('');
-      setMode('presets');
+      setMode(initialMode);
     }
-  }, [editEntry, open]);
+  }, [editEntry, open, initialMode]);
 
   const handleSelectPreset = (preset: FoodPreset) => {
     setName(preset.name);
