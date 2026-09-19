@@ -5,6 +5,10 @@ export interface MacroGoals {
   protein: number;
   carbs: number;
   fat: number;
+  /** mg per day; older saved goals have none, see sodiumGoalOf() */
+  sodium?: number;
+  /** grams of sugar per day; see sugarGoalOf() */
+  sugar?: number;
 }
 
 export interface FoodEntry {
@@ -14,6 +18,10 @@ export interface FoodEntry {
   protein: number;
   carbs: number;
   fat: number;
+  /** mg; entries logged before sodium tracking have none */
+  sodium?: number;
+  /** grams of sugar */
+  sugar?: number;
   mealType: MealType;
   date: string; // 'YYYY-MM-DD'
   createdAt: number;
@@ -97,6 +105,10 @@ export interface ParsedFoodItem {
   protein: number;
   carbs: number;
   fat: number;
+  /** mg */
+  sodium?: number;
+  /** grams */
+  sugar?: number;
   mealType: MealType;
 }
 

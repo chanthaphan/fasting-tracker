@@ -3,7 +3,7 @@ import type { AppAction, AppState, MealRelation, MealType, MedSlot, Medication }
 import { MED_SLOTS } from '../../constants/med-slots';
 import { MEAL_TYPES } from '../../constants/meal-types';
 import { dosesForDay } from '../medication';
-import { sumMacros } from '../macro-calc';
+import { sumMacros, sodiumGoalOf, sugarGoalOf } from '../macro-calc';
 import { formatDate, translate } from '../../i18n';
 import { unitLabel } from '../../i18n';
 
@@ -25,6 +25,8 @@ export const ASSISTANT_TOOLS: Anthropic.Tool[] = [
         protein: { type: 'number', description: 'โปรตีน (กรัม)' },
         carbs: { type: 'number', description: 'คาร์โบไฮเดรต (กรัม)' },
         fat: { type: 'number', description: 'ไขมัน (กรัม)' },
+        sodium: { type: 'number', description: 'โซเดียม (มิลลิกรัม) อาหารไทยมักสูง เช่น น้ำปลา ซีอิ๊ว ก๋วยเตี๋ยว บะหมี่กึ่งสำเร็จรูป' },
+        sugar: { type: 'number', description: 'น้ำตาล (กรัม) เครื่องดื่มหวาน ชาเย็น กาแฟเย็น ของหวาน มีน้ำตาลสูง' },
         meal_type: { type: 'string', enum: ['breakfast', 'lunch', 'dinner', 'snacks'], description: 'มื้ออาหาร' },
         date: { type: 'string', description: 'วันที่ YYYY-MM-DD ถ้าไม่ระบุคือวันนี้' },
       },
@@ -121,6 +123,28 @@ export const ASSISTANT_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'set_sodium_goal',
+    description: 'ตั้งเป้าหมายโซเดียมสูงสุดต่อวัน (มิลลิกรัม) ค่าแนะนำทั่วไปคือ 2000',
+    input_schema: {
+      type: 'object',
+      properties: {
+        sodium_mg: { type: 'number', description: 'มิลลิกรัมต่อวัน' },
+      },
+      required: ['sodium_mg'],
+    },
+  },
+  {
+    name: 'set_sugar_goal',
+    description: 'ตั้งเป้าหมายน้ำตาลสูงสุดต่อวัน (กรัม) ค่าแนะนำทั่วไปคือ 24',
+    input_schema: {
+      type: 'object',
+      properties: {
+        sugar_g: { type: 'number', description: 'กรัมต่อวัน' },
+      },
+      required: ['sugar_g'],
+    },
+  },
+  {
     name: 'set_calorie_goal',
     description: 'ตั้งเป้าหมายแคลอรีต่อวัน',
     input_schema: {
@@ -183,13 +207,16 @@ export function executeAssistantTool(name: string, input: unknown, state: AppSta
         protein: Math.max(0, Math.round(num(args.protein))),
         carbs: Math.max(0, Math.round(num(args.carbs))),
         fat: Math.max(0, Math.round(num(args.fat))),
+        ...(args.sodium !== undefined && args.sodium !== null ? { sodium: Math.max(0, Math.round(num(args.sodium))) } : {}),
+        ...(args.sugar !== undefined && args.sugar !== null ? { sugar: Math.max(0, Math.round(num(args.sugar))) } : {}),
         mealType,
         date,
       };
+      const sodiumNote = (entry.sodium !== undefined ? `, โซเดียม ${entry.sodium} มก.` : '') + (entry.sugar !== undefined ? `, น้ำตาล ${entry.sugar} ก.` : '');
       return {
-        result: `บันทึกแล้ว: ${entry.name} ${entry.calories} แคล (${MEAL_TH[mealType]}, ${date})`,
+        result: `บันทึกแล้ว: ${entry.name} ${entry.calories} แคล${sodiumNote} (${MEAL_TH[mealType]}, ${date})`,
         actions: [{ type: 'ADD_FOOD', payload: entry }],
-        labels: [`🍽️ ${entry.name} · ${entry.calories} แคล (${MEAL_TH[mealType]})`],
+        labels: [`🍽️ ${entry.name} · ${entry.calories} แคล${entry.sodium !== undefined ? ` · Na ${entry.sodium} มก.` : ''}${entry.sugar !== undefined ? ` · น้ำตาล ${entry.sugar} ก.` : ''} (${MEAL_TH[mealType]})`],
       };
     }
     case 'log_weight': {
@@ -312,6 +339,24 @@ export function executeAssistantTool(name: string, input: unknown, state: AppSta
         labels: [`🗑️ ลบยา ${match.name}`],
       };
     }
+    case 'set_sodium_goal': {
+      const mg = Math.round(num(args.sodium_mg));
+      if (mg < 500 || mg > 6000) return fail('เป้าหมายโซเดียมควรอยู่ระหว่าง 500–6000 มก.');
+      return {
+        result: `ตั้งเป้าหมายโซเดียมไม่เกิน ${mg} มก./วัน แล้ว`,
+        actions: [{ type: 'SET_GOALS', payload: { ...state.goals, sodium: mg } }],
+        labels: [`🧂 โซเดียมไม่เกิน ${mg} มก./วัน`],
+      };
+    }
+    case 'set_sugar_goal': {
+      const g = Math.round(num(args.sugar_g));
+      if (g < 5 || g > 200) return fail('เป้าหมายน้ำตาลควรอยู่ระหว่าง 5–200 กรัม');
+      return {
+        result: `ตั้งเป้าหมายน้ำตาลไม่เกิน ${g} กรัม/วัน แล้ว`,
+        actions: [{ type: 'SET_GOALS', payload: { ...state.goals, sugar: g } }],
+        labels: [`🍬 น้ำตาลไม่เกิน ${g} ก./วัน`],
+      };
+    }
     case 'set_calorie_goal': {
       const calories = Math.round(num(args.calories));
       if (calories < 500 || calories > 10000) return fail('เป้าหมายแคลอรีควรอยู่ระหว่าง 500–10000');
@@ -330,13 +375,13 @@ export function executeAssistantTool(name: string, input: unknown, state: AppSta
 export function buildAssistantContext(state: AppState, today: string, now: Date = new Date()): string {
   const lines: string[] = [];
   lines.push(`วันนี้: ${today} (${formatDate(today, 'th', 'long')}) เวลา ${formatDate(now, 'th', 'time')} น.`);
-  lines.push(`เป้าหมายแคลอรีต่อวัน: ${state.goals.calories}`);
+  lines.push(`เป้าหมายแคลอรีต่อวัน: ${state.goals.calories}, โซเดียมไม่เกิน ${sodiumGoalOf(state.goals)} มก., น้ำตาลไม่เกิน ${sugarGoalOf(state.goals)} ก.`);
 
   const todayFood = state.foodEntries.filter((e) => e.date === today);
   if (todayFood.length === 0) lines.push('อาหารวันนี้: ยังไม่ได้บันทึก');
   else {
     const totals = sumMacros(todayFood);
-    lines.push(`อาหารวันนี้ (รวม ${totals.calories} แคล, โปรตีน ${totals.protein} ก.):`);
+    lines.push(`อาหารวันนี้ (รวม ${totals.calories} แคล, โปรตีน ${totals.protein} ก., โซเดียม ${totals.sodium} มก.${totals.sodium > sodiumGoalOf(state.goals) ? ' (เกินเป้าแล้ว)' : ''}, น้ำตาล ${totals.sugar} ก.${totals.sugar > sugarGoalOf(state.goals) ? ' (เกินเป้าแล้ว)' : ''}):`);
     for (const m of MEAL_TYPES) {
       const items = todayFood.filter((e) => e.mealType === m.value);
       if (items.length) lines.push(`- ${translate('th', m.labelKey)}: ${items.map((e) => `${e.name} ${e.calories} แคล`).join(', ')}`);
@@ -376,7 +421,7 @@ export const ASSISTANT_SYSTEM =
   'คุณคือ "ผู้ช่วย" ในแอปบันทึกสุขภาพสำหรับผู้ใหญ่ชาวไทย ผู้ใช้อาจเป็นผู้สูงอายุที่ไม่ถนัดเทคโนโลยี ' +
   'ตอบเป็นภาษาไทยเสมอ ใช้ภาษาง่าย ๆ สุภาพ อบอุ่น และสั้นกระชับ (ปกติไม่เกิน 3 ประโยค) หลีกเลี่ยงศัพท์เทคนิคและอังกฤษ ไม่ต้องใช้หัวข้อหรือตาราง ' +
   'หน้าที่หลักคือบันทึกข้อมูลแทนผู้ใช้ด้วยเครื่องมือที่มีให้: ' +
-  'เมื่อผู้ใช้บอกว่ากินอะไร ให้ประเมินแคลอรี โปรตีน คาร์บ ไขมัน ตามปริมาณอาหารไทยทั่วไป (รวมของจากเซเว่นและร้านอาหาร) แล้วเรียก log_food ทันทีทีละรายการ โดยไม่ต้องถามยืนยัน เดามื้อจากเวลาปัจจุบันถ้าไม่ระบุ; ' +
+  'เมื่อผู้ใช้บอกว่ากินอะไร ให้ประเมินแคลอรี โปรตีน คาร์บ ไขมัน โซเดียม (มก.) และน้ำตาล (ก.) ตามปริมาณอาหารไทยทั่วไป (อาหารไทยมักมีโซเดียมสูงจากน้ำปลา ซีอิ๊ว กะปิ ก๋วยเตี๋ยว บะหมี่กึ่งสำเร็จรูป และเครื่องดื่มหวาน ชาเย็น ของหวาน มีน้ำตาลสูง) (รวมของจากเซเว่นและร้านอาหาร) แล้วเรียก log_food ทันทีทีละรายการ โดยไม่ต้องถามยืนยัน เดามื้อจากเวลาปัจจุบันถ้าไม่ระบุ; ' +
   'เมื่อผู้ใช้ส่งรูปอาหาร ให้ระบุอาหารทุกอย่างในรูป ประเมินปริมาณจากที่เห็น แล้ว log_food ทีละรายการทันที; ' +
   'เมื่อบอกน้ำหนัก ให้เรียก log_weight; เมื่อบอกว่ากินยาแล้ว ให้เรียก mark_medication (ถ้าไม่ระบุชื่อยาให้ใช้ all_medications=true กับช่วงเวลาที่กล่าวถึง หรือช่วงเวลาปัจจุบัน); ' +
   'เมื่อขอเพิ่มยาใหม่ ให้เรียก add_medication ทันทีถ้ารู้ชื่อยาและช่วงเวลากินแล้ว ถ้ายังไม่ครบ ให้ถามทีละข้อสั้น ๆ (ชื่อยา → กินตอนไหน เช้า/กลางวัน/เย็น/ก่อนนอน → ครั้งละเท่าไร → ก่อนหรือหลังอาหาร) แล้วค่อยบันทึก; ' +
@@ -384,5 +429,5 @@ export const ASSISTANT_SYSTEM =
   'คำถามเรื่องยาของผู้ใช้ (กินตอนไหน ครบหรือยัง ขาดวันไหน) ให้ตอบจากรายการยาด้านล่าง และใช้ get_medication_history เมื่อถามถึงวันก่อน ๆ; ' +
   'คำถามความรู้ทั่วไปเกี่ยวกับยา (ยานี้ใช้ทำอะไร ควรกินอย่างไร ข้อควรระวังทั่วไป) ตอบได้ในระดับข้อมูลทั่วไป สั้นและเข้าใจง่าย พร้อมย้ำให้ยึดตามฉลากยาและคำแนะนำของแพทย์หรือเภสัชกร ถ้าไม่แน่ใจให้บอกตรง ๆ; ' +
   'คำถามเกี่ยวกับสิ่งที่กิน น้ำหนัก หรือยาที่ต้องกิน ให้ตอบจากข้อมูลของผู้ใช้ด้านล่างโดยระบุตัวเลขจริง ' +
-  'หลังใช้เครื่องมือ ให้สรุปสั้น ๆ ว่าบันทึกอะไรไปแล้ว และถ้าเหลือยาที่ยังไม่ได้กินในวันนี้ ให้เตือนอย่างนุ่มนวล ' +
+  'หลังใช้เครื่องมือ ให้สรุปสั้น ๆ ว่าบันทึกอะไรไปแล้ว ถ้าโซเดียมหรือน้ำตาลของวันนี้เกินเป้าหมาย ให้บอกอย่างนุ่มนวลและแนะนำมื้อถัดไปที่เค็มหรือหวานน้อยลง และถ้าเหลือยาที่ยังไม่ได้กินในวันนี้ ให้เตือนอย่างนุ่มนวล ' +
   'คุณไม่ใช่แพทย์: ห้ามวินิจฉัยโรค ห้ามแนะนำให้เพิ่ม ลด หรือหยุดยาเอง ให้แนะนำปรึกษาแพทย์หรือเภสัชกรเมื่อมีคำถามเรื่องยา อาการป่วย หรือการกินที่ผิดปกติ';

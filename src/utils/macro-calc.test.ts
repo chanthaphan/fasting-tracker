@@ -16,13 +16,19 @@ const entry = (overrides: Partial<FoodEntry>): FoodEntry => ({
 });
 
 describe('sumMacros', () => {
+  it('sums sodium and sugar, treating entries without them as zero', () => {
+    const result = sumMacros([entry({ calories: 100, sodium: 800, sugar: 12 }), entry({ id: '2', calories: 50 })]);
+    expect(result.sodium).toBe(800);
+    expect(result.sugar).toBe(12);
+  });
+
   it('returns zeros for empty array', () => {
-    expect(sumMacros([])).toEqual({ calories: 0, protein: 0, carbs: 0, fat: 0 });
+    expect(sumMacros([])).toEqual({ calories: 0, protein: 0, carbs: 0, fat: 0, sodium: 0, sugar: 0 });
   });
 
   it('sums single entry correctly', () => {
     const result = sumMacros([entry({ calories: 500, protein: 20, carbs: 60, fat: 15 })]);
-    expect(result).toEqual({ calories: 500, protein: 20, carbs: 60, fat: 15 });
+    expect(result).toEqual({ calories: 500, protein: 20, carbs: 60, fat: 15, sodium: 0, sugar: 0 });
   });
 
   it('sums multiple entries', () => {
@@ -32,6 +38,6 @@ describe('sumMacros', () => {
       entry({ id: '3', calories: 100, protein: 5, carbs: 10, fat: 2 }),
     ];
     const result = sumMacros(entries);
-    expect(result).toEqual({ calories: 600, protein: 30, carbs: 70, fat: 15 });
+    expect(result).toEqual({ calories: 600, protein: 30, carbs: 70, fat: 15, sodium: 0, sugar: 0 });
   });
 });

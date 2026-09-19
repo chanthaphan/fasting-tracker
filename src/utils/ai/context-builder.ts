@@ -1,7 +1,7 @@
 import { toKg } from '../units';
 import type { AppState, FastingSession, FoodEntry } from '../../types';
 import { DAY_NAMES, dateKey } from '../date-utils';
-import { sumMacros } from '../macro-calc';
+import { sumMacros, sodiumGoalOf, sugarGoalOf } from '../macro-calc';
 import { getTDEE } from '../tdee-calc';
 import { computeStreaks } from '../fasting-streak';
 import { computeLiftRecords, listLifts, sessionVolume } from '../workout-stats';
@@ -60,7 +60,7 @@ export function buildHealthContext(state: AppState, now: Date = new Date()): str
     lines.push(`Profile: ${p.gender}, ${p.age}y, ${p.heightCm}cm, activity ${p.activityLevel}`);
   }
   lines.push(
-    `Daily goals: ${state.goals.calories} kcal, ${state.goals.protein}g protein, ${state.goals.carbs}g carbs, ${state.goals.fat}g fat`
+    `Daily goals: ${state.goals.calories} kcal, ${state.goals.protein}g protein, ${state.goals.carbs}g carbs, ${state.goals.fat}g fat, ${sodiumGoalOf(state.goals)} mg sodium max, ${sugarGoalOf(state.goals)} g sugar max`
   );
   if (state.weightGoal) {
     const g = state.weightGoal;
@@ -100,7 +100,7 @@ export function buildHealthContext(state: AppState, now: Date = new Date()): str
     const t = sumMacros(foods);
     const burned = exercise.reduce((s, e) => s + e.calories, 0);
     dayLines.push(
-      `${day}: ${t.calories} kcal (P${Math.round(t.protein)} C${Math.round(t.carbs)} F${Math.round(t.fat)})${burned > 0 ? `, exercise -${burned} kcal` : ''}`
+      `${day}: ${t.calories} kcal (P${Math.round(t.protein)} C${Math.round(t.carbs)} F${Math.round(t.fat)}${t.sodium > 0 ? ` Na${Math.round(t.sodium)}mg` : ''}${t.sugar > 0 ? ` Sugar${Math.round(t.sugar)}g` : ''})${burned > 0 ? `, exercise -${burned} kcal` : ''}`
     );
   }
   if (dayLines.length > 0) {

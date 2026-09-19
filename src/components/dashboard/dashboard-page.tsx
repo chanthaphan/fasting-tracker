@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { PageShell } from '../layout/page-shell';
 import { useAppState } from '../../context/use-app-state';
 import { useFastingTimer } from '../../hooks/use-fasting-timer';
-import { sumMacros } from '../../utils/macro-calc';
+import { sumMacros, sodiumGoalOf, sugarGoalOf } from '../../utils/macro-calc';
 import { todayKey, formatDuration } from '../../utils/date-utils';
 import { useTheme } from '../../hooks/use-theme';
 import { Settings, Plus, Moon, Sun, Monitor, Weight, TrendingDown, TrendingUp, Minus, Target, User, Flame, Sparkles, Bell, BellOff } from 'lucide-react';
@@ -257,6 +257,8 @@ export function DashboardPage() {
           <MacroPill label="Carbs" value={totals.carbs} goal={goals.carbs} color="bg-amber-500" />
           <MacroPill label="Fat" value={totals.fat} goal={goals.fat} color="bg-rose-500" />
         </div>
+        <LimitBar total={totals.sodium} goal={sodiumGoalOf(goals)} label="Sodium" unit="mg" overLabel="Over goal" />
+        <LimitBar total={totals.sugar} goal={sugarGoalOf(goals)} label="Sugar" unit="g" overLabel="Over goal" tone="purple" />
         {/* Net calories line */}
         {todayExercise > 0 && (
           <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between text-sm">
@@ -468,6 +470,23 @@ export function DashboardPage() {
         onConfirm={confirmImport}
       />
     </PageShell>
+  );
+}
+
+/** A nutrient against its daily limit (sodium, sugar); turns red past it because more is the problem, not less. */
+export function LimitBar({ total, goal, label, unit, overLabel, tone = 'teal' }: { total: number; goal: number; label: string; unit: string; overLabel: string; tone?: 'teal' | 'purple' }) {
+  const over = total > goal;
+  const ok = tone === 'purple' ? { text: 'text-purple-600 dark:text-purple-400', bar: 'bg-purple-500' } : { text: 'text-teal-600 dark:text-teal-400', bar: 'bg-teal-500' };
+  return (
+    <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 text-xs text-gray-500 dark:text-gray-400">
+        <span>{label}: <b className={over ? 'text-red-500' : ok.text}>{total.toLocaleString()}</b> / {goal.toLocaleString()} {unit}</span>
+        {over && <span className="text-red-500 font-medium">{overLabel}</span>}
+      </div>
+      <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full mt-1 overflow-hidden">
+        <div className={`h-full rounded-full transition-all duration-500 ${over ? 'bg-red-500' : ok.bar}`} style={{ width: `${Math.min((total / Math.max(goal, 1)) * 100, 100)}%` }} />
+      </div>
+    </div>
   );
 }
 

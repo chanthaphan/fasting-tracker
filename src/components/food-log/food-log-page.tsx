@@ -8,13 +8,14 @@ import { PageShell } from '../layout/page-shell';
 import { DailyBars } from '../charts/daily-bars';
 import { lastNDays, dailyMacros } from '../../utils/chart-data';
 import { MealGroup } from './meal-group';
-import { AddFoodModal } from './add-food-modal';
+import { AddFoodModal, type FoodDraft } from './add-food-modal';
 import { useAppState } from '../../context/use-app-state';
 import { MEAL_TYPES } from '../../constants/meal-types';
-import { sumMacros } from '../../utils/macro-calc';
+import { sumMacros, sodiumGoalOf, sugarGoalOf } from '../../utils/macro-calc';
+import { LimitBar } from '../dashboard/dashboard-page';
 import { todayKey } from '../../utils/date-utils';
 import { localizeDays, useT } from '../../i18n';
-import type { FoodEntry, MealType } from '../../types';
+import type { FoodEntry } from '../../types';
 
 export function FoodLogPage() {
   const { state, dispatch } = useAppState();
@@ -49,7 +50,7 @@ export function FoodLogPage() {
   const week = useMemo(() => localizeDays(lastNDays(7), lang), [lang]);
   const weekMacros = useMemo(() => dailyMacros(state.foodEntries, week), [state.foodEntries, week]);
 
-  const handleSave = (data: { name: string; calories: number; protein: number; carbs: number; fat: number; mealType: MealType; date: string }) => {
+  const handleSave = (data: FoodDraft) => {
     if (editEntry) {
       dispatch({ type: 'EDIT_FOOD', payload: { ...editEntry, ...data } });
     } else {
@@ -114,6 +115,8 @@ export function FoodLogPage() {
           <span>{t('common.carbs')}: <b className="text-amber-500">{totals.carbs}g</b></span>
           <span>{t('common.fat')}: <b className="text-rose-500">{totals.fat}g</b></span>
         </div>
+        <LimitBar total={totals.sodium} goal={sodiumGoalOf(state.goals)} label={t('common.sodium')} unit={t('common.mg')} overLabel={t('food.sodiumOver')} />
+        <LimitBar total={totals.sugar} goal={sugarGoalOf(state.goals)} label={t('common.sugar')} unit={t('common.g')} overLabel={t('food.sugarOver')} tone="purple" />
       </div>
 
       {/* Last 7 days of macros */}

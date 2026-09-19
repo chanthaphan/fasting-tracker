@@ -14,11 +14,13 @@ export function FoodEntryCard({ entry, onEdit, onDelete }: FoodEntryCardProps) {
     <div className="flex items-center justify-between py-3 px-3 bg-white dark:bg-gray-900 rounded-xl mb-2">
       <div className="flex-1 min-w-0">
         <p className="font-medium text-sm truncate">{entry.name}</p>
-        <div className="flex gap-3 text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+        <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-500 dark:text-gray-400 mt-0.5">
           <span className="font-semibold text-brand-600 dark:text-brand-400">{entry.calories} {t('common.cal')}</span>
           <span>{isThai ? t('common.protein') : 'P'} {entry.protein}g</span>
           <span>{isThai ? t('common.carbs') : 'C'} {entry.carbs}g</span>
           <span>{isThai ? t('common.fat') : 'F'} {entry.fat}g</span>
+          {entry.sodium !== undefined && <span>{isThai ? t('common.sodium') : 'Na'} {entry.sodium.toLocaleString()}{t('common.mg')}</span>}
+          {entry.sugar !== undefined && <span>{isThai ? t('common.sugar') : 'Sugar'} {entry.sugar}g</span>}
         </div>
       </div>
       <div className="flex gap-1 ml-2">

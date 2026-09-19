@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Modal } from '../ui/modal';
 import type { MacroGoals } from '../../types';
+import { sodiumGoalOf, sugarGoalOf } from '../../utils/macro-calc';
 import { useT } from '../../i18n';
 
 interface GoalsModalProps {
@@ -22,6 +23,8 @@ function GoalsForm({ open, onClose, onSave, currentGoals }: GoalsModalProps) {
   const [protein, setProtein] = useState(() => String(currentGoals.protein));
   const [carbs, setCarbs] = useState(() => String(currentGoals.carbs));
   const [fat, setFat] = useState(() => String(currentGoals.fat));
+  const [sodium, setSodium] = useState(() => String(sodiumGoalOf(currentGoals)));
+  const [sugar, setSugar] = useState(() => String(sugarGoalOf(currentGoals)));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,6 +33,8 @@ function GoalsForm({ open, onClose, onSave, currentGoals }: GoalsModalProps) {
       protein: Number(protein) || 0,
       carbs: Number(carbs) || 0,
       fat: Number(fat) || 0,
+      sodium: Math.max(0, Number(sodium) || 0),
+      sugar: Math.max(0, Number(sugar) || 0),
     });
     onClose();
   };
@@ -83,6 +88,32 @@ function GoalsForm({ open, onClose, onSave, currentGoals }: GoalsModalProps) {
               className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm"
             />
           </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">{t('food.sodiumMg')}</label>
+          <input
+            type="number"
+            value={sodium}
+            onChange={(e) => setSodium(e.target.value)}
+            placeholder="2000"
+            min="0"
+            inputMode="numeric"
+            className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-500"
+          />
+          <p className="text-[11px] text-gray-400 mt-1">{t('food.sodiumHint')}</p>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">{t('food.sugarG')}</label>
+          <input
+            type="number"
+            value={sugar}
+            onChange={(e) => setSugar(e.target.value)}
+            placeholder="24"
+            min="0"
+            inputMode="numeric"
+            className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-500"
+          />
+          <p className="text-[11px] text-gray-400 mt-1">{t('food.sugarHint')}</p>
         </div>
         <button
           type="submit"

@@ -12,7 +12,7 @@ import {
 import { todayKey } from '../utils/date-utils';
 import { langForMode, translate } from '../i18n';
 
-const DEFAULT_GOALS = { calories: 2000, protein: 150, carbs: 200, fat: 65 };
+const DEFAULT_GOALS = { calories: 2000, protein: 150, carbs: 200, fat: 65, sodium: 2000, sugar: 24 };
 
 const initialState: AppState = {
   foodEntries: [],
