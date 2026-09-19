@@ -11,7 +11,7 @@ const vit: Medication = { id: 'm2', name: 'วิตามินซี', slots: 
 describe('assistant tools', () => {
   it('declares every tool the executor handles', () => {
     expect(ASSISTANT_TOOLS.map((t) => t.name).sort()).toEqual(
-      ['add_medication', 'get_medication_history', 'log_food', 'log_weight', 'mark_medication', 'remove_medication', 'set_calorie_goal', 'update_medication']
+      ['add_medication', 'get_medication_history', 'log_food', 'log_weight', 'mark_medication', 'remove_medication', 'set_calorie_goal', 'set_sodium_goal', 'update_medication']
     );
   });
 
@@ -22,6 +22,17 @@ describe('assistant tools', () => {
     ]);
     expect(out.labels).toHaveLength(1);
     expect(out.result).toContain('550');
+  });
+
+  it('log_food carries sodium when the model gives it, and set_sodium_goal updates the goal', () => {
+    const out = executeAssistantTool('log_food', { name: 'ก๋วยเตี๋ยวน้ำ', calories: 380, sodium: 1600.4, meal_type: 'dinner' }, makeAppState(), TODAY);
+    expect(out.actions[0]).toMatchObject({ type: 'ADD_FOOD', payload: { sodium: 1600 } });
+    expect(out.labels[0]).toContain('Na 1600');
+    const state = makeAppState();
+    expect(executeAssistantTool('set_sodium_goal', { sodium_mg: 1500 }, state, TODAY).actions).toEqual([
+      { type: 'SET_GOALS', payload: { ...state.goals, sodium: 1500 } },
+    ]);
+    expect(executeAssistantTool('set_sodium_goal', { sodium_mg: 10 }, state, TODAY).actions).toHaveLength(0);
   });
 
   it('log_food rejects an empty name and an unknown meal falls back to snacks', () => {
@@ -137,6 +148,7 @@ describe('assistant tools', () => {
     });
     const ctx = buildAssistantContext(state, TODAY, new Date('2026-09-19T09:00:00'));
     expect(ctx).toContain('ข้าวต้ม 300 แคล');
+    expect(ctx).toContain('โซเดียมไม่เกิน 2000 มก.');
     expect(ctx).toContain('65 กก.');
     expect(ctx).toContain('ยาความดัน (1 เม็ด) หลังอาหาร');
     expect(ctx).toContain('เช้า: กินแล้ว 08:10');

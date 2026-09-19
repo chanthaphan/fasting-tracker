@@ -8,13 +8,13 @@ import { PageShell } from '../layout/page-shell';
 import { DailyBars } from '../charts/daily-bars';
 import { lastNDays, dailyMacros } from '../../utils/chart-data';
 import { MealGroup } from './meal-group';
-import { AddFoodModal } from './add-food-modal';
+import { AddFoodModal, type FoodDraft } from './add-food-modal';
 import { useAppState } from '../../context/use-app-state';
 import { MEAL_TYPES } from '../../constants/meal-types';
-import { sumMacros } from '../../utils/macro-calc';
+import { sumMacros, sodiumGoalOf } from '../../utils/macro-calc';
 import { todayKey } from '../../utils/date-utils';
 import { localizeDays, useT } from '../../i18n';
-import type { FoodEntry, MealType } from '../../types';
+import type { FoodEntry } from '../../types';
 
 export function FoodLogPage() {
   const { state, dispatch } = useAppState();
@@ -44,12 +44,14 @@ export function FoodLogPage() {
   const setDay = (next: string) => dispatch({ type: 'SET_SELECTED_DATE', payload: next });
   const dayEntries = state.foodEntries.filter((e) => e.date === day);
   const totals = sumMacros(dayEntries);
+  const sodiumGoal = sodiumGoalOf(state.goals);
+  const sodiumOver = totals.sodium > sodiumGoal;
   const { pending, offer, undoNow } = useUndo();
 
   const week = useMemo(() => localizeDays(lastNDays(7), lang), [lang]);
   const weekMacros = useMemo(() => dailyMacros(state.foodEntries, week), [state.foodEntries, week]);
 
-  const handleSave = (data: { name: string; calories: number; protein: number; carbs: number; fat: number; mealType: MealType; date: string }) => {
+  const handleSave = (data: FoodDraft) => {
     if (editEntry) {
       dispatch({ type: 'EDIT_FOOD', payload: { ...editEntry, ...data } });
     } else {
@@ -113,6 +115,15 @@ export function FoodLogPage() {
           <span>{t('common.protein')}: <b className="text-blue-500">{totals.protein}g</b></span>
           <span>{t('common.carbs')}: <b className="text-amber-500">{totals.carbs}g</b></span>
           <span>{t('common.fat')}: <b className="text-rose-500">{totals.fat}g</b></span>
+        </div>
+        <div className="mt-1.5">
+          <div className="flex flex-wrap items-center justify-between gap-x-3 text-xs text-gray-500">
+            <span>{t('common.sodium')}: <b className={sodiumOver ? 'text-red-500' : 'text-teal-600 dark:text-teal-400'}>{totals.sodium.toLocaleString()}</b> / {sodiumGoal.toLocaleString()} {t('common.mg')}</span>
+            {sodiumOver && <span className="text-red-500 font-medium">{t('food.sodiumOver')}</span>}
+          </div>
+          <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full mt-1 overflow-hidden">
+            <div className={`h-full rounded-full transition-all duration-500 ${sodiumOver ? 'bg-red-500' : 'bg-teal-500'}`} style={{ width: `${Math.min((totals.sodium / Math.max(sodiumGoal, 1)) * 100, 100)}%` }} />
+          </div>
         </div>
       </div>
 

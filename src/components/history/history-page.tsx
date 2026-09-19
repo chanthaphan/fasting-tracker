@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { PageShell } from '../layout/page-shell';
 import { CalendarGrid } from './calendar-grid';
 import { EditFastingModal } from '../fasting/edit-fasting-modal';
-import { AddFoodModal } from '../food-log/add-food-modal';
+import { AddFoodModal, type FoodDraft } from '../food-log/add-food-modal';
 import { FoodEntryCard } from '../food-log/food-entry-card';
 import { useUndo } from '../../hooks/use-undo';
 import { UndoToast } from '../ui/undo-toast';
@@ -11,7 +11,7 @@ import { sumMacros } from '../../utils/macro-calc';
 import { formatHoursMinutes, dateKey } from '../../utils/date-utils';
 import { format } from 'date-fns';
 import { Pencil, Trash2 } from 'lucide-react';
-import type { FastingSession, FoodEntry, MealType } from '../../types';
+import type { FastingSession, FoodEntry } from '../../types';
 
 export function HistoryPage() {
   const { state, dispatch } = useAppState();
@@ -71,7 +71,7 @@ export function HistoryPage() {
     if (entry) offer(`Deleted ${entry.name}`, () => dispatch({ type: 'RESTORE_FOOD', payload: entry }));
   };
 
-  const handleSaveFood = (data: { name: string; calories: number; protein: number; carbs: number; fat: number; mealType: MealType; date: string }) => {
+  const handleSaveFood = (data: FoodDraft) => {
     if (editFood) dispatch({ type: 'EDIT_FOOD', payload: { ...editFood, ...data } });
     setEditFood(null);
   };
@@ -99,6 +99,7 @@ export function HistoryPage() {
               <span className="text-gray-500">P {selectedTotals.protein}g</span>
               <span className="text-gray-500">C {selectedTotals.carbs}g</span>
               <span className="text-gray-500">F {selectedTotals.fat}g</span>
+              {selectedTotals.sodium > 0 && <span className="text-gray-500">Na {selectedTotals.sodium.toLocaleString()}mg</span>}
             </div>
             <div className="-mx-1">
               {[...selectedEntries].sort((a, b) => a.createdAt - b.createdAt).map((e) => (

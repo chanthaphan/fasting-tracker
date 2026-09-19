@@ -19,6 +19,7 @@ export function FoodEntryCard({ entry, onEdit, onDelete }: FoodEntryCardProps) {
           <span>{isThai ? t('common.protein') : 'P'} {entry.protein}g</span>
           <span>{isThai ? t('common.carbs') : 'C'} {entry.carbs}g</span>
           <span>{isThai ? t('common.fat') : 'F'} {entry.fat}g</span>
+          {entry.sodium !== undefined && <span>{isThai ? t('common.sodium') : 'Na'} {entry.sodium.toLocaleString()}{t('common.mg')}</span>}
         </div>
       </div>
       <div className="flex gap-1 ml-2">

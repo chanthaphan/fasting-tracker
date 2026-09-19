@@ -12,10 +12,22 @@ import { useT } from '../../i18n';
 
 type EntryMode = 'presets' | 'ai' | 'manual';
 
+/** What the form hands back; sodium is omitted when the user left it blank. */
+export interface FoodDraft {
+  name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  sodium?: number;
+  mealType: MealType;
+  date: string;
+}
+
 interface AddFoodModalProps {
   open: boolean;
   onClose: () => void;
-  onSave: (data: { name: string; calories: number; protein: number; carbs: number; fat: number; mealType: MealType; date: string }) => void;
+  onSave: (data: FoodDraft) => void;
   editEntry?: FoodEntry | null;
   /** Tab to open on when adding (ignored while editing) */
   initialMode?: EntryMode;
@@ -39,6 +51,7 @@ function AddFoodForm({ open, onClose, onSave, editEntry, initialMode = 'presets'
   const [protein, setProtein] = useState(() => (editEntry ? String(editEntry.protein) : ''));
   const [carbs, setCarbs] = useState(() => (editEntry ? String(editEntry.carbs) : ''));
   const [fat, setFat] = useState(() => (editEntry ? String(editEntry.fat) : ''));
+  const [sodium, setSodium] = useState(() => (editEntry?.sodium !== undefined ? String(editEntry.sodium) : ''));
   const [mealType, setMealType] = useState<MealType>(() => editEntry?.mealType ?? 'breakfast');
   const [presetSearch, setPresetSearch] = useState('');
   const [mode, setMode] = useState<EntryMode>(() => (editEntry ? 'manual' : initialMode === 'ai' && !aiAvailable ? 'presets' : initialMode));
@@ -52,6 +65,7 @@ function AddFoodForm({ open, onClose, onSave, editEntry, initialMode = 'presets'
     setProtein(String(preset.protein));
     setCarbs(String(preset.carbs));
     setFat(String(preset.fat));
+    setSodium(preset.sodium !== undefined ? String(preset.sodium) : '');
     setMode('manual');
   };
 
@@ -66,6 +80,7 @@ function AddFoodForm({ open, onClose, onSave, editEntry, initialMode = 'presets'
     setProtein(String(item.protein));
     setCarbs(String(item.carbs));
     setFat(String(item.fat));
+    setSodium(item.sodium !== undefined ? String(item.sodium) : '');
     setMealType(item.mealType);
     setMode('manual');
   };
@@ -79,6 +94,7 @@ function AddFoodForm({ open, onClose, onSave, editEntry, initialMode = 'presets'
       protein: Number(protein) || 0,
       carbs: Number(carbs) || 0,
       fat: Number(fat) || 0,
+      ...(sodium.trim() !== '' ? { sodium: Math.max(0, Number(sodium) || 0) } : {}),
       mealType,
       date,
     });
@@ -96,7 +112,7 @@ function AddFoodForm({ open, onClose, onSave, editEntry, initialMode = 'presets'
         return true;
       })
       .slice(0, 10)
-      .map((e): FoodPreset => ({ name: e.name, emoji: '🕐', calories: e.calories, protein: e.protein, carbs: e.carbs, fat: e.fat }));
+      .map((e): FoodPreset => ({ name: e.name, emoji: '🕐', calories: e.calories, protein: e.protein, carbs: e.carbs, fat: e.fat, sodium: e.sodium }));
   }, [state.foodEntries]);
 
   const searchLower = presetSearch.trim().toLowerCase();
@@ -294,6 +310,20 @@ function AddFoodForm({ open, onClose, onSave, editEntry, initialMode = 'presets'
                   className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm"
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">{t('food.sodiumMg')}</label>
+              <input
+                type="number"
+                value={sodium}
+                onChange={(e) => setSodium(e.target.value)}
+                placeholder="0"
+                min="0"
+                inputMode="numeric"
+                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm"
+              />
+              <p className="text-[11px] text-gray-400 mt-1">{t('food.sodiumHint')}</p>
             </div>
 
             <div>

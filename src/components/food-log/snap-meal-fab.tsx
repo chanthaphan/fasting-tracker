@@ -115,7 +115,7 @@ export function SnapMealFab() {
     for (const item of toLog) {
       dispatch({
         type: 'ADD_FOOD',
-        payload: { name: item.name, calories: item.calories, protein: item.protein, carbs: item.carbs, fat: item.fat, mealType, date },
+        payload: { name: item.name, calories: item.calories, protein: item.protein, carbs: item.carbs, fat: item.fat, sodium: item.sodium, mealType, date },
       });
     }
     close();
