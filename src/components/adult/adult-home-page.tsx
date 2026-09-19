@@ -14,8 +14,8 @@ import { MedChecklist } from '../medicine/med-checklist';
 import { useAppState } from '../../context/use-app-state';
 import { useTheme } from '../../hooks/use-theme';
 import { useTodayKey } from '../../hooks/use-today-key';
-import { sumMacros, sodiumGoalOf } from '../../utils/macro-calc';
-import { SodiumBar } from '../dashboard/dashboard-page';
+import { sumMacros, sodiumGoalOf, sugarGoalOf } from '../../utils/macro-calc';
+import { LimitBar } from '../dashboard/dashboard-page';
 import { convertWeight } from '../../utils/units';
 import { dosesForDay, doseProgress } from '../../utils/medication';
 import { exportData, parseImportFile, type ImportSummary } from '../../utils/export-import';
@@ -226,7 +226,8 @@ export function AdultHomePage() {
               />
             </div>
             <div className="mb-3">
-              <SodiumBar total={totals.sodium} goal={sodiumGoalOf(state.goals)} label={t('common.sodium')} unit={t('common.mg')} overLabel={t('food.sodiumOver')} />
+              <LimitBar total={totals.sodium} goal={sodiumGoalOf(state.goals)} label={t('common.sodium')} unit={t('common.mg')} overLabel={t('food.sodiumOver')} />
+              <LimitBar total={totals.sugar} goal={sugarGoalOf(state.goals)} label={t('common.sugar')} unit={t('common.g')} overLabel={t('food.sugarOver')} tone="purple" />
             </div>
             <button
               onClick={() => navigate('/food')}

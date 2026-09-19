@@ -28,7 +28,7 @@ export const COACH_SYSTEM =
 export const FOOD_PARSE_SYSTEM =
   'Convert a food description or meal photo into structured nutrition entries. ' +
   'Understand Thai dish names, Thai portion words (จาน, ถ้วย, ชิ้น, ไม้, แก้ว, กล่อง), street food, and 7-Eleven Thailand items. ' +
-  'Estimate calories, protein, carbs, and fat in grams, and sodium in milligrams, per item for the described portion; assume typical Thai restaurant portions when unspecified. Thai dishes are often high in sodium (fish sauce, soy sauce, shrimp paste, instant noodles, processed meat) — reflect that. ' +
+  'Estimate calories, protein, carbs, and fat in grams, sodium in milligrams, and sugar in grams, per item for the described portion; assume typical Thai restaurant portions when unspecified. Thai dishes are often high in sodium (fish sauce, soy sauce, shrimp paste, instant noodles, processed meat) and sweet drinks and desserts carry a lot of sugar (Thai iced tea, condensed milk, syrups) — reflect that. ' +
   'Infer mealType from context or the local time provided; when unclear default to "snacks". ' +
   'Keep each item\'s name in the language the user used.';
 

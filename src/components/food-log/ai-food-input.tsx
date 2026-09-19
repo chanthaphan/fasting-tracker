@@ -116,7 +116,7 @@ export function AiFoodInput({ onAddItems, onEditItem }: AiFoodInputProps) {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{item.name}</p>
                   <p className="text-xs text-gray-400">
-                    {item.calories} kcal · P{item.protein} C{item.carbs} F{item.fat}{item.sodium !== undefined ? ` · Na${item.sodium}mg` : ''}
+                    {item.calories} kcal · P{item.protein} C{item.carbs} F{item.fat}{item.sodium !== undefined ? ` · Na${item.sodium}mg` : ''}{item.sugar !== undefined ? ` · Sugar${item.sugar}g` : ''}
                   </p>
                 </div>
                 <button

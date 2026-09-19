@@ -18,7 +18,7 @@ export const FOOD_ITEMS_SCHEMA = {
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['name', 'calories', 'protein', 'carbs', 'fat', 'sodium', 'mealType'],
+        required: ['name', 'calories', 'protein', 'carbs', 'fat', 'sodium', 'sugar', 'mealType'],
         properties: {
           name: { type: 'string' },
           calories: { type: 'number', description: 'kcal, non-negative' },
@@ -26,6 +26,7 @@ export const FOOD_ITEMS_SCHEMA = {
           carbs: { type: 'number', description: 'grams, non-negative' },
           fat: { type: 'number', description: 'grams, non-negative' },
           sodium: { type: 'number', description: 'milligrams of sodium, non-negative' },
+          sugar: { type: 'number', description: 'grams of sugar, non-negative' },
           mealType: { type: 'string', enum: MEAL_TYPES },
         },
       },
@@ -56,6 +57,7 @@ export function validateParsedItems(value: unknown): ParsedFoodItem[] {
       carbs: num(r.carbs) ?? 0,
       fat: num(r.fat) ?? 0,
       sodium: num(r.sodium) ?? 0,
+      sugar: num(r.sugar) ?? 0,
       mealType: MEAL_TYPES.includes(r.mealType as MealType) ? (r.mealType as MealType) : 'snacks',
     });
   }

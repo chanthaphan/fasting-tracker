@@ -100,6 +100,7 @@ export function HistoryPage() {
               <span className="text-gray-500">C {selectedTotals.carbs}g</span>
               <span className="text-gray-500">F {selectedTotals.fat}g</span>
               {selectedTotals.sodium > 0 && <span className="text-gray-500">Na {selectedTotals.sodium.toLocaleString()}mg</span>}
+              {selectedTotals.sugar > 0 && <span className="text-gray-500">Sugar {selectedTotals.sugar}g</span>}
             </div>
             <div className="-mx-1">
               {[...selectedEntries].sort((a, b) => a.createdAt - b.createdAt).map((e) => (

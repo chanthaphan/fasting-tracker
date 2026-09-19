@@ -11,7 +11,7 @@ const vit: Medication = { id: 'm2', name: 'วิตามินซี', slots: 
 describe('assistant tools', () => {
   it('declares every tool the executor handles', () => {
     expect(ASSISTANT_TOOLS.map((t) => t.name).sort()).toEqual(
-      ['add_medication', 'get_medication_history', 'log_food', 'log_weight', 'mark_medication', 'remove_medication', 'set_calorie_goal', 'set_sodium_goal', 'update_medication']
+      ['add_medication', 'get_medication_history', 'log_food', 'log_weight', 'mark_medication', 'remove_medication', 'set_calorie_goal', 'set_sodium_goal', 'set_sugar_goal', 'update_medication']
     );
   });
 
@@ -33,6 +33,17 @@ describe('assistant tools', () => {
       { type: 'SET_GOALS', payload: { ...state.goals, sodium: 1500 } },
     ]);
     expect(executeAssistantTool('set_sodium_goal', { sodium_mg: 10 }, state, TODAY).actions).toHaveLength(0);
+  });
+
+  it('log_food carries sugar, and set_sugar_goal updates the goal', () => {
+    const out = executeAssistantTool('log_food', { name: 'ชาเย็น', calories: 200, sugar: 32.2, meal_type: 'snacks' }, makeAppState(), TODAY);
+    expect(out.actions[0]).toMatchObject({ type: 'ADD_FOOD', payload: { sugar: 32 } });
+    expect(out.labels[0]).toContain('น้ำตาล 32');
+    const state = makeAppState();
+    expect(executeAssistantTool('set_sugar_goal', { sugar_g: 20 }, state, TODAY).actions).toEqual([
+      { type: 'SET_GOALS', payload: { ...state.goals, sugar: 20 } },
+    ]);
+    expect(executeAssistantTool('set_sugar_goal', { sugar_g: 1 }, state, TODAY).actions).toHaveLength(0);
   });
 
   it('log_food rejects an empty name and an unknown meal falls back to snacks', () => {
@@ -149,6 +160,7 @@ describe('assistant tools', () => {
     const ctx = buildAssistantContext(state, TODAY, new Date('2026-09-19T09:00:00'));
     expect(ctx).toContain('ข้าวต้ม 300 แคล');
     expect(ctx).toContain('โซเดียมไม่เกิน 2000 มก.');
+    expect(ctx).toContain('น้ำตาลไม่เกิน 24 ก.');
     expect(ctx).toContain('65 กก.');
     expect(ctx).toContain('ยาความดัน (1 เม็ด) หลังอาหาร');
     expect(ctx).toContain('เช้า: กินแล้ว 08:10');

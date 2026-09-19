@@ -39,13 +39,14 @@ export function ParsedItemsEditor({ items, onChange }: ParsedItemsEditorProps) {
               <Trash2 size={15} />
             </button>
           </div>
-          <div className="grid grid-cols-5 gap-1.5 mt-1.5">
+          <div className="grid grid-cols-3 gap-1.5 mt-1.5">
             {([
               ['calories', isThai ? t('common.cal') : 'kcal'],
               ['protein', isThai ? t('common.protein') : 'P g'],
               ['carbs', isThai ? t('common.carbs') : 'C g'],
               ['fat', isThai ? t('common.fat') : 'F g'],
               ['sodium', isThai ? `${t('common.sodium')} ${t('common.mg')}` : 'Na mg'],
+              ['sugar', isThai ? `${t('common.sugar')} ${t('common.g')}` : 'Sugar g'],
             ] as const).map(([key, label]) => (
               <label key={key} className="block">
                 <span className="block text-[10px] text-gray-400 mb-0.5">{label}</span>
