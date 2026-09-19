@@ -3,7 +3,7 @@ import type {
   FoodEntry, FastingSession, WeightEntry, ExerciseEntry, MacroGoals, WeightGoal, UserProfile,
   AiSettings, ChatMessageRecord, DailyDigestCache, FastPlanCache,
   WorkoutSession, WorkoutTemplate, TrainingGoal, WeeklyPlanCache, WeeklyPlanDay,
-  GamificationData, DayFactors,
+  GamificationData, DayFactors, Medication, MedicationLog, AppMode, MedReminderSettings,
 } from '../types';
 
 const KEYS = {
@@ -19,6 +19,9 @@ const KEYS = {
   WORKOUT_TEMPLATES: 'ft_workout_templates',
   AI_WEEKLY_PLAN: 'ft_ai_weekly_plan',
   GAMIFICATION: 'ft_gamification',
+  MEDICATIONS: 'ft_medications',
+  MEDICATION_LOGS: 'ft_medication_logs',
+  AI_ASSISTANT_CHAT: 'ft_ai_assistant_chat',
 } as const;
 
 /**
@@ -177,6 +180,8 @@ export interface StoredSettings {
   activeWorkoutId?: string | null;
   trainingGoal?: TrainingGoal | null;
   fastingFactors?: Record<string, DayFactors>;
+  appMode?: AppMode;
+  medReminders?: MedReminderSettings;
 }
 
 export const isSettings: Validator<StoredSettings> = (
@@ -214,6 +219,19 @@ export const isWeeklyPlanCache: Validator<WeeklyPlanCache> = (value: unknown): v
       typeof (d as WeeklyPlanDay).date === 'string' &&
       ((d as WeeklyPlanDay).type === 'workout' || (d as WeeklyPlanDay).type === 'rest')
   );
+
+export const isMedReminderSettings: Validator<MedReminderSettings> = (value: unknown): value is MedReminderSettings =>
+  hasKeys(value, 'enabled', 'times') &&
+  typeof (value as MedReminderSettings).enabled === 'boolean' &&
+  hasKeys((value as MedReminderSettings).times, 'morning', 'noon', 'evening', 'bedtime');
+
+export const isMedicationArray: Validator<Medication[]> = isArrayOf<Medication>(
+  (v) => hasKeys(v, 'id', 'name', 'slots') && Array.isArray((v as Medication).slots)
+);
+
+export const isMedicationLogArray: Validator<MedicationLog[]> = isArrayOf<MedicationLog>(
+  (v) => hasKeys(v, 'id', 'medicationId', 'date', 'slot')
+);
 
 export const isGamificationData: Validator<GamificationData> = (
   value: unknown

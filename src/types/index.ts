@@ -117,6 +117,10 @@ export interface FastPlanCache {
 export interface ChatMessageRecord {
   role: 'user' | 'assistant';
   content: string;
+  /** Short descriptions of what the assistant did for this turn (tool calls), shown as chips */
+  actions?: string[];
+  /** Data URL of a photo the user sent; kept for this session only, never persisted */
+  image?: string;
 }
 
 export interface WorkoutSet {
@@ -191,6 +195,42 @@ export interface WeeklyPlanCache {
   generatedAt: number;
 }
 
+/** Which experience the app shows: everything, or a simplified Thai-language set for adults. */
+export type AppMode = 'standard' | 'adult';
+
+/** Time of day a medicine is taken. */
+export type MedSlot = 'morning' | 'noon' | 'evening' | 'bedtime';
+
+export type MealRelation = 'before' | 'after' | 'none';
+
+export interface Medication {
+  id: string;
+  name: string;
+  /** Free text, e.g. "1 เม็ด" */
+  dosage?: string;
+  slots: MedSlot[];
+  mealRelation: MealRelation;
+  note?: string;
+  /** 'YYYY-MM-DD'; the medicine appears on the schedule from this day on */
+  startDate: string;
+  createdAt: number;
+}
+
+/** When to remind about each time of day ('HH:mm'), if reminders are on at all. */
+export interface MedReminderSettings {
+  enabled: boolean;
+  times: Record<MedSlot, string>;
+}
+
+/** One dose that was taken: a medicine, on a day, at a slot. */
+export interface MedicationLog {
+  id: string;
+  medicationId: string;
+  date: string; // 'YYYY-MM-DD'
+  slot: MedSlot;
+  takenAt: number; // Unix ms
+}
+
 export interface GamificationData {
   checkIns: string[]; // 'YYYY-MM-DD', sorted, deduped
   seenAchievements: string[]; // achievement ids already celebrated
@@ -203,10 +243,14 @@ export interface AppState {
   exerciseEntries: ExerciseEntry[];
   workoutSessions: WorkoutSession[];
   workoutTemplates: WorkoutTemplate[];
+  medications: Medication[];
+  medicationLogs: MedicationLog[];
+  medReminders: MedReminderSettings;
   activeWorkoutId: string | null;
   activeFastingId: string | null;
   selectedDate: string;
   theme: 'light' | 'dark' | 'system';
+  appMode: AppMode;
   goals: MacroGoals;
   weightGoal: WeightGoal | null;
   userProfile: UserProfile | null;
@@ -234,6 +278,8 @@ export interface ImportPayload {
   exerciseEntries?: ExerciseEntry[];
   workoutSessions?: WorkoutSession[];
   workoutTemplates?: WorkoutTemplate[];
+  medications?: Medication[];
+  medicationLogs?: MedicationLog[];
   gamification?: GamificationData;
   settings?: ImportedSettings;
   /** replace = the backup becomes the data; merge = union by id, backup wins on conflict */
@@ -261,6 +307,13 @@ export type AppAction =
   | { type: 'DELETE_EXERCISE'; payload: { id: string } }
   | { type: 'SET_SELECTED_DATE'; payload: string }
   | { type: 'SET_THEME'; payload: 'light' | 'dark' | 'system' }
+  | { type: 'SET_APP_MODE'; payload: AppMode }
+  | { type: 'SET_MED_REMINDERS'; payload: MedReminderSettings }
+  | { type: 'ADD_MEDICATION'; payload: Omit<Medication, 'id' | 'createdAt'> }
+  | { type: 'EDIT_MEDICATION'; payload: Medication }
+  | { type: 'DELETE_MEDICATION'; payload: { id: string } }
+  | { type: 'RESTORE_MEDICATION'; payload: { medication: Medication; logs: MedicationLog[] } }
+  | { type: 'TOGGLE_MEDICATION_TAKEN'; payload: { medicationId: string; date: string; slot: MedSlot } }
   | { type: 'SET_GOALS'; payload: MacroGoals }
   | { type: 'SET_WEIGHT_GOAL'; payload: WeightGoal | null }
   | { type: 'SET_USER_PROFILE'; payload: UserProfile | null }

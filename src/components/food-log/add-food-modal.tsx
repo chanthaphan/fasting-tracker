@@ -8,6 +8,7 @@ import { AiGate } from '../ai/ai-gate';
 import { AiFoodInput } from './ai-food-input';
 import type { FoodEntry, MealType, ParsedFoodItem } from '../../types';
 import { todayKey } from '../../utils/date-utils';
+import { useT } from '../../i18n';
 
 type EntryMode = 'presets' | 'ai' | 'manual';
 
@@ -30,6 +31,9 @@ export function AddFoodModal(props: AddFoodModalProps) {
 
 function AddFoodForm({ open, onClose, onSave, editEntry, initialMode = 'presets', date: defaultDate }: AddFoodModalProps) {
   const { state } = useAppState();
+  const { t, isThai } = useT();
+  // The adult mode keeps things simple: no AI entry
+  const aiAvailable = state.appMode !== 'adult';
   const [name, setName] = useState(() => editEntry?.name ?? '');
   const [calories, setCalories] = useState(() => (editEntry ? String(editEntry.calories) : ''));
   const [protein, setProtein] = useState(() => (editEntry ? String(editEntry.protein) : ''));
@@ -37,11 +41,13 @@ function AddFoodForm({ open, onClose, onSave, editEntry, initialMode = 'presets'
   const [fat, setFat] = useState(() => (editEntry ? String(editEntry.fat) : ''));
   const [mealType, setMealType] = useState<MealType>(() => editEntry?.mealType ?? 'breakfast');
   const [presetSearch, setPresetSearch] = useState('');
-  const [mode, setMode] = useState<EntryMode>(() => (editEntry ? 'manual' : initialMode));
+  const [mode, setMode] = useState<EntryMode>(() => (editEntry ? 'manual' : initialMode === 'ai' && !aiAvailable ? 'presets' : initialMode));
   const [date, setDate] = useState(() => editEntry?.date ?? defaultDate ?? todayKey());
 
+  const displayName = (preset: FoodPreset) => (isThai && preset.nameTh ? preset.nameTh : preset.name);
+
   const handleSelectPreset = (preset: FoodPreset) => {
-    setName(preset.name);
+    setName(displayName(preset));
     setCalories(String(preset.calories));
     setProtein(String(preset.protein));
     setCarbs(String(preset.carbs));
@@ -94,31 +100,31 @@ function AddFoodForm({ open, onClose, onSave, editEntry, initialMode = 'presets'
   }, [state.foodEntries]);
 
   const searchLower = presetSearch.trim().toLowerCase();
+  const matches = (item: FoodPreset) =>
+    item.name.toLowerCase().includes(searchLower) || (item.nameTh?.toLowerCase().includes(searchLower) ?? false);
 
-  const filteredRecent = searchLower
-    ? recentFoods.filter((item) => item.name.toLowerCase().includes(searchLower))
-    : recentFoods;
+  const filteredRecent = searchLower ? recentFoods.filter(matches) : recentFoods;
 
   const filteredCategories = searchLower
     ? FOOD_PRESET_CATEGORIES.map((cat) => ({
         ...cat,
-        items: cat.items.filter((item) =>
-          item.name.toLowerCase().includes(searchLower)
-        ),
+        items: cat.items.filter(matches),
       })).filter((cat) => cat.items.length > 0)
     : FOOD_PRESET_CATEGORIES;
 
+  const modes: { v: EntryMode; label: string }[] = [
+    { v: 'presets', label: t('food.quickPick') },
+    ...(aiAvailable ? [{ v: 'ai' as const, label: t('food.ai') }] : []),
+    { v: 'manual', label: t('food.manual') },
+  ];
+
   return (
-    <Modal open={open} onClose={onClose} title={editEntry ? 'Edit Food' : 'Add Food'}>
+    <Modal open={open} onClose={onClose} title={editEntry ? t('food.editFood') : t('food.addFood')}>
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Mode switcher - shown when adding new food */}
         {!editEntry && (
-          <div className="grid grid-cols-3 gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
-            {([
-              { v: 'presets' as const, label: 'Quick Pick' },
-              { v: 'ai' as const, label: '✨ AI' },
-              { v: 'manual' as const, label: 'Manual' },
-            ]).map(({ v, label }) => (
+          <div className={`grid ${modes.length === 3 ? 'grid-cols-3' : 'grid-cols-2'} gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl`}>
+            {modes.map(({ v, label }) => (
               <button
                 key={v}
                 type="button"
@@ -136,8 +142,8 @@ function AddFoodForm({ open, onClose, onSave, editEntry, initialMode = 'presets'
         )}
 
         {/* AI entry */}
-        {!editEntry && mode === 'ai' && (
-          <AiGate feature="log meals by describing them or snapping a photo">
+        {!editEntry && mode === 'ai' && aiAvailable && (
+          <AiGate feature={t('food.aiFeature')}>
             <AiFoodInput onAddItems={handleAiAddItems} onEditItem={handleAiEditItem} />
           </AiGate>
         )}
@@ -151,7 +157,7 @@ function AddFoodForm({ open, onClose, onSave, editEntry, initialMode = 'presets'
                 type="text"
                 value={presetSearch}
                 onChange={(e) => setPresetSearch(e.target.value)}
-                placeholder="Search food..."
+                placeholder={t('food.search')}
                 className="w-full pl-8 pr-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm"
                 autoFocus
               />
@@ -160,7 +166,7 @@ function AddFoodForm({ open, onClose, onSave, editEntry, initialMode = 'presets'
               {filteredRecent.length > 0 && (
                 <div>
                   <div className="text-xs font-semibold text-gray-400 dark:text-gray-500 mb-1">
-                    🕐 Recent
+                    🕐 {t('food.recent')}
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {filteredRecent.map((item) => (
@@ -181,7 +187,7 @@ function AddFoodForm({ open, onClose, onSave, editEntry, initialMode = 'presets'
               {filteredCategories.map((cat) => (
                 <div key={cat.label}>
                   <div className="text-xs font-semibold text-gray-400 dark:text-gray-500 mb-1">
-                    {cat.emoji} {cat.label}
+                    {cat.emoji} {isThai && cat.labelTh ? cat.labelTh : cat.label}
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {cat.items.map((item) => (
@@ -192,7 +198,7 @@ function AddFoodForm({ open, onClose, onSave, editEntry, initialMode = 'presets'
                         className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-brand-50 dark:hover:bg-brand-900/30 text-xs font-medium text-gray-700 dark:text-gray-300 transition-colors"
                       >
                         <span>{item.emoji}</span>
-                        <span>{item.name}</span>
+                        <span>{displayName(item)}</span>
                         <span className="text-gray-400 dark:text-gray-500">{item.calories}</span>
                       </button>
                     ))}
@@ -200,7 +206,7 @@ function AddFoodForm({ open, onClose, onSave, editEntry, initialMode = 'presets'
                 </div>
               ))}
               {filteredCategories.length === 0 && filteredRecent.length === 0 && (
-                <p className="text-xs text-gray-400 text-center py-3">No matches found</p>
+                <p className="text-xs text-gray-400 text-center py-3">{t('food.noMatches')}</p>
               )}
             </div>
           </div>
@@ -210,19 +216,19 @@ function AddFoodForm({ open, onClose, onSave, editEntry, initialMode = 'presets'
         {(mode === 'manual' || editEntry) && (
           <>
             <div>
-              <label className="block text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">Food Name</label>
+              <label className="block text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">{t('food.name')}</label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Grilled Chicken"
+                placeholder={t('food.namePlaceholder')}
                 className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-500"
                 autoFocus
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2 text-gray-600 dark:text-gray-400">Meal</label>
+              <label className="block text-sm font-medium mb-2 text-gray-600 dark:text-gray-400">{t('food.meal')}</label>
               <div className="grid grid-cols-4 gap-2">
                 {MEAL_TYPES.map((m) => (
                   <button
@@ -236,14 +242,14 @@ function AddFoodForm({ open, onClose, onSave, editEntry, initialMode = 'presets'
                     }`}
                   >
                     <span className="block text-base mb-0.5">{m.icon}</span>
-                    {m.label}
+                    {t(m.labelKey)}
                   </button>
                 ))}
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">Calories</label>
+              <label className="block text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">{t('common.calories')}</label>
               <input
                 type="number"
                 value={calories}
@@ -256,7 +262,7 @@ function AddFoodForm({ open, onClose, onSave, editEntry, initialMode = 'presets'
 
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="block text-xs font-medium mb-1 text-gray-500">Protein (g)</label>
+                <label className="block text-xs font-medium mb-1 text-gray-500">{t('food.proteinG')}</label>
                 <input
                   type="number"
                   value={protein}
@@ -267,7 +273,7 @@ function AddFoodForm({ open, onClose, onSave, editEntry, initialMode = 'presets'
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium mb-1 text-gray-500">Carbs (g)</label>
+                <label className="block text-xs font-medium mb-1 text-gray-500">{t('food.carbsG')}</label>
                 <input
                   type="number"
                   value={carbs}
@@ -278,7 +284,7 @@ function AddFoodForm({ open, onClose, onSave, editEntry, initialMode = 'presets'
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium mb-1 text-gray-500">Fat (g)</label>
+                <label className="block text-xs font-medium mb-1 text-gray-500">{t('food.fatG')}</label>
                 <input
                   type="number"
                   value={fat}
@@ -291,7 +297,7 @@ function AddFoodForm({ open, onClose, onSave, editEntry, initialMode = 'presets'
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">Date</label>
+              <label className="block text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">{t('common.date')}</label>
               <input
                 type="date"
                 value={date}
@@ -305,7 +311,7 @@ function AddFoodForm({ open, onClose, onSave, editEntry, initialMode = 'presets'
               type="submit"
               className="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-xl transition-colors"
             >
-              {editEntry ? 'Update' : 'Add Food'}
+              {editEntry ? t('common.update') : t('food.addFood')}
             </button>
           </>
         )}

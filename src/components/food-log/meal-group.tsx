@@ -3,6 +3,7 @@ import { ChevronDown } from 'lucide-react';
 import type { FoodEntry } from '../../types';
 import { FoodEntryCard } from './food-entry-card';
 import { sumMacros } from '../../utils/macro-calc';
+import { useT } from '../../i18n';
 
 interface MealGroupProps {
   icon: string;
@@ -15,6 +16,7 @@ interface MealGroupProps {
 export function MealGroup({ icon, label, entries, onEdit, onDelete }: MealGroupProps) {
   const [open, setOpen] = useState(true);
   const totals = sumMacros(entries);
+  const { t } = useT();
 
   return (
     <div className="mb-3">
@@ -30,7 +32,7 @@ export function MealGroup({ icon, label, entries, onEdit, onDelete }: MealGroupP
         </div>
         <div className="flex items-center gap-2">
           {entries.length > 0 && (
-            <span className="text-xs font-medium text-brand-600 dark:text-brand-400">{totals.calories} cal</span>
+            <span className="text-xs font-medium text-brand-600 dark:text-brand-400">{totals.calories} {t('common.cal')}</span>
           )}
           <ChevronDown
             size={16}
@@ -47,7 +49,7 @@ export function MealGroup({ icon, label, entries, onEdit, onDelete }: MealGroupP
         </div>
       )}
       {open && entries.length === 0 && (
-        <p className="text-xs text-gray-400 py-2 px-3">No entries yet</p>
+        <p className="text-xs text-gray-400 py-2 px-3">{t('food.noEntries')}</p>
       )}
     </div>
   );

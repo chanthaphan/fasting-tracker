@@ -24,6 +24,10 @@ interface DailyBarsProps {
   formatValue?: (v: number) => string;
   height?: number;
   tableCaption?: string;
+  /** First column heading of the data table */
+  dayHeading?: string;
+  /** Single-series column heading when there is no unit */
+  valueHeading?: string;
 }
 
 const W = 320;
@@ -61,6 +65,8 @@ export function DailyBars({
   formatValue = defaultFormat,
   height = 130,
   tableCaption = 'Data table',
+  dayHeading = 'Day',
+  valueHeading = 'Value',
 }: DailyBarsProps) {
   const id = useId();
   const [active, setActive] = useState<number | null>(null);
@@ -225,9 +231,9 @@ export function DailyBars({
             <caption id={`${id}-cap`} className="sr-only">{ariaLabel}</caption>
             <thead>
               <tr>
-                <th className="text-left font-medium pr-2">Day</th>
+                <th className="text-left font-medium pr-2">{dayHeading}</th>
                 {series.map((s) => (
-                  <th key={s.name} className="text-right font-medium pl-2">{series.length > 1 ? s.name : unit || 'Value'}</th>
+                  <th key={s.name} className="text-right font-medium pl-2">{series.length > 1 ? s.name : unit || valueHeading}</th>
                 ))}
               </tr>
             </thead>

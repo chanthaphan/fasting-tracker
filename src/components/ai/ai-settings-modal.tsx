@@ -4,12 +4,8 @@ import { Modal } from '../ui/modal';
 import { useAiSettings } from '../../hooks/use-ai';
 import { AI_MODELS, createAiClient, describeAiError } from '../../utils/ai/client';
 import type { AiLanguage, AiModel } from '../../types';
+import { useT } from '../../i18n';
 
-const LANGUAGES: { id: AiLanguage; label: string }[] = [
-  { id: 'auto', label: 'Auto' },
-  { id: 'th', label: 'ไทย' },
-  { id: 'en', label: 'English' },
-];
 
 interface AiSettingsModalProps {
   open: boolean;
@@ -18,6 +14,12 @@ interface AiSettingsModalProps {
 
 export function AiSettingsModal({ open, onClose }: AiSettingsModalProps) {
   const { aiSettings, setAiSettings } = useAiSettings();
+  const { t } = useT();
+  const LANGUAGES: { id: AiLanguage; label: string }[] = [
+    { id: 'auto', label: t('ai.langAuto') },
+    { id: 'th', label: 'ไทย' },
+    { id: 'en', label: 'English' },
+  ];
   const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState<AiModel>('claude-opus-5');
   const [language, setLanguage] = useState<AiLanguage>('auto');
@@ -57,7 +59,7 @@ export function AiSettingsModal({ open, onClose }: AiSettingsModalProps) {
         max_tokens: 32,
         messages: [{ role: 'user', content: 'ping' }],
       });
-      setTestResult({ ok: true, message: 'Key works! ✓' });
+      setTestResult({ ok: true, message: t('ai.testOk') });
     } catch (err) {
       setTestResult({ ok: false, message: describeAiError(err, language) });
     } finally {
@@ -66,19 +68,18 @@ export function AiSettingsModal({ open, onClose }: AiSettingsModalProps) {
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="AI Assistant">
+    <Modal open={open} onClose={onClose} title={t('ai.title')}>
       <div className="space-y-4">
         <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
           <ShieldAlert size={18} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
           <div className="text-xs text-amber-700 dark:text-amber-300">
-            <p className="font-medium mb-0.5">Your key is stored unencrypted on this device.</p>
-            <p>Anyone with access to this browser can read it. Use a key with a spend limit.</p>
-            <p className="mt-1">คีย์ของคุณถูกเก็บไว้ในเครื่องนี้โดยไม่เข้ารหัส — แนะนำให้ใช้คีย์ที่ตั้งวงเงินไว้</p>
+            <p className="font-medium mb-0.5">{t('ai.keyWarn1')}</p>
+            <p>{t('ai.keyWarn2')}</p>
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-400 mb-1.5">Anthropic API Key</label>
+          <label className="block text-xs font-semibold text-gray-400 mb-1.5">{t('ai.keyLabel')}</label>
           <div className="relative">
             <input
               type={showKey ? 'text' : 'password'}
@@ -97,12 +98,12 @@ export function AiSettingsModal({ open, onClose }: AiSettingsModalProps) {
             </button>
           </div>
           <p className="text-xs text-gray-400 mt-1">
-            Get a key at console.anthropic.com — usage is billed to your own account.
+            {t('ai.keyHint')}
           </p>
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-400 mb-1.5">Model</label>
+          <label className="block text-xs font-semibold text-gray-400 mb-1.5">{t('ai.model')}</label>
           <div className="grid grid-cols-1 gap-2">
             {AI_MODELS.map((m) => (
               <button
@@ -123,7 +124,7 @@ export function AiSettingsModal({ open, onClose }: AiSettingsModalProps) {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-400 mb-1.5">AI Language</label>
+          <label className="block text-xs font-semibold text-gray-400 mb-1.5">{t('ai.language')}</label>
           <div className="flex gap-2">
             {LANGUAGES.map((l) => (
               <button
@@ -156,7 +157,7 @@ export function AiSettingsModal({ open, onClose }: AiSettingsModalProps) {
             className="flex items-center gap-1.5 px-3 py-2.5 bg-gray-100 dark:bg-gray-800 rounded-xl text-sm font-medium disabled:opacity-40"
           >
             {testing ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
-            Test key
+            {t('ai.test')}
           </button>
           {aiSettings.apiKey && (
             <button
@@ -164,7 +165,7 @@ export function AiSettingsModal({ open, onClose }: AiSettingsModalProps) {
               onClick={handleRemove}
               className="px-3 py-2.5 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-xl text-sm font-medium"
             >
-              Remove key
+              {t('ai.removeKey')}
             </button>
           )}
           <button
@@ -172,7 +173,7 @@ export function AiSettingsModal({ open, onClose }: AiSettingsModalProps) {
             onClick={handleSave}
             className="flex-1 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-semibold hover:bg-brand-600 transition-colors"
           >
-            Save
+            {t('common.save')}
           </button>
         </div>
       </div>

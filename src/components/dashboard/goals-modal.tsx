@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Modal } from '../ui/modal';
 import type { MacroGoals } from '../../types';
+import { useT } from '../../i18n';
 
 interface GoalsModalProps {
   open: boolean;
@@ -16,6 +17,7 @@ export function GoalsModal(props: GoalsModalProps) {
 }
 
 function GoalsForm({ open, onClose, onSave, currentGoals }: GoalsModalProps) {
+  const { t } = useT();
   const [calories, setCalories] = useState(() => String(currentGoals.calories));
   const [protein, setProtein] = useState(() => String(currentGoals.protein));
   const [carbs, setCarbs] = useState(() => String(currentGoals.carbs));
@@ -33,10 +35,10 @@ function GoalsForm({ open, onClose, onSave, currentGoals }: GoalsModalProps) {
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Daily Goals">
+    <Modal open={open} onClose={onClose} title={t('goals.title')}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">Calories</label>
+          <label className="block text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">{t('common.calories')}</label>
           <input
             type="number"
             value={calories}
@@ -49,7 +51,7 @@ function GoalsForm({ open, onClose, onSave, currentGoals }: GoalsModalProps) {
         </div>
         <div className="grid grid-cols-3 gap-3">
           <div>
-            <label className="block text-xs font-medium mb-1 text-gray-500">Protein (g)</label>
+            <label className="block text-xs font-medium mb-1 text-gray-500">{t('food.proteinG')}</label>
             <input
               type="number"
               value={protein}
@@ -60,7 +62,7 @@ function GoalsForm({ open, onClose, onSave, currentGoals }: GoalsModalProps) {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium mb-1 text-gray-500">Carbs (g)</label>
+            <label className="block text-xs font-medium mb-1 text-gray-500">{t('food.carbsG')}</label>
             <input
               type="number"
               value={carbs}
@@ -71,7 +73,7 @@ function GoalsForm({ open, onClose, onSave, currentGoals }: GoalsModalProps) {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium mb-1 text-gray-500">Fat (g)</label>
+            <label className="block text-xs font-medium mb-1 text-gray-500">{t('food.fatG')}</label>
             <input
               type="number"
               value={fat}
@@ -86,7 +88,7 @@ function GoalsForm({ open, onClose, onSave, currentGoals }: GoalsModalProps) {
           type="submit"
           className="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-xl transition-colors"
         >
-          Save Goals
+          {t('goals.save')}
         </button>
       </form>
     </Modal>
