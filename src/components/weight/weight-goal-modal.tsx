@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Modal } from '../ui/modal';
 import type { WeightGoal } from '../../types';
 import { todayKey, dateKey } from '../../utils/date-utils';
+import { useT } from '../../i18n';
 
 interface WeightGoalModalProps {
   open: boolean;
@@ -19,6 +20,7 @@ export function WeightGoalModal(props: WeightGoalModalProps) {
 }
 
 function WeightGoalForm({ open, onClose, onSave, currentGoal, currentWeight, currentUnit }: WeightGoalModalProps) {
+  const { t, unit: unitLabel } = useT();
   const [targetWeight, setTargetWeight] = useState(() => (currentGoal ? String(currentGoal.targetWeight) : ''));
   const [unit, setUnit] = useState<'kg' | 'lbs'>(() => currentGoal?.unit ?? currentUnit);
   const [targetDate, setTargetDate] = useState(() => {
@@ -54,16 +56,16 @@ function WeightGoalForm({ open, onClose, onSave, currentGoal, currentWeight, cur
     : null;
 
   return (
-    <Modal open={open} onClose={onClose} title="Weight Goal">
+    <Modal open={open} onClose={onClose} title={t('weight.goalTitle')}>
       <form onSubmit={handleSubmit} className="space-y-4">
         {currentWeight === null && (
           <p className="text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3">
-            Log your current weight first before setting a goal.
+            {t('weight.goalNeedWeight')}
           </p>
         )}
 
         <div>
-          <label className="block text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">Target Weight</label>
+          <label className="block text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">{t('weight.targetWeight')}</label>
           <div className="flex gap-2">
             <input
               type="number"
@@ -87,20 +89,20 @@ function WeightGoalForm({ open, onClose, onSave, currentGoal, currentWeight, cur
                       : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400'
                   }`}
                 >
-                  {u}
+                  {unitLabel(u)}
                 </button>
               ))}
             </div>
           </div>
           {weightDiff !== null && targetWeight && (
             <p className={`text-xs mt-1.5 font-medium ${weightDiff < 0 ? 'text-green-500' : weightDiff > 0 ? 'text-red-400' : 'text-gray-400'}`}>
-              {weightDiff > 0 ? '+' : ''}{weightDiff.toFixed(1)} {unit} from current weight
+              {t('weight.fromCurrent', { diff: `${weightDiff > 0 ? '+' : ''}${weightDiff.toFixed(1)}`, unit: unitLabel(unit) })}
             </p>
           )}
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">Target Date</label>
+          <label className="block text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">{t('weight.targetDate')}</label>
           <input
             type="date"
             value={targetDate}
@@ -115,7 +117,7 @@ function WeightGoalForm({ open, onClose, onSave, currentGoal, currentWeight, cur
           disabled={currentWeight === null}
           className="w-full py-3 bg-brand-600 hover:bg-brand-700 disabled:opacity-40 text-white font-semibold rounded-xl transition-colors"
         >
-          {currentGoal ? 'Update Goal' : 'Set Goal'}
+          {currentGoal ? t('weight.updateGoal') : t('weight.setGoal')}
         </button>
 
         {currentGoal && (
@@ -124,7 +126,7 @@ function WeightGoalForm({ open, onClose, onSave, currentGoal, currentWeight, cur
             onClick={handleClear}
             className="w-full py-2.5 text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"
           >
-            Remove Goal
+            {t('weight.removeGoal')}
           </button>
         )}
       </form>

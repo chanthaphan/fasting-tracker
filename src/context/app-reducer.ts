@@ -170,6 +170,54 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, selectedDate: action.payload };
     case 'SET_THEME':
       return { ...state, theme: action.payload };
+    case 'SET_APP_MODE':
+      return { ...state, appMode: action.payload };
+    case 'SET_MED_REMINDERS':
+      return { ...state, medReminders: action.payload };
+    case 'ADD_MEDICATION': {
+      if (action.payload.slots.length === 0) return state;
+      const medication = {
+        ...action.payload,
+        id: crypto.randomUUID(),
+        createdAt: Date.now(),
+      };
+      return { ...state, medications: [...state.medications, medication] };
+    }
+    case 'EDIT_MEDICATION': {
+      if (action.payload.slots.length === 0) return state;
+      const kept = new Set(action.payload.slots);
+      return {
+        ...state,
+        medications: replaceById(state.medications, action.payload),
+        // A slot that no longer exists on the medicine takes its history with it
+        medicationLogs: state.medicationLogs.filter((l) => l.medicationId !== action.payload.id || kept.has(l.slot)),
+      };
+    }
+    case 'DELETE_MEDICATION':
+      return {
+        ...state,
+        medications: removeById(state.medications, action.payload.id),
+        medicationLogs: state.medicationLogs.filter((l) => l.medicationId !== action.payload.id),
+      };
+    case 'RESTORE_MEDICATION': {
+      if (state.medications.some((m) => m.id === action.payload.medication.id)) return state;
+      const logIds = new Set(state.medicationLogs.map((l) => l.id));
+      return {
+        ...state,
+        medications: [...state.medications, action.payload.medication],
+        medicationLogs: [...state.medicationLogs, ...action.payload.logs.filter((l) => !logIds.has(l.id))],
+      };
+    }
+    case 'TOGGLE_MEDICATION_TAKEN': {
+      const { medicationId, date, slot } = action.payload;
+      if (!state.medications.some((m) => m.id === medicationId)) return state;
+      const existing = state.medicationLogs.find((l) => l.medicationId === medicationId && l.date === date && l.slot === slot);
+      if (existing) {
+        return { ...state, medicationLogs: removeById(state.medicationLogs, existing.id) };
+      }
+      const log = { id: crypto.randomUUID(), medicationId, date, slot, takenAt: Date.now() };
+      return withCheckInIfToday({ ...state, medicationLogs: [...state.medicationLogs, log] }, date);
+    }
     case 'SET_GOALS':
       return { ...state, goals: action.payload };
     case 'SET_WEIGHT_GOAL':
@@ -285,6 +333,8 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         exerciseEntries: pick(state.exerciseEntries, p.exerciseEntries),
         workoutSessions,
         workoutTemplates: pick(state.workoutTemplates, p.workoutTemplates),
+        medications: pick(state.medications, p.medications),
+        medicationLogs: pick(state.medicationLogs, p.medicationLogs),
         gamification,
         userProfile: p.settings?.userProfile !== undefined ? p.settings.userProfile : state.userProfile,
         goals: p.settings?.goals ?? state.goals,

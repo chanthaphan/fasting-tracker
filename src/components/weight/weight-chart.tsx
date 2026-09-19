@@ -1,5 +1,6 @@
 import { useMemo, useState, type KeyboardEvent, type PointerEvent } from 'react';
-import { format, parseISO, startOfDay, addDays } from 'date-fns';
+import { parseISO, startOfDay, addDays } from 'date-fns';
+import { useT } from '../../i18n';
 import type { WeightEntry, WeightGoal } from '../../types';
 import { niceTicks, linearTrend } from '../../utils/chart-data';
 import { convertWeight } from '../../utils/units';
@@ -27,6 +28,7 @@ const fmtW = (w: number) => (Math.round(w * 10) / 10).toString();
  */
 export function WeightChart({ entries, weightGoal: rawGoal }: WeightChartProps) {
   const [active, setActive] = useState<number | null>(null);
+  const { t, fmtDate, unit: unitLabel } = useT();
 
   // Plot everything in the unit of the latest entry, converting older entries and the goal
   const data = useMemo(() => {
@@ -93,7 +95,7 @@ export function WeightChart({ entries, weightGoal: rawGoal }: WeightChartProps) 
     const recent = points.slice(-14);
     const fit = recent.length >= 3 ? linearTrend(recent.map((p) => ({ t: p.t / DAY_MS, v: p.weight }))) : null;
     let projection: { x1: number; y1: number; x2: number; y2: number } | null = null;
-    let paceDate: string | null = null;
+    let paceDate: number | null = null; // Unix ms
     let paceHeading: 'toward' | 'away' | 'flat' | null = null;
     if (fit && lastT < t1) {
       const last = points[points.length - 1];
@@ -110,7 +112,7 @@ export function WeightChart({ entries, weightGoal: rawGoal }: WeightChartProps) 
         else {
           paceHeading = 'toward';
           const days = toGo / perDay;
-          if (days >= 0 && days < 365 * 3) paceDate = format(addDays(lastT, Math.ceil(days)), 'MMM d, yyyy');
+          if (days >= 0 && days < 365 * 3) paceDate = addDays(lastT, Math.ceil(days)).getTime();
         }
       }
     }
@@ -124,7 +126,7 @@ export function WeightChart({ entries, weightGoal: rawGoal }: WeightChartProps) 
   if (!model) {
     return (
       <div className="text-center py-6 text-gray-400">
-        <p className="text-sm">Log at least 2 weights to see trends</p>
+        <p className="text-sm">{t('chart.needTwo')}</p>
       </div>
     );
   }
@@ -155,23 +157,24 @@ export function WeightChart({ entries, weightGoal: rawGoal }: WeightChartProps) 
 
   // X labels: start, today (when it isn't crowding an end), and the end (the goal date when there is one)
   const endIsGoal = goalEndT !== null && goalEndT === t1;
-  const xLabels: { x: number; text: string; anchor: 'start' | 'middle' | 'end' }[] = [
-    { x: PAD.left, text: format(t0, 'MMM d'), anchor: 'start' },
-    { x: W - PAD.right, text: endIsGoal ? `Target · ${format(t1, 'MMM d')}` : format(t1, 'MMM d'), anchor: 'end' },
+  const xLabels: { x: number; text: string; anchor: 'start' | 'middle' | 'end'; today?: boolean }[] = [
+    { x: PAD.left, text: fmtDate(t0, 'dayMonth'), anchor: 'start' },
+    { x: W - PAD.right, text: endIsGoal ? `${t('chart.target')} · ${fmtDate(t1, 'dayMonth')}` : fmtDate(t1, 'dayMonth'), anchor: 'end' },
   ];
   if (todayX !== null && todayX - PAD.left > chartW * 0.14 && W - PAD.right - todayX > chartW * 0.2) {
-    xLabels.push({ x: todayX, text: 'Today', anchor: 'middle' });
+    xLabels.push({ x: todayX, text: t('chart.today'), anchor: 'middle', today: true });
   }
+  const unitText = unitLabel(unit);
 
   const tip = active !== null ? (() => {
     const p = points[active];
     const planW = planAt(p.t);
-    const lines = [`${fmtW(p.weight)} ${unit}`];
+    const lines = [`${fmtW(p.weight)} ${unitText}`];
     if (planW !== null) {
       const diff = p.weight - planW;
-      lines.push(`Plan ${fmtW(planW)} · ${diff > 0 ? '+' : ''}${fmtW(diff)}`);
+      lines.push(`${t('chart.plan')} ${fmtW(planW)} · ${diff > 0 ? '+' : ''}${fmtW(diff)}`);
     }
-    const title = format(parseISO(p.date), 'EEE, MMM d');
+    const title = fmtDate(p.date, 'weekdayShort');
     const width = Math.max(title.length, ...lines.map((l) => l.length)) * 5.4 + 14;
     const boxH = 8 + 11 * (lines.length + 1);
     let x = p.x + 10;
@@ -186,7 +189,7 @@ export function WeightChart({ entries, weightGoal: rawGoal }: WeightChartProps) 
         viewBox={`0 0 ${W} ${H}`}
         className="w-full select-none"
         role="img"
-        aria-label={`Weight over time${weightGoal ? `, with the plan to reach ${weightGoal.targetWeight} ${weightGoal.unit} by ${format(parseISO(weightGoal.targetDate), 'MMM d, yyyy')}` : ''}`}
+        aria-label={weightGoal ? t('chart.ariaGoal', { weight: `${weightGoal.targetWeight} ${unitLabel(weightGoal.unit)}`, date: fmtDate(weightGoal.targetDate) }) : t('chart.aria')}
         tabIndex={0}
         onPointerMove={pick}
         onPointerDown={pick}
@@ -215,7 +218,7 @@ export function WeightChart({ entries, weightGoal: rawGoal }: WeightChartProps) 
           <g>
             <line x1={PAD.left} x2={W - PAD.right} y1={goalY} y2={goalY} stroke="#f59e0b" strokeWidth={1} strokeDasharray="5,3" opacity={0.85} />
             <text x={PAD.left + 4} y={goalY - 4} textAnchor="start" className="fill-gray-500 dark:fill-gray-400 text-[9px] font-semibold">
-              Target {weightGoal!.targetWeight} {unit}
+              {t('chart.target')} {weightGoal!.targetWeight} {unitText}
             </text>
           </g>
         )}
@@ -246,7 +249,7 @@ export function WeightChart({ entries, weightGoal: rawGoal }: WeightChartProps) 
         {/* Direct label on the latest weight only */}
         {active === null && (
           <text x={last.x + (W - PAD.right - last.x < 40 ? -8 : 8)} y={last.y - 7} textAnchor={W - PAD.right - last.x < 40 ? 'end' : 'start'} className="fill-gray-700 dark:fill-gray-200 text-[10px] font-semibold tabular-nums">
-            {fmtW(last.weight)} {unit}
+            {fmtW(last.weight)} {unitText}
           </text>
         )}
 
@@ -257,7 +260,7 @@ export function WeightChart({ entries, weightGoal: rawGoal }: WeightChartProps) 
 
         {/* X labels */}
         {xLabels.map((l) => (
-          <text key={l.text} x={l.x} y={H - 6} textAnchor={l.anchor} className={`text-[9px] ${l.text === 'Today' ? 'fill-gray-500 dark:fill-gray-400 font-semibold' : 'fill-gray-400'}`}>
+          <text key={l.text} x={l.x} y={H - 6} textAnchor={l.anchor} className={`text-[9px] ${l.today ? 'fill-gray-500 dark:fill-gray-400 font-semibold' : 'fill-gray-400'}`}>
             {l.text}
           </text>
         ))}
@@ -279,20 +282,20 @@ export function WeightChart({ entries, weightGoal: rawGoal }: WeightChartProps) 
       {/* Legend: three series once a goal exists */}
       {weightGoal && (
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 mt-1 text-[10px] text-gray-400">
-          <span className="flex items-center gap-1"><span className="inline-block w-4 h-0.5 rounded bg-brand-600 dark:bg-brand-400" />Logged</span>
-          {projection && <span className="flex items-center gap-1"><span className="inline-block w-4 border-t-2 border-dotted border-brand-600 dark:border-brand-400" />Current pace</span>}
-          <span className="flex items-center gap-1"><span className="inline-block w-4 border-t-[1.5px]" style={{ borderColor: '#f59e0b', opacity: 0.7 }} />Plan</span>
-          <span className="flex items-center gap-1"><span className="inline-block w-4 border-t border-dashed" style={{ borderColor: '#f59e0b' }} />Target</span>
+          <span className="flex items-center gap-1"><span className="inline-block w-4 h-0.5 rounded bg-brand-600 dark:bg-brand-400" />{t('chart.logged')}</span>
+          {projection && <span className="flex items-center gap-1"><span className="inline-block w-4 border-t-2 border-dotted border-brand-600 dark:border-brand-400" />{t('chart.pace')}</span>}
+          <span className="flex items-center gap-1"><span className="inline-block w-4 border-t-[1.5px]" style={{ borderColor: '#f59e0b', opacity: 0.7 }} />{t('chart.plan')}</span>
+          <span className="flex items-center gap-1"><span className="inline-block w-4 border-t border-dashed" style={{ borderColor: '#f59e0b' }} />{t('chart.target')}</span>
         </div>
       )}
 
       {/* Pace caption */}
       {weightGoal && paceHeading && (
         <p className="text-[11px] text-center mt-2 text-gray-500 dark:text-gray-400">
-          {paceHeading === 'toward' && paceDate && <>At your current pace you reach <span className="font-semibold text-gray-700 dark:text-gray-200">{weightGoal.targetWeight} {unit}</span> around <span className="font-semibold text-gray-700 dark:text-gray-200">{paceDate}</span></>}
-          {paceHeading === 'toward' && !paceDate && <>Your recent pace is heading toward the target</>}
-          {paceHeading === 'flat' && <>Your weight has been steady lately</>}
-          {paceHeading === 'away' && <>Your recent pace is moving away from the target</>}
+          {paceHeading === 'toward' && paceDate !== null && t('chart.paceToward', { weight: `${weightGoal.targetWeight} ${unitText}`, date: fmtDate(paceDate) })}
+          {paceHeading === 'toward' && paceDate === null && t('chart.paceTowardNoDate')}
+          {paceHeading === 'flat' && t('chart.paceFlat')}
+          {paceHeading === 'away' && t('chart.paceAway')}
         </p>
       )}
     </div>

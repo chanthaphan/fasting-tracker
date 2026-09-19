@@ -9,6 +9,7 @@ import { describeAiError } from '../../utils/ai/client';
 import { AiSettingsModal } from '../ai/ai-settings-modal';
 import { SnapMealSheet, type SnapPhase } from './snap-meal-sheet';
 import type { MealType, ParsedFoodItem } from '../../types';
+import { useT } from '../../i18n';
 
 const SHOW_ON = new Set(['/', '/food']);
 
@@ -22,7 +23,9 @@ export function SnapMealFab() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
-  const { dispatch } = useAppState();
+  const { state, dispatch } = useAppState();
+  const { t, isThai } = useT();
+  const adult = state.appMode === 'adult';
   const ready = useAiReady();
   const { aiSettings } = useAiSettings();
 
@@ -93,16 +96,17 @@ export function SnapMealFab() {
     try {
       const compressed = await compressImage(file);
       setPreview(`data:image/jpeg;base64,${compressed.base64}`);
-      const parsed = await parseFoodInput(aiSettings, { image: compressed });
+      // In the Thai experience the item names come back in Thai
+      const parsed = await parseFoodInput(aiSettings, { image: compressed, text: isThai ? 'ระบุอาหารในรูปนี้ ตั้งชื่อรายการเป็นภาษาไทย และประเมินสารอาหารต่อรายการ' : undefined });
       if (parsed.length === 0) {
-        setError('No food was recognised in that photo. Try a closer, brighter shot.');
+        setError(t('snap.noFood'));
         setPhase('error');
       } else {
         setItems(parsed);
         setPhase('review');
       }
     } catch (err) {
-      setError(err instanceof Error && err.message === 'Could not read that image.' ? err.message : describeAiError(err, aiSettings.language));
+      setError(err instanceof Error && err.message === 'Could not read that image.' ? t('snap.badImage') : describeAiError(err, isThai ? 'th' : aiSettings.language));
       setPhase('error');
     }
   };
@@ -115,7 +119,7 @@ export function SnapMealFab() {
       });
     }
     close();
-    setToast(`Logged ${toLog.length} item${toLog.length === 1 ? '' : 's'}`);
+    setToast(t('snap.logged', { n: toLog.length }));
     if (pathname !== '/food') navigate('/food');
   };
 
@@ -125,10 +129,13 @@ export function SnapMealFab() {
   };
   const describe = () => {
     close();
-    navigate('/food?add=ai');
+    // The adult mode has no AI tab in the food form; the assistant chat takes the description instead
+    navigate(adult ? '/assistant' : '/food?add=ai');
   };
 
   if (!SHOW_ON.has(pathname) && !open) return null;
+  // The adult nav is taller, so the button and toast sit a little higher
+  const navOffset = adult ? '4rem' : '3.5rem';
 
   return (
     <>
@@ -136,8 +143,9 @@ export function SnapMealFab() {
         <button
           type="button"
           onClick={openCamera}
-          aria-label={online ? "Snap a meal" : "Snap a meal (offline: add manually)"}
-          className="fixed right-4 bottom-[calc(3.5rem+env(safe-area-inset-bottom)+0.75rem)] z-40 w-14 h-14 rounded-full bg-brand-600 hover:bg-brand-700 active:scale-95 text-white shadow-lg shadow-brand-600/30 flex items-center justify-center transition-all"
+          aria-label={online ? t('snap.fab') : t('snap.fabOffline')}
+          style={{ bottom: `calc(${navOffset} + env(safe-area-inset-bottom) + 0.75rem)` }}
+          className="fixed right-4 z-40 w-14 h-14 rounded-full bg-brand-600 hover:bg-brand-700 active:scale-95 text-white shadow-lg shadow-brand-600/30 flex items-center justify-center transition-all"
         >
           <Camera size={24} />
           {!online && (
@@ -176,7 +184,8 @@ export function SnapMealFab() {
       {toast && (
         <div
           role="status"
-          className="fixed left-1/2 -translate-x-1/2 bottom-[calc(3.5rem+env(safe-area-inset-bottom)+1rem)] z-50 px-4 py-2 rounded-full bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-sm font-medium shadow-lg"
+          style={{ bottom: `calc(${navOffset} + env(safe-area-inset-bottom) + 1rem)` }}
+          className="fixed left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-sm font-medium shadow-lg"
         >
           {toast}
         </div>

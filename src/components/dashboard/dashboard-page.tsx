@@ -21,6 +21,7 @@ import { DailyBars } from '../charts/daily-bars';
 import { Sparkline } from '../charts/sparkline';
 import { InstallBanner } from '../layout/install-banner';
 import { DashboardSkeleton } from './dashboard-skeleton';
+import { ModeSwitch } from '../settings/mode-switch';
 import { convertWeight } from '../../utils/units';
 import { useRef, useMemo, useState, useEffect } from 'react';
 
@@ -169,6 +170,9 @@ export function DashboardPage() {
               {label}
             </button>
           ))}
+        </div>
+        <div className="mb-3">
+          <ModeSwitch />
         </div>
         <p className="text-xs font-semibold text-gray-400 mb-2">Settings</p>
         <div className="flex gap-2 mb-3">

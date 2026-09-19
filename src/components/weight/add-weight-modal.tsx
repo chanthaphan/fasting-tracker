@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Modal } from '../ui/modal';
 import type { WeightEntry } from '../../types';
 import { todayKey } from '../../utils/date-utils';
+import { useT } from '../../i18n';
 
 interface AddWeightModalProps {
   open: boolean;
@@ -17,6 +18,7 @@ export function AddWeightModal(props: AddWeightModalProps) {
 }
 
 function AddWeightForm({ open, onClose, onSave, editEntry }: AddWeightModalProps) {
+  const { t, unit: unitLabel } = useT();
   const [weight, setWeight] = useState(() => (editEntry ? String(editEntry.weight) : ''));
   const [unit, setUnit] = useState<'kg' | 'lbs'>(() => editEntry?.unit ?? 'kg');
   const [date, setDate] = useState(() => editEntry?.date ?? todayKey());
@@ -37,10 +39,10 @@ function AddWeightForm({ open, onClose, onSave, editEntry }: AddWeightModalProps
   const inputClass = 'w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-500';
 
   return (
-    <Modal open={open} onClose={onClose} title={editEntry ? 'Edit Weight' : 'Log Weight'}>
+    <Modal open={open} onClose={onClose} title={editEntry ? t('weight.edit') : t('weight.log')}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">Weight</label>
+          <label className="block text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">{t('weight.weight')}</label>
           <div className="flex gap-2">
             <input
               type="number"
@@ -64,7 +66,7 @@ function AddWeightForm({ open, onClose, onSave, editEntry }: AddWeightModalProps
                       : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400'
                   }`}
                 >
-                  {u}
+                  {unitLabel(u)}
                 </button>
               ))}
             </div>
@@ -72,7 +74,7 @@ function AddWeightForm({ open, onClose, onSave, editEntry }: AddWeightModalProps
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">Date</label>
+          <label className="block text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">{t('common.date')}</label>
           <input
             type="date"
             value={date}
@@ -82,12 +84,12 @@ function AddWeightForm({ open, onClose, onSave, editEntry }: AddWeightModalProps
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">Note (optional)</label>
+          <label className="block text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">{t('common.note')}</label>
           <input
             type="text"
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="e.g. After workout"
+            placeholder={t('weight.notePlaceholder')}
             className={inputClass}
           />
         </div>
@@ -96,7 +98,7 @@ function AddWeightForm({ open, onClose, onSave, editEntry }: AddWeightModalProps
           type="submit"
           className="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-xl transition-colors"
         >
-          {editEntry ? 'Update' : 'Log Weight'}
+          {editEntry ? t('common.update') : t('weight.log')}
         </button>
       </form>
     </Modal>

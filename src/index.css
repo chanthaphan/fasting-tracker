@@ -36,6 +36,11 @@ html.dark {
   background-color: #030712;
 }
 
+/* The adult (ผู้ใหญ่) mode reads at a larger size: rem-based Tailwind sizes scale with it */
+html[data-mode="adult"] {
+  font-size: 112.5%;
+}
+
 #root {
   display: flex;
   flex-direction: column;

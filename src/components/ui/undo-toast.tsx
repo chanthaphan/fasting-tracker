@@ -1,4 +1,5 @@
 import type { PendingUndo } from '../../hooks/use-undo';
+import { useT } from '../../i18n';
 
 interface UndoToastProps {
   pending: PendingUndo | null;
@@ -7,6 +8,7 @@ interface UndoToastProps {
 
 /** Bottom snackbar shown for a few seconds after a delete. */
 export function UndoToast({ pending, onUndo }: UndoToastProps) {
+  const { t } = useT();
   if (!pending) return null;
   return (
     <div
@@ -19,7 +21,7 @@ export function UndoToast({ pending, onUndo }: UndoToastProps) {
         onClick={onUndo}
         className="px-3 py-1 rounded-full bg-white/15 dark:bg-gray-900/10 text-brand-300 dark:text-brand-700 font-semibold"
       >
-        Undo
+        {t('common.undo')}
       </button>
     </div>
   );

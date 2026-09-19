@@ -5,14 +5,16 @@ import { AddWeightModal } from './add-weight-modal';
 import { WeightGoalModal } from './weight-goal-modal';
 import { WeightChart } from './weight-chart';
 import { useAppState } from '../../context/use-app-state';
-import { format, differenceInDays, parseISO } from 'date-fns';
+import { differenceInDays, parseISO } from 'date-fns';
 import type { WeightEntry, WeightGoal } from '../../types';
 import { convertWeight } from '../../utils/units';
 import { useUndo } from '../../hooks/use-undo';
 import { UndoToast } from '../ui/undo-toast';
+import { useT } from '../../i18n';
 
 export function WeightPage() {
   const { state, dispatch } = useAppState();
+  const { t, fmtDate, unit: unitLabel, isThai } = useT();
   const [modalOpen, setModalOpen] = useState(false);
   const [goalModalOpen, setGoalModalOpen] = useState(false);
   const [editEntry, setEditEntry] = useState<WeightEntry | null>(null);
@@ -29,6 +31,7 @@ export function WeightPage() {
   const latestWeight = sortedEntries[0]?.weight ?? null;
   const previousWeight = sortedEntries[1] ? inDisplayUnit(sortedEntries[1].weight, sortedEntries[1].unit) : null;
   const weightDiff = latestWeight !== null && previousWeight !== null ? latestWeight - previousWeight : null;
+  const latestUnitLabel = unitLabel(latestUnit);
 
   const handleSave = (data: { weight: number; unit: 'kg' | 'lbs'; date: string; note?: string }) => {
     if (editEntry) {
@@ -48,7 +51,7 @@ export function WeightPage() {
   const handleDelete = (id: string) => {
     const entry = state.weightEntries.find((e) => e.id === id);
     dispatch({ type: 'DELETE_WEIGHT', payload: { id } });
-    if (entry) offer(`Deleted ${entry.weight} ${entry.unit}`, () => dispatch({ type: 'RESTORE_WEIGHT', payload: entry }));
+    if (entry) offer(t('weight.deleted', { weight: entry.weight, unit: unitLabel(entry.unit) }), () => dispatch({ type: 'RESTORE_WEIGHT', payload: entry }));
   };
 
   const handleSaveGoal = (goal: WeightGoal | null) => {
@@ -81,7 +84,7 @@ export function WeightPage() {
 
   return (
     <PageShell
-      title="Weight Log"
+      title={t('weight.title')}
       action={
         <div className="flex gap-2">
           <button
@@ -89,14 +92,14 @@ export function WeightPage() {
             className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
           >
             <Target size={16} />
-            Goal
+            {t('weight.goal')}
           </button>
           <button
             onClick={() => { setEditEntry(null); setModalOpen(true); }}
             className="flex items-center gap-1 px-3 py-1.5 bg-brand-600 text-white text-sm font-medium rounded-xl hover:bg-brand-700 transition-colors"
           >
             <Plus size={16} />
-            Add
+            {t('common.add')}
           </button>
         </div>
       }
@@ -104,18 +107,18 @@ export function WeightPage() {
       {/* Summary card */}
       {latestWeight !== null && (
         <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 mb-4 border border-gray-100 dark:border-gray-800">
-          <p className="text-xs font-semibold text-gray-400 mb-1">Current Weight</p>
+          <p className="text-xs font-semibold text-gray-400 mb-1">{t('weight.current')}</p>
           <div className="flex items-end gap-2">
             <span className="text-3xl font-bold text-brand-600 dark:text-brand-400">
               {latestWeight}
             </span>
-            <span className="text-sm text-gray-500 mb-1">{latestUnit}</span>
+            <span className="text-sm text-gray-500 mb-1">{latestUnitLabel}</span>
             {weightDiff !== null && (
               <span className={`flex items-center gap-0.5 text-sm font-medium ml-auto mb-1 ${
                 weightDiff < 0 ? 'text-green-500' : weightDiff > 0 ? 'text-red-400' : 'text-gray-400'
               }`}>
                 {weightDiff < 0 ? <TrendingDown size={14} /> : weightDiff > 0 ? <TrendingUp size={14} /> : <Minus size={14} />}
-                {weightDiff > 0 ? '+' : ''}{weightDiff.toFixed(1)} {latestUnit}
+                {weightDiff > 0 ? '+' : ''}{weightDiff.toFixed(1)} {latestUnitLabel}
               </span>
             )}
           </div>
@@ -126,13 +129,13 @@ export function WeightPage() {
       {goal && goalProgress && (
         <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 mb-4 border border-gray-100 dark:border-gray-800">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-semibold text-gray-400">Goal Progress</p>
+            <p className="text-xs font-semibold text-gray-400">{t('weight.goalProgress')}</p>
             <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
               goalProgress.onTrack
                 ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400'
                 : 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400'
             }`}>
-              {goalProgress.onTrack ? 'On Track' : 'Behind'}
+              {goalProgress.onTrack ? t('weight.onTrack') : t('weight.behind')}
             </span>
           </div>
 
@@ -146,15 +149,15 @@ export function WeightPage() {
 
           <div className="grid grid-cols-3 gap-2 text-center">
             <div>
-              <p className="text-xs text-gray-400">Target</p>
-              <p className="text-sm font-bold">{inDisplayUnit(goal.targetWeight, goal.unit)} {latestUnit}</p>
+              <p className="text-xs text-gray-400">{t('weight.target')}</p>
+              <p className="text-sm font-bold">{inDisplayUnit(goal.targetWeight, goal.unit)} {latestUnitLabel}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-400">Remaining</p>
-              <p className="text-sm font-bold">{goalProgress.remaining > 0 ? '+' : ''}{goalProgress.remaining.toFixed(1)} {latestUnit}</p>
+              <p className="text-xs text-gray-400">{t('weight.remaining')}</p>
+              <p className="text-sm font-bold">{goalProgress.remaining > 0 ? '+' : ''}{goalProgress.remaining.toFixed(1)} {latestUnitLabel}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-400">Days Left</p>
+              <p className="text-xs text-gray-400">{t('weight.daysLeft')}</p>
               <p className="text-sm font-bold">{Math.max(0, goalProgress.daysLeft)}</p>
             </div>
           </div>
@@ -163,18 +166,19 @@ export function WeightPage() {
 
       {/* Weight trend chart */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 mb-4 border border-gray-100 dark:border-gray-800">
-        <p className="text-xs font-semibold text-gray-400 mb-2">Trend</p>
+        <p className="text-xs font-semibold text-gray-400 mb-2">{t('weight.trend')}</p>
         <WeightChart entries={state.weightEntries} weightGoal={goal} />
       </div>
 
       {/* Weight history */}
       {sortedEntries.length === 0 ? (
         <div className="text-center py-12 text-gray-400">
-          <p className="text-sm">No weight entries yet</p>
-          <p className="text-xs mt-1">Tap "Add" to log your weight</p>
+          <p className="text-sm">{t('weight.empty')}</p>
+          <p className="text-xs mt-1">{t('weight.emptyHint')}</p>
         </div>
       ) : (
         <div className="space-y-2">
+          {isThai && <p className="text-xs font-semibold text-gray-400 px-1">{t('weight.history')}</p>}
           {sortedEntries.map((entry, i) => {
             const prev = sortedEntries[i + 1];
             const diff = prev ? entry.weight - convertWeight(prev.weight, prev.unit, entry.unit) : null;
@@ -182,7 +186,7 @@ export function WeightPage() {
               <div key={entry.id} className="flex items-center justify-between py-3 px-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-sm">{entry.weight} {entry.unit}</span>
+                    <span className="font-bold text-sm">{entry.weight} {unitLabel(entry.unit)}</span>
                     {diff !== null && (
                       <span className={`text-xs font-medium ${
                         diff < 0 ? 'text-green-500' : diff > 0 ? 'text-red-400' : 'text-gray-400'
@@ -192,21 +196,21 @@ export function WeightPage() {
                     )}
                   </div>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    {format(new Date(entry.date + 'T00:00:00'), 'MMM d, yyyy')}
+                    {fmtDate(entry.date)}
                     {entry.note && <span className="ml-2 text-gray-500">· {entry.note}</span>}
                   </p>
                 </div>
                 <div className="flex gap-1 ml-2">
                   <button
                     onClick={() => handleEdit(entry)}
-                    aria-label={`Edit weight entry for ${entry.date}`}
+                    aria-label={t('weight.editAria', { date: entry.date })}
                     className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400"
                   >
                     <Pencil size={16} />
                   </button>
                   <button
                     onClick={() => handleDelete(entry.id)}
-                    aria-label={`Delete weight entry for ${entry.date}`}
+                    aria-label={t('weight.deleteAria', { date: entry.date })}
                     className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500"
                   >
                     <Trash2 size={16} />
