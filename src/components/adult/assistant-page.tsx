@@ -10,7 +10,7 @@ import { HEALTH_DISCLAIMER } from '../../utils/ai/prompts';
 import { useT } from '../../i18n';
 import type { MessageKey } from '../../i18n/messages';
 
-const STARTER_KEYS: MessageKey[] = ['assist.starter1', 'assist.starter2', 'assist.starter3', 'assist.starter4'];
+const STARTER_KEYS: MessageKey[] = ['assist.starter1', 'assist.starter2', 'assist.starter3', 'assist.starter4', 'assist.starter5', 'assist.starter6'];
 
 /** ผู้ช่วย: a chat that logs food, weight and medicine for the adult (ผู้ใหญ่) mode. */
 export function AssistantPage() {

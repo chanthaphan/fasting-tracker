@@ -11,7 +11,7 @@ const vit: Medication = { id: 'm2', name: 'วิตามินซี', slots: 
 describe('assistant tools', () => {
   it('declares every tool the executor handles', () => {
     expect(ASSISTANT_TOOLS.map((t) => t.name).sort()).toEqual(
-      ['add_medication', 'log_food', 'log_weight', 'mark_medication', 'remove_medication', 'set_calorie_goal']
+      ['add_medication', 'get_medication_history', 'log_food', 'log_weight', 'mark_medication', 'remove_medication', 'set_calorie_goal', 'update_medication']
     );
   });
 
@@ -90,6 +90,35 @@ describe('assistant tools', () => {
     ]);
     expect(executeAssistantTool('set_calorie_goal', { calories: 10 }, state, TODAY).actions).toHaveLength(0);
     expect(executeAssistantTool('nope', {}, state, TODAY).actions).toHaveLength(0);
+  });
+
+  it('update_medication changes only the fields given and keeps slot order', () => {
+    const state = makeAppState({ medications: [bp] });
+    const out = executeAssistantTool('update_medication', { medication_name: 'ความดัน', slots: ['bedtime', 'morning'], dosage: '2 เม็ด' }, state, TODAY);
+    expect(out.actions).toEqual([{ type: 'EDIT_MEDICATION', payload: { ...bp, slots: ['morning', 'bedtime'], dosage: '2 เม็ด' } }]);
+    expect(executeAssistantTool('update_medication', { medication_name: 'ความดัน' }, state, TODAY).actions).toHaveLength(0);
+    expect(executeAssistantTool('update_medication', { medication_name: 'ความดัน', slots: [] }, state, TODAY).actions).toHaveLength(0);
+    expect(executeAssistantTool('update_medication', { medication_name: 'ไม่มี', dosage: '1' }, state, TODAY).result).toContain('ไม่พบยา');
+  });
+
+  it('get_medication_history summarises past days with what was missed', () => {
+    const state = makeAppState({
+      medications: [bp],
+      medicationLogs: [
+        { id: 'a', medicationId: 'm1', date: '2026-09-18', slot: 'morning', takenAt: 1 },
+        { id: 'b', medicationId: 'm1', date: '2026-09-18', slot: 'evening', takenAt: 1 },
+        { id: 'c', medicationId: 'm1', date: '2026-09-17', slot: 'morning', takenAt: 1 },
+      ],
+    });
+    const out = executeAssistantTool('get_medication_history', { days: 2 }, state, TODAY);
+    expect(out.actions).toHaveLength(0);
+    const lines = out.result.split('\n');
+    expect(lines).toHaveLength(2);
+    expect(lines[0]).toContain('กิน 2/2');
+    expect(lines[0]).toContain('ครบ');
+    expect(lines[1]).toContain('กิน 1/2');
+    expect(lines[1]).toContain('ขาด ยาความดัน (เย็น)');
+    expect(executeAssistantTool('get_medication_history', {}, makeAppState(), TODAY).result).toContain('ยังไม่มีรายการยา');
   });
 
   it('findMedication prefers an exact match over partial ones', () => {

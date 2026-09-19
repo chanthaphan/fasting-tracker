@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Plus, Pill, Pencil, Trash2, CheckCircle2 } from 'lucide-react';
+import { Plus, Pill, Pencil, Trash2, CheckCircle2, MessageCircle, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { PageShell } from '../layout/page-shell';
 import { DayPicker } from '../ui/day-picker';
 import { ConfirmModal } from '../ui/confirm-modal';
@@ -22,6 +23,7 @@ export function MedicinePage() {
   const [editEntry, setEditEntry] = useState<Medication | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Medication | null>(null);
   const { pending, offer, undoNow } = useUndo();
+  const navigate = useNavigate();
 
   const day = state.selectedDate;
   const setDay = (next: string) => dispatch({ type: 'SET_SELECTED_DATE', payload: next });
@@ -94,6 +96,16 @@ export function MedicinePage() {
           <MedChecklist date={day} doses={doses} />
         </>
       )}
+
+      {/* The assistant answers medicine questions and adds medicines from a sentence */}
+      <button
+        onClick={() => navigate('/assistant')}
+        className="w-full mt-4 flex items-center gap-3 p-3 rounded-2xl bg-brand-50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-300 text-left hover:bg-brand-100 dark:hover:bg-brand-900/30 transition-colors"
+      >
+        <MessageCircle size={20} className="shrink-0" />
+        <span className="flex-1 text-sm font-semibold">{t('med.askAssistant')}</span>
+        <ChevronRight size={16} className="shrink-0" />
+      </button>
 
       {medications.length > 0 && (
         <div className="mt-6">

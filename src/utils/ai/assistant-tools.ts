@@ -80,6 +80,36 @@ export const ASSISTANT_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'update_medication',
+    description: 'แก้ไขยาที่มีอยู่แล้ว เช่น เปลี่ยนชื่อ ขนาดยา ช่วงเวลากิน หรือก่อน/หลังอาหาร ระบุเฉพาะช่องที่ต้องการเปลี่ยน',
+    input_schema: {
+      type: 'object',
+      properties: {
+        medication_name: { type: 'string', description: 'ชื่อยาที่ต้องการแก้ไข (ใกล้เคียงได้)' },
+        new_name: { type: 'string', description: 'ชื่อใหม่ (ถ้าเปลี่ยน)' },
+        dosage: { type: 'string', description: 'ขนาดยาใหม่ (ถ้าเปลี่ยน)' },
+        slots: {
+          type: 'array',
+          items: { type: 'string', enum: ['morning', 'noon', 'evening', 'bedtime'] },
+          description: 'ช่วงเวลากินใหม่ทั้งหมด (แทนที่ของเดิม)',
+        },
+        meal_relation: { type: 'string', enum: ['before', 'after', 'none'] },
+      },
+      required: ['medication_name'],
+    },
+  },
+  {
+    name: 'get_medication_history',
+    description: 'ดูประวัติการกินยาย้อนหลังเป็นรายวัน (กินครบไหม ตัวไหนขาด) ใช้เมื่อถามเรื่องวันก่อน ๆ หรือสัปดาห์ที่ผ่านมา',
+    input_schema: {
+      type: 'object',
+      properties: {
+        days: { type: 'number', description: 'จำนวนวันย้อนหลัง (1–30) ค่าเริ่มต้น 7' },
+      },
+      required: [],
+    },
+  },
+  {
     name: 'remove_medication',
     description: 'ลบยาออกจากรายการยา ใช้เมื่อผู้ใช้บอกว่าเลิกกินยานั้นแล้ว',
     input_schema: {
@@ -121,6 +151,10 @@ const isMeal = (v: unknown): v is MealType => typeof v === 'string' && v in MEAL
 const isDateKey = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
 const num = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) ? v : Number(v) || 0);
 const str = (v: unknown): string => (typeof v === 'string' ? v.trim() : '');
+const parseDateKey = (key: string): Date => {
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(y, m - 1, d);
+};
 
 /** Case-insensitive match on the medicine name: exact first, then a containing match either way. */
 export function findMedication(medications: Medication[], query: string): { match: Medication | null; candidates: Medication[] } {
@@ -219,6 +253,53 @@ export function executeAssistantTool(name: string, input: unknown, state: AppSta
         labels: changed.map((d) => `${taken ? '✅' : '↩️'} ${d.medication.name} · ${SLOT_TH[d.slot]}`),
       };
     }
+    case 'update_medication': {
+      const query = str(args.medication_name);
+      const { match, candidates } = findMedication(state.medications, query);
+      if (!match) {
+        return fail(candidates.length > 1 ? `ชื่อยาไม่ชัดเจน: ${candidates.map((m) => m.name).join(', ')}` : `ไม่พบยาชื่อ "${query}"`);
+      }
+      const next: Medication = { ...match };
+      const changes: string[] = [];
+      const newName = str(args.new_name);
+      if (newName && newName !== match.name) { next.name = newName; changes.push(`ชื่อ → ${newName}`); }
+      if (typeof args.dosage === 'string') {
+        const dosage = str(args.dosage) || undefined;
+        if (dosage !== match.dosage) { next.dosage = dosage; changes.push(`ขนาด → ${dosage ?? '-'}`); }
+      }
+      if (Array.isArray(args.slots)) {
+        const slots = MED_SLOTS.map((s) => s.value).filter((v) => (args.slots as unknown[]).includes(v));
+        if (slots.length === 0) return fail('ต้องเหลือช่วงเวลากินอย่างน้อย 1 ช่วง');
+        if (slots.join() !== match.slots.join()) { next.slots = slots; changes.push(`เวลา → ${slots.map((s) => SLOT_TH[s]).join('/')}`); }
+      }
+      if (args.meal_relation === 'before' || args.meal_relation === 'after' || args.meal_relation === 'none') {
+        if (args.meal_relation !== match.mealRelation) { next.mealRelation = args.meal_relation; changes.push(RELATION_TH[args.meal_relation] || 'ไม่ระบุก่อน/หลังอาหาร'); }
+      }
+      if (changes.length === 0) return fail(`ไม่มีอะไรเปลี่ยนสำหรับ ${match.name}`);
+      return {
+        result: `แก้ไข ${match.name} แล้ว: ${changes.join(', ')}`,
+        actions: [{ type: 'EDIT_MEDICATION', payload: next }],
+        labels: [`✏️ ${match.name}: ${changes.join(', ')}`],
+      };
+    }
+    case 'get_medication_history': {
+      const days = Math.min(30, Math.max(1, Math.round(num(args.days)) || 7));
+      if (state.medications.length === 0) return fail('ยังไม่มีรายการยา');
+      const lines: string[] = [];
+      const base = parseDateKey(today);
+      for (let i = 1; i <= days; i++) {
+        const d = new Date(base.getTime() - i * 86400000);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const doses = dosesForDay(state.medications, state.medicationLogs, key);
+        if (doses.length === 0) continue;
+        const missed = doses.filter((x) => x.log === null);
+        lines.push(
+          `${formatDate(key, 'th', 'weekdayShort')}: กิน ${doses.length - missed.length}/${doses.length}` +
+            (missed.length ? ` ขาด ${missed.map((x) => `${x.medication.name} (${SLOT_TH[x.slot]})`).join(', ')}` : ' ครบ')
+        );
+      }
+      return { result: lines.length ? lines.join('\n') : 'ไม่มีข้อมูลในช่วงนั้น', actions: [], labels: [] };
+    }
     case 'remove_medication': {
       const query = str(args.medication_name);
       const { match, candidates } = findMedication(state.medications, query);
@@ -298,7 +379,10 @@ export const ASSISTANT_SYSTEM =
   'เมื่อผู้ใช้บอกว่ากินอะไร ให้ประเมินแคลอรี โปรตีน คาร์บ ไขมัน ตามปริมาณอาหารไทยทั่วไป (รวมของจากเซเว่นและร้านอาหาร) แล้วเรียก log_food ทันทีทีละรายการ โดยไม่ต้องถามยืนยัน เดามื้อจากเวลาปัจจุบันถ้าไม่ระบุ; ' +
   'เมื่อผู้ใช้ส่งรูปอาหาร ให้ระบุอาหารทุกอย่างในรูป ประเมินปริมาณจากที่เห็น แล้ว log_food ทีละรายการทันที; ' +
   'เมื่อบอกน้ำหนัก ให้เรียก log_weight; เมื่อบอกว่ากินยาแล้ว ให้เรียก mark_medication (ถ้าไม่ระบุชื่อยาให้ใช้ all_medications=true กับช่วงเวลาที่กล่าวถึง หรือช่วงเวลาปัจจุบัน); ' +
-  'เมื่อขอเพิ่มยาใหม่ ให้เรียก add_medication (ถามช่วงเวลากินถ้าผู้ใช้ไม่บอก); เมื่อบอกว่าเลิกกินยา ให้เรียก remove_medication; ' +
+  'เมื่อขอเพิ่มยาใหม่ ให้เรียก add_medication ทันทีถ้ารู้ชื่อยาและช่วงเวลากินแล้ว ถ้ายังไม่ครบ ให้ถามทีละข้อสั้น ๆ (ชื่อยา → กินตอนไหน เช้า/กลางวัน/เย็น/ก่อนนอน → ครั้งละเท่าไร → ก่อนหรือหลังอาหาร) แล้วค่อยบันทึก; ' +
+  'เมื่อขอเปลี่ยนเวลากิน ขนาดยา หรือชื่อยา ให้เรียก update_medication; เมื่อบอกว่าเลิกกินยา ให้เรียก remove_medication; ' +
+  'คำถามเรื่องยาของผู้ใช้ (กินตอนไหน ครบหรือยัง ขาดวันไหน) ให้ตอบจากรายการยาด้านล่าง และใช้ get_medication_history เมื่อถามถึงวันก่อน ๆ; ' +
+  'คำถามความรู้ทั่วไปเกี่ยวกับยา (ยานี้ใช้ทำอะไร ควรกินอย่างไร ข้อควรระวังทั่วไป) ตอบได้ในระดับข้อมูลทั่วไป สั้นและเข้าใจง่าย พร้อมย้ำให้ยึดตามฉลากยาและคำแนะนำของแพทย์หรือเภสัชกร ถ้าไม่แน่ใจให้บอกตรง ๆ; ' +
   'คำถามเกี่ยวกับสิ่งที่กิน น้ำหนัก หรือยาที่ต้องกิน ให้ตอบจากข้อมูลของผู้ใช้ด้านล่างโดยระบุตัวเลขจริง ' +
   'หลังใช้เครื่องมือ ให้สรุปสั้น ๆ ว่าบันทึกอะไรไปแล้ว และถ้าเหลือยาที่ยังไม่ได้กินในวันนี้ ให้เตือนอย่างนุ่มนวล ' +
   'คุณไม่ใช่แพทย์: ห้ามวินิจฉัยโรค ห้ามแนะนำให้เพิ่ม ลด หรือหยุดยาเอง ให้แนะนำปรึกษาแพทย์หรือเภสัชกรเมื่อมีคำถามเรื่องยา อาการป่วย หรือการกินที่ผิดปกติ';

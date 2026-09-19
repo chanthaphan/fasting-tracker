@@ -196,6 +196,7 @@ export const en = {
   'med.editAria': 'Edit {name}',
   'med.deleteAria': 'Delete {name}',
   'med.sinceDate': 'Since {date}',
+  'med.askAssistant': 'Ask the assistant about your medicine',
 
   // Medicine reminders
   'remind.title': 'Medicine reminders',
@@ -221,6 +222,8 @@ export const en = {
   'assist.starter2': 'My weight today is 65 kg',
   'assist.starter3': 'I took my morning medicine',
   'assist.starter4': 'Which medicine do I still need to take today?',
+  'assist.starter5': 'Add blood pressure pill, 1 tablet, morning and evening after meals',
+  'assist.starter6': 'Did I miss any medicine this week?',
   'assist.working': 'Working on it…',
 
   // AI setup
@@ -495,6 +498,7 @@ export const th: Record<MessageKey, string> = {
   'med.editAria': 'แก้ไข {name}',
   'med.deleteAria': 'ลบ {name}',
   'med.sinceDate': 'ตั้งแต่ {date}',
+  'med.askAssistant': 'ถามผู้ช่วยเรื่องยา / เพิ่มยาด้วยการพิมพ์',
 
   'remind.title': 'แจ้งเตือนกินยา',
   'remind.hint': 'เมื่อเปิดแอปหรือติดตั้งแอปไว้ จะมีการแจ้งเตือนตามเวลาที่ตั้ง หากยังไม่ได้กดว่ากินยาแล้ว',
@@ -518,6 +522,8 @@ export const th: Record<MessageKey, string> = {
   'assist.starter2': 'วันนี้ชั่งน้ำหนักได้ 65 กิโล',
   'assist.starter3': 'กินยาเช้าแล้วนะ',
   'assist.starter4': 'วันนี้ต้องกินยาอะไรอีกบ้าง',
+  'assist.starter5': 'เพิ่มยาความดัน 1 เม็ด เช้าและเย็น หลังอาหาร',
+  'assist.starter6': 'สัปดาห์นี้ลืมกินยาวันไหนบ้าง',
   'assist.working': 'กำลังดำเนินการ…',
 
   'ai.setup': 'ตั้งค่าผู้ช่วย AI',
