@@ -5,7 +5,7 @@ import { useFastingTimer } from '../../hooks/use-fasting-timer';
 import { sumMacros, sodiumGoalOf, sugarGoalOf } from '../../utils/macro-calc';
 import { todayKey, formatDuration } from '../../utils/date-utils';
 import { useTheme } from '../../hooks/use-theme';
-import { Settings, Plus, Moon, Sun, Monitor, Weight, TrendingDown, TrendingUp, Minus, Target, User, Flame, Sparkles, Bell, BellOff } from 'lucide-react';
+import { Settings, Plus, Moon, Sun, Monitor, Weight, TrendingDown, TrendingUp, Minus, Target, User, Flame, Sparkles, Bell, BellOff, Pill, HeartPulse } from 'lucide-react';
 import { useNotificationsPref, notificationsSupported } from '../../utils/notify';
 import { exportData, parseImportFile, type ImportSummary } from '../../utils/export-import';
 import { ImportBackupModal } from './import-backup-modal';
@@ -23,10 +23,15 @@ import { InstallBanner } from '../layout/install-banner';
 import { DashboardSkeleton } from './dashboard-skeleton';
 import { ModeSwitch } from '../settings/mode-switch';
 import { convertWeight } from '../../utils/units';
+import { dosesForDay, doseProgress } from '../../utils/medication';
+import { sortBpNewestFirst, classifyBp, BP_STYLE } from '../../utils/blood-pressure';
+import { BpCategoryChip } from '../blood-pressure/bp-category-chip';
+import { useT } from '../../i18n';
 import { useRef, useMemo, useState, useEffect } from 'react';
 
 export function DashboardPage() {
   const { state, dispatch } = useAppState();
+  const { t, fmtDate } = useT();
   const { isActive, elapsedMs, currentPhase, startFast } = useFastingTimer();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
@@ -92,6 +97,14 @@ export function DashboardPage() {
       .slice(-30)
       .map((w) => convertWeight(w.weight, w.unit, unit));
   }, [state.weightEntries, latestWeight?.unit]);
+
+  // Pills due today and the latest blood pressure, for the health cards
+  const today = todayKey();
+  const pillProgress = useMemo(
+    () => doseProgress(dosesForDay(state.medications, state.medicationLogs, today)),
+    [state.medications, state.medicationLogs, today]
+  );
+  const latestBp = useMemo(() => sortBpNewestFirst(state.bloodPressureEntries)[0] ?? null, [state.bloodPressureEntries]);
 
   // Close the settings menu on outside tap or Escape
   useEffect(() => {
@@ -431,6 +444,62 @@ export function DashboardPage() {
           </div>
         ) : (
           <p className="text-sm text-gray-400 mt-2">Tap to log your weight</p>
+        )}
+      </button>
+
+      {/* Pills today */}
+      <button
+        type="button"
+        onClick={() => navigate('/medicine')}
+        className="w-full text-left bg-white dark:bg-gray-900 rounded-2xl p-4 mb-3 border border-gray-100 dark:border-gray-800 cursor-pointer hover:border-brand-200 dark:hover:border-brand-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400">{t('health.pillsToday')}</h2>
+          <Pill size={16} className="text-gray-400" />
+        </div>
+        {state.medications.length === 0 ? (
+          <p className="text-sm text-gray-400 mt-2">{t('health.pillsNone')}</p>
+        ) : pillProgress.total === 0 ? (
+          <p className="text-sm text-gray-400 mt-2">{t('health.pillsNothing')}</p>
+        ) : (
+          <>
+            <p className={`text-sm font-semibold mt-2 ${pillProgress.taken === pillProgress.total ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-300'}`}>
+              {pillProgress.taken === pillProgress.total ? t('health.pillsAllDone') : t('health.pillsProgress', pillProgress)}
+            </p>
+            <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full mt-2 overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${pillProgress.taken === pillProgress.total ? 'bg-green-500' : 'bg-brand-500'}`}
+                style={{ width: `${(pillProgress.taken / pillProgress.total) * 100}%` }}
+              />
+            </div>
+          </>
+        )}
+      </button>
+
+      {/* Blood pressure */}
+      <button
+        type="button"
+        onClick={() => navigate('/blood-pressure')}
+        aria-label={latestBp ? `${t('health.bpCard')} ${latestBp.systolic}/${latestBp.diastolic}` : t('health.bpNone')}
+        className="w-full text-left bg-white dark:bg-gray-900 rounded-2xl p-4 mb-3 border border-gray-100 dark:border-gray-800 cursor-pointer hover:border-brand-200 dark:hover:border-brand-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400">{t('health.bpCard')}</h2>
+          <HeartPulse size={16} className="text-gray-400" />
+        </div>
+        {latestBp ? (
+          <div className="flex items-end gap-2 mt-2">
+            <span className={`text-2xl font-bold tabular-nums ${BP_STYLE[classifyBp(latestBp.systolic, latestBp.diastolic)].text}`}>
+              {latestBp.systolic}/{latestBp.diastolic}
+            </span>
+            <span className="text-sm text-gray-500 mb-0.5">{t('bp.unit')}</span>
+            <span className="ml-auto flex flex-col items-end gap-0.5">
+              <BpCategoryChip systolic={latestBp.systolic} diastolic={latestBp.diastolic} />
+              <span className="text-[11px] text-gray-400">{fmtDate(latestBp.date, 'dayMonth')}</span>
+            </span>
+          </div>
+        ) : (
+          <p className="text-sm text-gray-400 mt-2">{t('health.bpNone')}</p>
         )}
       </button>
 

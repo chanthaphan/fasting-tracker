@@ -8,6 +8,7 @@ export function makeAppState(overrides: Partial<AppState> = {}): AppState {
     fastingSessions: [],
     weightEntries: [],
     exerciseEntries: [],
+    bloodPressureEntries: [],
     workoutSessions: [],
     workoutTemplates: [],
     medications: [],

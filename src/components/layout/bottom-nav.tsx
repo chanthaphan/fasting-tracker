@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, UtensilsCrossed, Timer, Weight, Flame, CalendarDays, Sparkles, Pill, Home, MessageCircle } from 'lucide-react';
+import { LayoutDashboard, UtensilsCrossed, Timer, Weight, Flame, CalendarDays, Sparkles, Pill, Home, MessageCircle, HeartPulse } from 'lucide-react';
 import { useAppState } from '../../context/use-app-state';
 import { useT } from '../../i18n';
 import type { MessageKey } from '../../i18n/messages';
@@ -8,6 +8,8 @@ interface Tab {
   to: string;
   icon: typeof Home;
   labelKey: MessageKey;
+  /** Other paths that also light this tab up (a tab that fronts several pages) */
+  alsoActiveOn?: string[];
 }
 
 const STANDARD_TABS: Tab[] = [
@@ -16,6 +18,7 @@ const STANDARD_TABS: Tab[] = [
   { to: '/fasting', icon: Timer, labelKey: 'nav.fasting' },
   { to: '/exercise', icon: Flame, labelKey: 'nav.exercise' },
   { to: '/weight', icon: Weight, labelKey: 'nav.weight' },
+  { to: '/medicine', icon: HeartPulse, labelKey: 'nav.health', alsoActiveOn: ['/blood-pressure'] },
   { to: '/history', icon: CalendarDays, labelKey: 'nav.history' },
   { to: '/coach', icon: Sparkles, labelKey: 'nav.coach' },
 ];
@@ -40,14 +43,14 @@ export function BottomNav() {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
       <div className={`flex items-center justify-around max-w-lg md:max-w-3xl mx-auto ${adult ? 'h-16' : 'h-14'}`}>
-        {tabs.map(({ to, icon: Icon, labelKey }) => (
+        {tabs.map(({ to, icon: Icon, labelKey, alsoActiveOn }) => (
           <NavLink
             key={to}
             to={to}
             end={to === '/'}
             className={({ isActive }) =>
-              `flex flex-col items-center gap-0.5 px-1.5 py-1 rounded-lg transition-colors ${
-                isActive
+              `flex flex-col items-center gap-0.5 flex-1 min-w-0 px-0.5 py-1 rounded-lg transition-colors ${
+                isActive || alsoActiveOn?.includes(pathname)
                   ? 'text-brand-600 dark:text-brand-400'
                   : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
               }`

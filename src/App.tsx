@@ -20,6 +20,7 @@ const CoachPage = lazy(() => import('./components/coach/coach-page').then((m) =>
 const ActiveWorkoutPage = lazy(() => import('./components/workout/active-workout-page').then((m) => ({ default: m.ActiveWorkoutPage })));
 const AdultHomePage = lazy(() => import('./components/adult/adult-home-page').then((m) => ({ default: m.AdultHomePage })));
 const MedicinePage = lazy(() => import('./components/medicine/medicine-page').then((m) => ({ default: m.MedicinePage })));
+const BloodPressurePage = lazy(() => import('./components/blood-pressure/blood-pressure-page').then((m) => ({ default: m.BloodPressurePage })));
 const AssistantPage = lazy(() => import('./components/adult/assistant-page').then((m) => ({ default: m.AssistantPage })));
 
 /** Applies the saved theme to <html> on every route, not just the dashboard. */
@@ -41,7 +42,8 @@ function PageFallback() {
 /**
  * The route table depends on the app mode: the adult (ผู้ใหญ่) mode has a
  * simplified home plus food, weight and medicine, and sends every other
- * path home; the standard mode has everything but the medicine page.
+ * path home; the standard mode has everything, including the health pair
+ * (pills and blood pressure).
  */
 function ModeRoutes() {
   const { state } = useAppState();
@@ -64,6 +66,8 @@ function ModeRoutes() {
       <Route path="/fasting" element={<FastingPage />} />
       <Route path="/exercise" element={<ExercisePage />} />
       <Route path="/weight" element={<WeightPage />} />
+      <Route path="/medicine" element={<MedicinePage />} />
+      <Route path="/blood-pressure" element={<BloodPressurePage />} />
       <Route path="/history" element={<HistoryPage />} />
       <Route path="/coach" element={<CoachPage />} />
       <Route path="/workout" element={<ActiveWorkoutPage />} />

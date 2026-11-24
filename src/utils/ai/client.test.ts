@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import Anthropic from '@anthropic-ai/sdk';
-import { effortConfig, describeAiError } from './client';
+import { effortConfig, describeAiError, createAiClient } from './client';
 
 describe('effortConfig', () => {
   it('includes effort for claude-opus-5', () => {
@@ -45,5 +45,34 @@ describe('describeAiError', () => {
 
   it('auto language falls back to English', () => {
     expect(describeAiError(new Error('x'), 'auto')).toMatch(/Something went wrong/);
+  });
+});
+
+describe('createAiClient', () => {
+  it('sends Anthropic requests to the Anthropic API with the Anthropic key', async () => {
+    const client = await createAiClient({ apiKey: 'sk-ant-1', model: 'claude-opus-5', language: 'auto' });
+    expect(client.baseURL).toBe('https://api.anthropic.com');
+    expect(client.apiKey).toBe('sk-ant-1');
+  });
+
+  it('sends Foundry requests to the resource, with the Foundry key', async () => {
+    const client = await createAiClient({
+      apiKey: 'sk-ant-1',
+      model: 'claude-opus-5',
+      language: 'auto',
+      provider: 'foundry',
+      foundryApiKey: 'azure-key',
+      foundryEndpoint: 'my-res',
+      foundryDeployment: 'my-sonnet',
+    });
+    expect(client.baseURL).toBe('https://my-res.services.ai.azure.com/anthropic');
+    expect(client.apiKey).toBe('azure-key');
+  });
+
+  it('refuses a Foundry endpoint that is not https, so the key is never sent in clear', async () => {
+    await expect(createAiClient({
+      apiKey: '', model: 'claude-opus-5', language: 'auto',
+      provider: 'foundry', foundryApiKey: 'azure-key', foundryEndpoint: 'http://my-res.services.ai.azure.com',
+    })).rejects.toThrow(/endpoint/i);
   });
 });

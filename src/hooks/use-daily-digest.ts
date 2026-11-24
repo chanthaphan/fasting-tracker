@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type Anthropic from '@anthropic-ai/sdk';
 import { useAppState } from '../context/use-app-state';
+import { aiConfigured, aiModelId } from '../utils/ai/provider';
 import { createAiClient, describeAiError, effortConfig } from '../utils/ai/client';
 import { DIGEST_SYSTEM, languageDirective } from '../utils/ai/prompts';
 import { buildHealthContext } from '../utils/ai/context-builder';
@@ -13,7 +14,7 @@ let autoAttemptedFor: string | null = null;
 
 export function useDailyDigest() {
   const { state } = useAppState();
-  const ready = state.aiSettings.apiKey.trim().length > 0;
+  const ready = aiConfigured(state.aiSettings);
   const [digest, setDigest] = useState<DailyDigestCache | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,13 +24,13 @@ export function useDailyDigest() {
   const generate = useCallback(async () => {
     const current = stateRef.current;
     const { aiSettings } = current;
-    if (!aiSettings.apiKey.trim()) return;
+    if (!aiConfigured(aiSettings)) return;
     setLoading(true);
     setError(null);
     try {
       const client = await createAiClient(aiSettings);
       const response = await client.messages.create({
-        model: aiSettings.model,
+        model: aiModelId(aiSettings),
         max_tokens: 1024,
         system: [
           {
@@ -50,7 +51,7 @@ export function useDailyDigest() {
       const fresh: DailyDigestCache = {
         dateKey: todayKey(),
         content,
-        model: aiSettings.model,
+        model: aiModelId(aiSettings),
         generatedAt: Date.now(),
       };
       saveToStorage(KEYS.AI_DIGEST, fresh);

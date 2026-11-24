@@ -1,6 +1,7 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import type { AiSettings, MealType, ParsedFoodItem } from '../../types';
 import { createAiClient, effortConfig } from './client';
+import { aiModelId } from './provider';
 import { FOOD_PARSE_SYSTEM } from './prompts';
 
 const MEAL_TYPES: MealType[] = ['breakfast', 'lunch', 'dinner', 'snacks'];
@@ -92,7 +93,7 @@ export async function parseFoodInput(
   });
 
   const response = await api.messages.create({
-    model: settings.model,
+    model: aiModelId(settings),
     max_tokens: 2048,
     system: [
       { type: 'text', text: `${FOOD_PARSE_SYSTEM}\nLocal time now: ${localTime}.`, cache_control: { type: 'ephemeral' } },

@@ -1,12 +1,12 @@
 import type {
   FoodEntry, FastingSession, WeightEntry, ExerciseEntry, WorkoutSession, WorkoutTemplate, GamificationData,
-  ImportedSettings, ImportPayload, Medication, MedicationLog,
+  ImportedSettings, ImportPayload, Medication, MedicationLog, BloodPressureEntry,
 } from '../types';
 import {
   KEYS, loadFromStorage,
   isFoodEntryArray, isFastingSessionArray, isWeightEntryArray, isExerciseEntryArray,
   isWorkoutSessionArray, isWorkoutTemplateArray, isGamificationData, isSettings, type StoredSettings,
-  isMedicationArray, isMedicationLogArray,
+  isMedicationArray, isMedicationLogArray, isBloodPressureArray,
 } from './storage';
 
 interface ExportData {
@@ -20,13 +20,14 @@ interface ExportData {
   workoutTemplates: WorkoutTemplate[];
   medications?: Medication[];
   medicationLogs?: MedicationLog[];
+  bloodPressureEntries?: BloodPressureEntry[];
   gamification?: GamificationData;
   /** Profile, macro goals, weight goal and training goal. AI settings (the API key) are deliberately excluded. */
   settings?: ImportedSettings;
 }
 
 export async function exportData(): Promise<void> {
-  const [foodEntries, fastingSessions, weightEntries, exerciseEntries, workoutSessions, workoutTemplates, medications, medicationLogs, gamification, stored] = await Promise.all([
+  const [foodEntries, fastingSessions, weightEntries, exerciseEntries, workoutSessions, workoutTemplates, medications, medicationLogs, bloodPressureEntries, gamification, stored] = await Promise.all([
     loadFromStorage<FoodEntry[]>(KEYS.FOOD_ENTRIES, []),
     loadFromStorage<FastingSession[]>(KEYS.FASTING_SESSIONS, []),
     loadFromStorage<WeightEntry[]>(KEYS.WEIGHT_ENTRIES, []),
@@ -35,6 +36,7 @@ export async function exportData(): Promise<void> {
     loadFromStorage<WorkoutTemplate[]>(KEYS.WORKOUT_TEMPLATES, []),
     loadFromStorage<Medication[]>(KEYS.MEDICATIONS, []),
     loadFromStorage<MedicationLog[]>(KEYS.MEDICATION_LOGS, []),
+    loadFromStorage<BloodPressureEntry[]>(KEYS.BLOOD_PRESSURE, []),
     loadFromStorage<GamificationData>(KEYS.GAMIFICATION, { checkIns: [], seenAchievements: [] }),
     loadFromStorage<StoredSettings | null>(KEYS.SETTINGS, null, isSettings as (v: unknown) => v is StoredSettings | null),
   ]);
@@ -49,6 +51,7 @@ export async function exportData(): Promise<void> {
     workoutTemplates,
     medications,
     medicationLogs,
+    bloodPressureEntries,
     gamification,
     settings: stored
       ? {
@@ -72,7 +75,7 @@ export async function exportData(): Promise<void> {
 export interface ImportSummary {
   version: number;
   exportedAt: string | null;
-  counts: { food: number; fasts: number; weights: number; exercise: number; workouts: number; medications: number };
+  counts: { food: number; fasts: number; weights: number; exercise: number; workouts: number; medications: number; bloodPressure: number };
   dateRange: { from: string; to: string } | null;
   hasSettings: boolean;
 }
@@ -105,6 +108,7 @@ export function summarizeImport(payload: ImportPayload, version: number, exporte
     ...payload.foodEntries.map((e) => e.date),
     ...(payload.weightEntries ?? []).map((e) => e.date),
     ...(payload.exerciseEntries ?? []).map((e) => e.date),
+    ...(payload.bloodPressureEntries ?? []).map((e) => e.date),
     ...payload.fastingSessions.map((s) => new Date(s.startTime).toISOString().slice(0, 10)),
   ].filter((d) => typeof d === 'string' && d.length >= 10).sort();
   return {
@@ -117,6 +121,7 @@ export function summarizeImport(payload: ImportPayload, version: number, exporte
       exercise: payload.exerciseEntries?.length ?? 0,
       workouts: payload.workoutSessions?.length ?? 0,
       medications: payload.medications?.length ?? 0,
+      bloodPressure: payload.bloodPressureEntries?.length ?? 0,
     },
     dateRange: dates.length > 0 ? { from: dates[0], to: dates[dates.length - 1] } : null,
     hasSettings: payload.settings !== undefined,
@@ -140,7 +145,7 @@ export function parseImportFile(file: File): Promise<{ payload: ImportPayload; s
         const food = isFoodEntryArray(data.foodEntries) ? data.foodEntries : isFoodEntryArray.repair?.(data.foodEntries);
         const fasts = isFastingSessionArray(data.fastingSessions) ? data.fastingSessions : isFastingSessionArray.repair?.(data.fastingSessions);
         if (!food || !fasts) throw new Error('Invalid backup file format');
-        const optional = <T>(value: unknown, validator: typeof isWeightEntryArray | typeof isExerciseEntryArray | typeof isWorkoutSessionArray | typeof isWorkoutTemplateArray | typeof isMedicationArray | typeof isMedicationLogArray): T | undefined => {
+        const optional = <T>(value: unknown, validator: typeof isWeightEntryArray | typeof isExerciseEntryArray | typeof isWorkoutSessionArray | typeof isWorkoutTemplateArray | typeof isMedicationArray | typeof isMedicationLogArray | typeof isBloodPressureArray): T | undefined => {
           if (value === undefined) return undefined;
           if (validator(value)) return value as unknown as T;
           return (validator.repair?.(value) as unknown as T | null) ?? undefined;
@@ -154,6 +159,7 @@ export function parseImportFile(file: File): Promise<{ payload: ImportPayload; s
           workoutTemplates: optional<WorkoutTemplate[]>(data.workoutTemplates, isWorkoutTemplateArray),
           medications: optional<Medication[]>(data.medications, isMedicationArray),
           medicationLogs: optional<MedicationLog[]>(data.medicationLogs, isMedicationLogArray),
+          bloodPressureEntries: optional<BloodPressureEntry[]>(data.bloodPressureEntries, isBloodPressureArray),
           gamification: isGamificationData(data.gamification) ? data.gamification : undefined,
           settings: readSettings(data.settings),
         };
