@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type Anthropic from '@anthropic-ai/sdk';
 import { useAppState } from '../context/use-app-state';
+import { aiModelId } from '../utils/ai/provider';
 import { createAiClient, describeAiError, isAbortError } from '../utils/ai/client';
 import { COACH_SYSTEM, languageDirective } from '../utils/ai/prompts';
 import { buildHealthContext } from '../utils/ai/context-builder';
@@ -50,7 +51,7 @@ export function useCoachChat() {
       const client = await createAiClient(aiSettings);
       try {
         const stream = client.messages.stream({
-          model: aiSettings.model,
+          model: aiModelId(aiSettings),
           max_tokens: 8000,
           system: [
             {

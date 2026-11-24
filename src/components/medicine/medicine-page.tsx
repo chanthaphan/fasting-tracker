@@ -13,6 +13,7 @@ import { useT } from '../../i18n';
 import { MedChecklist } from './med-checklist';
 import { AddMedicationModal, type MedicationDraft } from './add-medication-modal';
 import { ReminderSettingsCard } from './reminder-settings-card';
+import { HealthTabs } from '../health/health-tabs';
 import type { Medication } from '../../types';
 
 /** กินยา: today's doses to tick off, any past day to review, and the list of medicines to manage. */
@@ -65,6 +66,8 @@ export function MedicinePage() {
         </button>
       }
     >
+      {state.appMode === 'standard' && <HealthTabs />}
+
       <DayPicker day={day} onChange={setDay} />
 
       {medications.length === 0 ? (
@@ -97,16 +100,17 @@ export function MedicinePage() {
         </>
       )}
 
-      {/* The assistant answers medicine questions and adds medicines from a sentence */}
-      <button
-        onClick={() => navigate('/assistant')}
-        className="w-full mt-4 flex items-center gap-3 p-3 rounded-2xl bg-brand-50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-300 text-left hover:bg-brand-100 dark:hover:bg-brand-900/30 transition-colors"
-      >
-        <MessageCircle size={20} className="shrink-0" />
-        <span className="flex-1 text-sm font-semibold">{t('med.askAssistant')}</span>
-        <ChevronRight size={16} className="shrink-0" />
-      </button>
-
+      {/* The assistant answers medicine questions and adds medicines from a sentence (adult mode only) */}
+      {state.appMode === 'adult' && (
+        <button
+          onClick={() => navigate('/assistant')}
+          className="w-full mt-4 flex items-center gap-3 p-3 rounded-2xl bg-brand-50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-300 text-left hover:bg-brand-100 dark:hover:bg-brand-900/30 transition-colors"
+        >
+          <MessageCircle size={20} className="shrink-0" />
+          <span className="flex-1 text-sm font-semibold">{t('med.askAssistant')}</span>
+          <ChevronRight size={16} className="shrink-0" />
+        </button>
+      )}
       {medications.length > 0 && (
         <div className="mt-6">
           <ReminderSettingsCard />

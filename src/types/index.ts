@@ -79,6 +79,21 @@ export interface UserProfile {
   activityLevel: ActivityLevel;
 }
 
+/** One blood pressure reading. */
+export interface BloodPressureEntry {
+  id: string;
+  /** mmHg, the top number */
+  systolic: number;
+  /** mmHg, the bottom number */
+  diastolic: number;
+  /** beats per minute */
+  pulse?: number;
+  date: string; // 'YYYY-MM-DD'
+  time: string; // 'HH:mm'
+  note?: string;
+  createdAt: number;
+}
+
 export interface ExerciseEntry {
   id: string;
   name: string;
@@ -93,10 +108,26 @@ export type AiModel = 'claude-opus-5' | 'claude-haiku-4-5';
 
 export type AiLanguage = 'auto' | 'th' | 'en';
 
+/** Where AI requests go: Anthropic directly, or a Claude deployment on Microsoft (Azure) Foundry. */
+export type AiProvider = 'anthropic' | 'foundry';
+
 export interface AiSettings {
+  /** Anthropic API key (the key for the 'anthropic' provider) */
   apiKey: string;
+  /**
+   * The Claude model. With the Foundry provider this is the model the
+   * deployment runs, so the app knows what it supports; requests are
+   * addressed to `foundryDeployment`.
+   */
   model: AiModel;
   language: AiLanguage;
+  /** Absent in older saved settings, which means 'anthropic' */
+  provider?: AiProvider;
+  /** Foundry resource name or URL, e.g. "my-resource" or "https://my-resource.services.ai.azure.com/anthropic" */
+  foundryEndpoint?: string;
+  /** Name of the model deployment in Foundry (it can differ from the model id) */
+  foundryDeployment?: string;
+  foundryApiKey?: string;
 }
 
 export interface ParsedFoodItem {
@@ -253,6 +284,7 @@ export interface AppState {
   fastingSessions: FastingSession[];
   weightEntries: WeightEntry[];
   exerciseEntries: ExerciseEntry[];
+  bloodPressureEntries: BloodPressureEntry[];
   workoutSessions: WorkoutSession[];
   workoutTemplates: WorkoutTemplate[];
   medications: Medication[];
@@ -288,6 +320,7 @@ export interface ImportPayload {
   fastingSessions: FastingSession[];
   weightEntries?: WeightEntry[];
   exerciseEntries?: ExerciseEntry[];
+  bloodPressureEntries?: BloodPressureEntry[];
   workoutSessions?: WorkoutSession[];
   workoutTemplates?: WorkoutTemplate[];
   medications?: Medication[];
@@ -317,6 +350,10 @@ export type AppAction =
   | { type: 'ADD_EXERCISE'; payload: Omit<ExerciseEntry, 'id' | 'createdAt'> }
   | { type: 'EDIT_EXERCISE'; payload: ExerciseEntry }
   | { type: 'DELETE_EXERCISE'; payload: { id: string } }
+  | { type: 'ADD_BP'; payload: Omit<BloodPressureEntry, 'id' | 'createdAt'> }
+  | { type: 'EDIT_BP'; payload: BloodPressureEntry }
+  | { type: 'DELETE_BP'; payload: { id: string } }
+  | { type: 'RESTORE_BP'; payload: BloodPressureEntry }
   | { type: 'SET_SELECTED_DATE'; payload: string }
   | { type: 'SET_THEME'; payload: 'light' | 'dark' | 'system' }
   | { type: 'SET_APP_MODE'; payload: AppMode }

@@ -7,7 +7,7 @@ import { appReducer } from './app-reducer';
 import {
   KEYS, loadFromStorage, loadFromStorageSync, saveToStorage,
   isFoodEntryArray, isFastingSessionArray, isWeightEntryArray, isExerciseEntryArray, isSettings,
-  isWorkoutSessionArray, isWorkoutTemplateArray, isGamificationData, isMedicationArray, isMedicationLogArray, isMedReminderSettings,
+  isWorkoutSessionArray, isWorkoutTemplateArray, isGamificationData, isMedicationArray, isMedicationLogArray, isMedReminderSettings, isBloodPressureArray,
 } from '../utils/storage';
 import { todayKey } from '../utils/date-utils';
 import { langForMode, translate } from '../i18n';
@@ -19,6 +19,7 @@ const initialState: AppState = {
   fastingSessions: [],
   weightEntries: [],
   exerciseEntries: [],
+  bloodPressureEntries: [],
   workoutSessions: [],
   workoutTemplates: [],
   medications: [],
@@ -44,6 +45,7 @@ function loadInitialState(): AppState {
   const fastingSessions = loadFromStorageSync(KEYS.FASTING_SESSIONS, initialState.fastingSessions, isFastingSessionArray);
   const weightEntries = loadFromStorageSync(KEYS.WEIGHT_ENTRIES, initialState.weightEntries, isWeightEntryArray);
   const exerciseEntries = loadFromStorageSync(KEYS.EXERCISE_ENTRIES, initialState.exerciseEntries, isExerciseEntryArray);
+  const bloodPressureEntries = loadFromStorageSync(KEYS.BLOOD_PRESSURE, initialState.bloodPressureEntries, isBloodPressureArray);
   const workoutSessions = loadFromStorageSync(KEYS.WORKOUT_SESSIONS, initialState.workoutSessions, isWorkoutSessionArray);
   const workoutTemplates = loadFromStorageSync(KEYS.WORKOUT_TEMPLATES, initialState.workoutTemplates, isWorkoutTemplateArray);
   const medications = loadFromStorageSync(KEYS.MEDICATIONS, initialState.medications, isMedicationArray);
@@ -61,6 +63,7 @@ function loadInitialState(): AppState {
     fastingSessions,
     weightEntries,
     exerciseEntries,
+    bloodPressureEntries,
     workoutSessions,
     workoutTemplates,
     medications,
@@ -89,11 +92,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     async function hydrate() {
-      const [foodEntries, fastingSessions, weightEntries, exerciseEntries, workoutSessions, workoutTemplates, medications, medicationLogs, gamification, settings] = await Promise.all([
+      const [foodEntries, fastingSessions, weightEntries, exerciseEntries, bloodPressureEntries, workoutSessions, workoutTemplates, medications, medicationLogs, gamification, settings] = await Promise.all([
         loadFromStorage(KEYS.FOOD_ENTRIES, initialState.foodEntries, isFoodEntryArray),
         loadFromStorage(KEYS.FASTING_SESSIONS, initialState.fastingSessions, isFastingSessionArray),
         loadFromStorage(KEYS.WEIGHT_ENTRIES, initialState.weightEntries, isWeightEntryArray),
         loadFromStorage(KEYS.EXERCISE_ENTRIES, initialState.exerciseEntries, isExerciseEntryArray),
+        loadFromStorage(KEYS.BLOOD_PRESSURE, initialState.bloodPressureEntries, isBloodPressureArray),
         loadFromStorage(KEYS.WORKOUT_SESSIONS, initialState.workoutSessions, isWorkoutSessionArray),
         loadFromStorage(KEYS.WORKOUT_TEMPLATES, initialState.workoutTemplates, isWorkoutTemplateArray),
         loadFromStorage(KEYS.MEDICATIONS, initialState.medications, isMedicationArray),
@@ -115,6 +119,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           fastingSessions,
           weightEntries,
           exerciseEntries,
+          bloodPressureEntries,
           workoutSessions,
           workoutTemplates,
           medications,
@@ -159,6 +164,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!state.hydrated) return;
     saveToStorage(KEYS.EXERCISE_ENTRIES, state.exerciseEntries);
   }, [state.hydrated, state.exerciseEntries]);
+
+  useEffect(() => {
+    if (!state.hydrated) return;
+    saveToStorage(KEYS.BLOOD_PRESSURE, state.bloodPressureEntries);
+  }, [state.hydrated, state.bloodPressureEntries]);
 
   useEffect(() => {
     if (!state.hydrated) return;

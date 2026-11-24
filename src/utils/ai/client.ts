@@ -1,5 +1,6 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import type { AiLanguage, AiModel, AiSettings } from '../../types';
+import { aiKeyOf, foundryBaseUrl, providerOf } from './provider';
 
 type Sdk = typeof import('@anthropic-ai/sdk');
 let sdk: Sdk | null = null;
@@ -15,11 +16,19 @@ export async function loadSdk(): Promise<Sdk> {
 
 /**
  * The user brings their own API key (stored on-device); requests go
- * straight from the browser to the Anthropic API — there is no backend.
+ * straight from the browser to the provider — there is no backend. That is
+ * the Anthropic API, or a Claude deployment on Microsoft Foundry, which
+ * speaks the same Messages API at the resource's own address and takes its
+ * key in the same `x-api-key` header.
  */
 export async function createAiClient(settings: AiSettings): Promise<Anthropic> {
   const { default: AnthropicClient } = await loadSdk();
-  return new AnthropicClient({ apiKey: settings.apiKey, dangerouslyAllowBrowser: true });
+  if (providerOf(settings) === 'foundry') {
+    const baseURL = foundryBaseUrl(settings.foundryEndpoint);
+    if (!baseURL) throw new Error('Invalid Azure Foundry endpoint');
+    return new AnthropicClient({ apiKey: aiKeyOf(settings), baseURL, dangerouslyAllowBrowser: true });
+  }
+  return new AnthropicClient({ apiKey: aiKeyOf(settings), dangerouslyAllowBrowser: true });
 }
 
 /** Error class names, for when the SDK hasn't been loaded through loadSdk (e.g. tests). */
@@ -41,6 +50,11 @@ function errorKind(err: unknown): 'auth' | 'rate' | 'connection' | 'abort' | 'ap
   if (name === 'APIConnectionError' || name === 'APIConnectionTimeoutError') return 'connection';
   if (typeof status === 'number') return 'api';
   return 'unknown';
+}
+
+/** True when the request never reached the service (offline, wrong address, or blocked by CORS). */
+export function isConnectionError(err: unknown): boolean {
+  return errorKind(err) === 'connection';
 }
 
 /** True when the request was cancelled by the user (stream.abort()). */

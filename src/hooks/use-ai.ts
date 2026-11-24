@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useAppState } from '../context/use-app-state';
 import type { AiSettings } from '../types';
+import { aiConfigured } from '../utils/ai/provider';
 
 export function useAiSettings() {
   const { state, dispatch } = useAppState();
@@ -13,5 +14,5 @@ export function useAiSettings() {
 
 export function useAiReady(): boolean {
   const { state } = useAppState();
-  return state.aiSettings.apiKey.trim().length > 0;
+  return aiConfigured(state.aiSettings);
 }

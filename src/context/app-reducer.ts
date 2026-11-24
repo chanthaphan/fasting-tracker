@@ -166,6 +166,21 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         exerciseEntries: removeById(state.exerciseEntries, action.payload.id),
       };
+    case 'ADD_BP': {
+      const entry = {
+        ...action.payload,
+        id: crypto.randomUUID(),
+        createdAt: Date.now(),
+      };
+      return withCheckInIfToday({ ...state, bloodPressureEntries: [...state.bloodPressureEntries, entry] }, entry.date);
+    }
+    case 'EDIT_BP':
+      return { ...state, bloodPressureEntries: replaceById(state.bloodPressureEntries, action.payload) };
+    case 'DELETE_BP':
+      return { ...state, bloodPressureEntries: removeById(state.bloodPressureEntries, action.payload.id) };
+    case 'RESTORE_BP':
+      if (state.bloodPressureEntries.some((e) => e.id === action.payload.id)) return state;
+      return { ...state, bloodPressureEntries: [...state.bloodPressureEntries, action.payload] };
     case 'SET_SELECTED_DATE':
       return { ...state, selectedDate: action.payload };
     case 'SET_THEME':
@@ -331,6 +346,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         fastingSessions,
         weightEntries: pick(state.weightEntries, p.weightEntries),
         exerciseEntries: pick(state.exerciseEntries, p.exerciseEntries),
+        bloodPressureEntries: pick(state.bloodPressureEntries, p.bloodPressureEntries),
         workoutSessions,
         workoutTemplates: pick(state.workoutTemplates, p.workoutTemplates),
         medications: pick(state.medications, p.medications),

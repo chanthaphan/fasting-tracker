@@ -60,6 +60,7 @@ export function ImportBackupModal({ open, summary, error, onClose, onConfirm }: 
               <li><b className="text-gray-800 dark:text-gray-100">{c.exercise}</b> {t('import.exercise')}</li>
               <li><b className="text-gray-800 dark:text-gray-100">{c.workouts}</b> {t('import.workouts')}</li>
               <li><b className="text-gray-800 dark:text-gray-100">{c.medications}</b> {t('import.medications')}</li>
+              <li><b className="text-gray-800 dark:text-gray-100">{c.bloodPressure}</b> {t('import.bloodPressure')}</li>
               <li>{summary.hasSettings ? t('import.settingsIncluded') : t('import.noSettings')}</li>
             </ul>
             {summary.dateRange && (

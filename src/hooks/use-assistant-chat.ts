@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type Anthropic from '@anthropic-ai/sdk';
 import { useAppState } from '../context/use-app-state';
 import { appReducer } from '../context/app-reducer';
+import { aiModelId } from '../utils/ai/provider';
 import { createAiClient, describeAiError, effortConfig, isAbortError } from '../utils/ai/client';
 import { ASSISTANT_SYSTEM, ASSISTANT_TOOLS, buildAssistantContext, executeAssistantTool } from '../utils/ai/assistant-tools';
 import { KEYS, isChatHistory, loadFromStorage, saveToStorage } from '../utils/storage';
@@ -90,7 +91,7 @@ export function useAssistantChat() {
           partialRef.current = '';
           setPartial('');
           const stream = client.messages.stream({
-            model: aiSettings.model,
+            model: aiModelId(aiSettings),
             max_tokens: 2000,
             ...effortConfig(aiSettings.model, 'low'),
             system,

@@ -3,7 +3,7 @@ import type {
   FoodEntry, FastingSession, WeightEntry, ExerciseEntry, MacroGoals, WeightGoal, UserProfile,
   AiSettings, ChatMessageRecord, DailyDigestCache, FastPlanCache,
   WorkoutSession, WorkoutTemplate, TrainingGoal, WeeklyPlanCache, WeeklyPlanDay,
-  GamificationData, DayFactors, Medication, MedicationLog, AppMode, MedReminderSettings,
+  GamificationData, DayFactors, Medication, MedicationLog, AppMode, MedReminderSettings, BloodPressureEntry,
 } from '../types';
 
 const KEYS = {
@@ -21,6 +21,7 @@ const KEYS = {
   GAMIFICATION: 'ft_gamification',
   MEDICATIONS: 'ft_medications',
   MEDICATION_LOGS: 'ft_medication_logs',
+  BLOOD_PRESSURE: 'ft_blood_pressure',
   AI_ASSISTANT_CHAT: 'ft_ai_assistant_chat',
 } as const;
 
@@ -231,6 +232,13 @@ export const isMedicationArray: Validator<Medication[]> = isArrayOf<Medication>(
 
 export const isMedicationLogArray: Validator<MedicationLog[]> = isArrayOf<MedicationLog>(
   (v) => hasKeys(v, 'id', 'medicationId', 'date', 'slot')
+);
+
+export const isBloodPressureArray: Validator<BloodPressureEntry[]> = isArrayOf<BloodPressureEntry>(
+  (v) =>
+    hasKeys(v, 'id', 'systolic', 'diastolic', 'date') &&
+    typeof (v as BloodPressureEntry).systolic === 'number' &&
+    typeof (v as BloodPressureEntry).diastolic === 'number'
 );
 
 export const isGamificationData: Validator<GamificationData> = (

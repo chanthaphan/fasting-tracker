@@ -14,6 +14,7 @@ const emptyState: AppState = {
   fastingSessions: [],
   weightEntries: [],
   exerciseEntries: [],
+  bloodPressureEntries: [],
   workoutSessions: [],
   workoutTemplates: [],
   medications: [],
