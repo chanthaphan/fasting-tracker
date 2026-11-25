@@ -34,13 +34,13 @@ function ExerciseInfoContent({ onClose, liftName }: { onClose: () => void; liftN
           <div className="relative rounded-xl overflow-hidden bg-gray-50 dark:bg-gray-800">
             {/* Both frames stay mounted; opacity swap avoids flicker */}
             <img
-              src={`/exercise-media/${info.mediaKey}/0.jpg`}
+              src={`${import.meta.env.BASE_URL}exercise-media/${info.mediaKey}/0.jpg`}
               alt={`${info.name} start position`}
               className="w-full"
               onError={() => setImageOk(false)}
             />
             <img
-              src={`/exercise-media/${info.mediaKey}/1.jpg`}
+              src={`${import.meta.env.BASE_URL}exercise-media/${info.mediaKey}/1.jpg`}
               alt={`${info.name} end position`}
               className={`absolute inset-0 w-full transition-opacity duration-150 ${frame === 1 ? 'opacity-100' : 'opacity-0'}`}
             />

@@ -20,6 +20,7 @@ import { convertWeight } from '../../utils/units';
 import { dosesForDay, doseProgress } from '../../utils/medication';
 import { exportData, parseImportFile, type ImportSummary } from '../../utils/export-import';
 import { useT } from '../../i18n';
+import { IS_ARTIFACT } from '../../utils/artifact';
 import type { ImportPayload } from '../../types';
 
 /**
@@ -88,7 +89,7 @@ export function AdultHomePage() {
 
   const confirmImport = async (mode: 'replace' | 'merge') => {
     if (!pendingImport) return;
-    if (mode === 'replace') await exportData(); // safety net before anything is overwritten
+    if (mode === 'replace' && !(await exportData())) return; // safety net before anything is overwritten
     dispatch({ type: 'IMPORT_DATA', payload: { ...pendingImport.payload, mode } });
     setPendingImport(null);
   };
@@ -140,10 +141,12 @@ export function AdultHomePage() {
                 <Target size={14} />
                 {t('settings.goals')}
               </button>
-              <button onClick={() => setAiOpen(true)} className={`${chipClass} bg-gray-100 dark:bg-gray-800`}>
-                <Sparkles size={14} />
-                {t('settings.ai')}
-              </button>
+              {!IS_ARTIFACT && (
+                <button onClick={() => setAiOpen(true)} className={`${chipClass} bg-gray-100 dark:bg-gray-800`}>
+                  <Sparkles size={14} />
+                  {t('settings.ai')}
+                </button>
+              )}
             </div>
           </div>
           <div>
@@ -238,8 +241,8 @@ export function AdultHomePage() {
             </button>
           </section>
 
-          {/* Assistant shortcut */}
-          <button
+          {/* Assistant shortcut (needs the AI service, which a Claude Artifact can't reach) */}
+          {!IS_ARTIFACT && <button
             onClick={() => navigate('/assistant')}
             className="w-full flex items-center gap-3 p-4 mb-3 rounded-2xl bg-brand-600 hover:bg-brand-700 text-white text-left transition-colors"
           >
@@ -249,7 +252,7 @@ export function AdultHomePage() {
               <span className="block text-xs text-white/80 mt-0.5">{t('assist.intro')}</span>
             </span>
             <ChevronRight size={18} className="shrink-0 text-white/80" />
-          </button>
+          </button>}
 
           {/* Weight */}
           <section className={cardClass} aria-label={t('home.weight')}>

@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, MemoryRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider } from './context/app-context';
 import { useAppState } from './context/use-app-state';
 import { BottomNav } from './components/layout/bottom-nav';
@@ -8,6 +8,7 @@ import { SnapMealFab } from './components/food-log/snap-meal-fab';
 import { UpdateToast } from './components/layout/update-toast';
 import { useTheme } from './hooks/use-theme';
 import { useMedicationReminders } from './hooks/use-medication-reminders';
+import { IS_ARTIFACT } from './utils/artifact';
 
 // Each page is its own chunk; the dashboard is the start_url so it loads first
 const DashboardPage = lazy(() => import('./components/dashboard/dashboard-page').then((m) => ({ default: m.DashboardPage })));
@@ -54,7 +55,7 @@ function ModeRoutes() {
         <Route path="/food" element={<FoodLogPage />} />
         <Route path="/weight" element={<WeightPage />} />
         <Route path="/medicine" element={<MedicinePage />} />
-        <Route path="/assistant" element={<AssistantPage />} />
+        {!IS_ARTIFACT && <Route path="/assistant" element={<AssistantPage />} />}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     );
@@ -69,16 +70,19 @@ function ModeRoutes() {
       <Route path="/medicine" element={<MedicinePage />} />
       <Route path="/blood-pressure" element={<BloodPressurePage />} />
       <Route path="/history" element={<HistoryPage />} />
-      <Route path="/coach" element={<CoachPage />} />
+      {!IS_ARTIFACT && <Route path="/coach" element={<CoachPage />} />}
       <Route path="/workout" element={<ActiveWorkoutPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
 
+/** A Claude Artifact has no URL path of its own to route on, so it keeps the route in memory. */
+const Router = IS_ARTIFACT ? MemoryRouter : BrowserRouter;
+
 export default function App() {
   return (
-    <BrowserRouter>
+    <Router>
       <AppProvider>
         <ThemeEffect />
         <ReminderEffect />
@@ -88,11 +92,11 @@ export default function App() {
               <ModeRoutes />
             </Suspense>
           </ErrorBoundary>
-          <SnapMealFab />
+          {!IS_ARTIFACT && <SnapMealFab />}
           <UpdateToast />
           <BottomNav />
         </div>
       </AppProvider>
-    </BrowserRouter>
+    </Router>
   );
 }

@@ -8,6 +8,7 @@ import {
   isWorkoutSessionArray, isWorkoutTemplateArray, isGamificationData, isSettings, type StoredSettings,
   isMedicationArray, isMedicationLogArray, isBloodPressureArray,
 } from './storage';
+import { IS_ARTIFACT, saveFileInArtifact } from './artifact';
 
 interface ExportData {
   version: 2;
@@ -26,7 +27,8 @@ interface ExportData {
   settings?: ImportedSettings;
 }
 
-export async function exportData(): Promise<void> {
+/** Saves a backup file. Resolves true once it has been handed to the viewer, false if it could not be (a Claude Artifact needs the viewer to accept). */
+export async function exportData(): Promise<boolean> {
   const [foodEntries, fastingSessions, weightEntries, exerciseEntries, workoutSessions, workoutTemplates, medications, medicationLogs, bloodPressureEntries, gamification, stored] = await Promise.all([
     loadFromStorage<FoodEntry[]>(KEYS.FOOD_ENTRIES, []),
     loadFromStorage<FastingSession[]>(KEYS.FASTING_SESSIONS, []),
@@ -62,13 +64,17 @@ export async function exportData(): Promise<void> {
         }
       : undefined,
   };
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const filename = `fasting-tracker-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  const json = JSON.stringify(data, null, 2);
+  if (IS_ARTIFACT) return saveFileInArtifact(filename, json);
+  const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `fasting-tracker-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
+  return true;
 }
 
 /** What a backup contains, for the confirmation step before it is applied. */

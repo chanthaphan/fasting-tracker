@@ -4,6 +4,7 @@ import { useAiReady } from '../../hooks/use-ai';
 import { AiSettingsModal } from './ai-settings-modal';
 import { OfflineNotice } from './offline-notice';
 import { useT } from '../../i18n';
+import { IS_ARTIFACT } from '../../utils/artifact';
 
 interface AiGateProps {
   /** Short description shown on the CTA card, e.g. "get a daily check-in" */
@@ -20,6 +21,8 @@ export function AiGate({ feature, children }: AiGateProps) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { t } = useT();
 
+  // No network from a Claude Artifact, so there is nothing to set up
+  if (IS_ARTIFACT) return null;
   if (ready) return <><OfflineNotice className="mb-2 px-1" />{children}</>;
 
   return (

@@ -1,4 +1,5 @@
 import type { AiProvider, AiSettings } from '../../types';
+import { IS_ARTIFACT } from '../artifact';
 
 /** The provider in use; settings saved before Foundry existed have none and mean Anthropic. */
 export function providerOf(settings: AiSettings): AiProvider {
@@ -48,6 +49,7 @@ export function foundryBaseUrl(input: string | undefined): string | null {
 
 /** True when the provider in use has everything a request needs. */
 export function aiConfigured(settings: AiSettings): boolean {
+  if (IS_ARTIFACT) return false; // a Claude Artifact cannot call out to the AI service
   if (!aiKeyOf(settings)) return false;
   return providerOf(settings) === 'foundry'
     ? foundryBaseUrl(settings.foundryEndpoint) !== null && !!settings.foundryDeployment?.trim()

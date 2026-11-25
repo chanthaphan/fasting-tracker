@@ -3,6 +3,7 @@ import { LayoutDashboard, UtensilsCrossed, Timer, Weight, Flame, CalendarDays, S
 import { useAppState } from '../../context/use-app-state';
 import { useT } from '../../i18n';
 import type { MessageKey } from '../../i18n/messages';
+import { IS_ARTIFACT } from '../../utils/artifact';
 
 interface Tab {
   to: string;
@@ -37,7 +38,8 @@ export function BottomNav() {
   const { state } = useAppState();
   const { t } = useT();
   const adult = state.appMode === 'adult';
-  const tabs = adult ? ADULT_TABS : STANDARD_TABS;
+  // The AI-backed tabs (coach, assistant) can't reach the network from a Claude Artifact
+  const tabs = (adult ? ADULT_TABS : STANDARD_TABS).filter((tab) => !(IS_ARTIFACT && (tab.to === '/coach' || tab.to === '/assistant')));
   // Active workout is a full-screen experience
   if (pathname === '/workout') return null;
   return (

@@ -27,6 +27,7 @@ import { dosesForDay, doseProgress } from '../../utils/medication';
 import { sortBpNewestFirst, classifyBp, BP_STYLE } from '../../utils/blood-pressure';
 import { BpCategoryChip } from '../blood-pressure/bp-category-chip';
 import { useT } from '../../i18n';
+import { IS_ARTIFACT } from '../../utils/artifact';
 import { useRef, useMemo, useState, useEffect } from 'react';
 
 export function DashboardPage() {
@@ -140,7 +141,7 @@ export function DashboardPage() {
 
   const confirmImport = async (mode: 'replace' | 'merge') => {
     if (!pendingImport) return;
-    if (mode === 'replace') await exportData(); // safety net before anything is overwritten
+    if (mode === 'replace' && !(await exportData())) return; // safety net before anything is overwritten
     dispatch({ type: 'IMPORT_DATA', payload: { ...pendingImport.payload, mode } });
     setPendingImport(null);
   };
@@ -203,13 +204,15 @@ export function DashboardPage() {
             <User size={14} />
             Body Profile
           </button>
-          <button
-            onClick={() => setAiOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs font-medium"
-          >
-            <Sparkles size={14} />
-            AI Assistant
-          </button>
+          {!IS_ARTIFACT && (
+            <button
+              onClick={() => setAiOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs font-medium"
+            >
+              <Sparkles size={14} />
+              AI Assistant
+            </button>
+          )}
         </div>
         <p className="text-xs font-semibold text-gray-400 mb-2">Data</p>
         <div className="flex gap-2">
