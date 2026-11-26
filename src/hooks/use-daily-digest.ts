@@ -7,6 +7,7 @@ import { DIGEST_SYSTEM, languageDirective } from '../utils/ai/prompts';
 import { buildHealthContext } from '../utils/ai/context-builder';
 import { KEYS, isDigestCache, loadFromStorage, saveToStorage } from '../utils/storage';
 import { todayKey } from '../utils/date-utils';
+import { IS_ARTIFACT } from '../utils/artifact';
 import type { DailyDigestCache } from '../types';
 
 /** Auto-generation runs at most once per day per app session. */
@@ -70,7 +71,8 @@ export function useDailyDigest() {
       const today = todayKey();
       if (cached && cached.dateKey === today) {
         setDigest(cached);
-      } else if (ready && autoAttemptedFor !== today) {
+      } else if (ready && !IS_ARTIFACT && autoAttemptedFor !== today) {
+        // (In a Claude Artifact each call spends the viewer's own Claude usage, so it waits for a tap)
         autoAttemptedFor = today;
         generate();
       }

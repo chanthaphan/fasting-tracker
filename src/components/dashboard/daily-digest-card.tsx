@@ -4,6 +4,7 @@ import { AiMarkdown } from '../ai/ai-markdown';
 import { useDailyDigest } from '../../hooks/use-daily-digest';
 import { useAiReady } from '../../hooks/use-ai';
 import { HEALTH_DISCLAIMER } from '../../utils/ai/prompts';
+import { IS_ARTIFACT } from '../../utils/artifact';
 
 export function DailyDigestCard() {
   const ready = useAiReady();
@@ -40,6 +41,15 @@ function DigestContent() {
           <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded w-11/12" />
           <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded w-4/5" />
         </div>
+      )}
+
+      {IS_ARTIFACT && !digest && !loading && !error && (
+        <button
+          onClick={regenerate}
+          className="w-full py-2.5 bg-brand-50 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400 text-sm font-semibold rounded-xl"
+        >
+          Write today's check-in
+        </button>
       )}
 
       {error && (

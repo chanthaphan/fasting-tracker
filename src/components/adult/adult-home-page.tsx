@@ -21,6 +21,7 @@ import { dosesForDay, doseProgress } from '../../utils/medication';
 import { exportData, parseImportFile, type ImportSummary } from '../../utils/export-import';
 import { useT } from '../../i18n';
 import { IS_ARTIFACT } from '../../utils/artifact';
+import { useAiReady } from '../../hooks/use-ai';
 import type { ImportPayload } from '../../types';
 
 /**
@@ -38,6 +39,7 @@ export function AdultHomePage() {
   const [goalsOpen, setGoalsOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const due = useDueSlots();
+  const aiReady = useAiReady();
   const menuRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [pendingImport, setPendingImport] = useState<{ payload: ImportPayload; summary: ImportSummary } | null>(null);
@@ -241,8 +243,8 @@ export function AdultHomePage() {
             </button>
           </section>
 
-          {/* Assistant shortcut (needs the AI service, which a Claude Artifact can't reach) */}
-          {!IS_ARTIFACT && <button
+          {/* Assistant shortcut (in a Claude Artifact, once Claude is reachable) */}
+          {(!IS_ARTIFACT || aiReady) && <button
             onClick={() => navigate('/assistant')}
             className="w-full flex items-center gap-3 p-4 mb-3 rounded-2xl bg-brand-600 hover:bg-brand-700 text-white text-left transition-colors"
           >

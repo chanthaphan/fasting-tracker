@@ -11,6 +11,7 @@ import { MED_SLOTS } from '../../constants/med-slots';
 import { dosesForDay, doseProgress } from '../../utils/medication';
 import { useT } from '../../i18n';
 import { IS_ARTIFACT } from '../../utils/artifact';
+import { useAiReady } from '../../hooks/use-ai';
 import { MedChecklist } from './med-checklist';
 import { AddMedicationModal, type MedicationDraft } from './add-medication-modal';
 import { ReminderSettingsCard } from './reminder-settings-card';
@@ -26,6 +27,7 @@ export function MedicinePage() {
   const [pendingDelete, setPendingDelete] = useState<Medication | null>(null);
   const { pending, offer, undoNow } = useUndo();
   const navigate = useNavigate();
+  const aiReady = useAiReady();
 
   const day = state.selectedDate;
   const setDay = (next: string) => dispatch({ type: 'SET_SELECTED_DATE', payload: next });
@@ -102,7 +104,7 @@ export function MedicinePage() {
       )}
 
       {/* The assistant answers medicine questions and adds medicines from a sentence (adult mode only) */}
-      {state.appMode === 'adult' && !IS_ARTIFACT && (
+      {state.appMode === 'adult' && (!IS_ARTIFACT || aiReady) && (
         <button
           onClick={() => navigate('/assistant')}
           className="w-full mt-4 flex items-center gap-3 p-3 rounded-2xl bg-brand-50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-300 text-left hover:bg-brand-100 dark:hover:bg-brand-900/30 transition-colors"

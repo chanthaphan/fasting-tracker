@@ -1,6 +1,8 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import type { AiLanguage, AiModel, AiSettings } from '../../types';
 import { aiKeyOf, foundryBaseUrl, providerOf } from './provider';
+import { IS_ARTIFACT } from '../artifact';
+import { createSampleClient } from './sample-client';
 
 type Sdk = typeof import('@anthropic-ai/sdk');
 let sdk: Sdk | null = null;
@@ -22,6 +24,7 @@ export async function loadSdk(): Promise<Sdk> {
  * key in the same `x-api-key` header.
  */
 export async function createAiClient(settings: AiSettings): Promise<Anthropic> {
+  if (IS_ARTIFACT) return createSampleClient(); // asks Claude through the Artifact `sample` capability
   const { default: AnthropicClient } = await loadSdk();
   if (providerOf(settings) === 'foundry') {
     const baseURL = foundryBaseUrl(settings.foundryEndpoint);
@@ -32,8 +35,16 @@ export async function createAiClient(settings: AiSettings): Promise<Anthropic> {
 }
 
 /** Error class names, for when the SDK hasn't been loaded through loadSdk (e.g. tests). */
-function errorKind(err: unknown): 'auth' | 'rate' | 'connection' | 'abort' | 'api' | 'unknown' {
+function errorKind(err: unknown): 'auth' | 'rate' | 'connection' | 'abort' | 'api' | 'denied' | 'unknown' {
   if (typeof err !== 'object' || err === null) return 'unknown';
+  // The Artifact `sample` capability rejects with a plain {code, message}
+  const code = (err as { code?: unknown }).code;
+  if (typeof code === 'string') {
+    if (code === 'cancelled') return 'abort';
+    if (code === 'rate_limited') return 'rate';
+    if (code === 'upstream_error') return 'connection';
+    if (['not_granted', 'sampling_disabled', 'session_expired', 'not_declared', 'capability_disabled', 'capability_removed'].includes(code)) return 'denied';
+  }
   if (sdk) {
     const A = sdk.default;
     if (err instanceof A.APIUserAbortError) return 'abort';
@@ -85,6 +96,10 @@ const ERROR_MESSAGES: Record<string, { en: string; th: string }> = {
     en: 'Could not reach the AI service — check your internet connection.',
     th: 'เชื่อมต่อบริการ AI ไม่ได้ — กรุณาตรวจสอบอินเทอร์เน็ต',
   },
+  denied: {
+    en: 'Claude is not available here. Allow it when asked, or sign in to Claude again.',
+    th: 'ใช้ Claude ที่นี่ไม่ได้ กรุณากดอนุญาตเมื่อมีข้อความถาม หรือเข้าสู่ระบบ Claude ใหม่',
+  },
   api: {
     en: 'The AI service returned an error',
     th: 'บริการ AI ตอบกลับด้วยข้อผิดพลาด',
@@ -101,6 +116,7 @@ export function describeAiError(err: unknown, language: AiLanguage = 'auto'): st
     case 'auth': return ERROR_MESSAGES.auth[lang];
     case 'rate': return ERROR_MESSAGES.rate[lang];
     case 'connection': return ERROR_MESSAGES.connection[lang];
+    case 'denied': return ERROR_MESSAGES.denied[lang];
     case 'api': return `${ERROR_MESSAGES.api[lang]} (${(err as { status?: number }).status ?? '?'}).`;
     default: return ERROR_MESSAGES.unknown[lang];
   }

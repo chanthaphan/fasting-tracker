@@ -21,8 +21,8 @@ export function AiGate({ feature, children }: AiGateProps) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { t } = useT();
 
-  // No network from a Claude Artifact, so there is nothing to set up
-  if (IS_ARTIFACT) return null;
+  // In a Claude Artifact there is no key to set up: AI is there once Claude is reachable, otherwise hidden
+  if (IS_ARTIFACT && !ready) return null;
   if (ready) return <><OfflineNotice className="mb-2 px-1" />{children}</>;
 
   return (

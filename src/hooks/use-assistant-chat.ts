@@ -7,6 +7,8 @@ import { createAiClient, describeAiError, effortConfig, isAbortError } from '../
 import { ASSISTANT_SYSTEM, ASSISTANT_TOOLS, buildAssistantContext, executeAssistantTool } from '../utils/ai/assistant-tools';
 import { KEYS, isChatHistory, loadFromStorage, saveToStorage } from '../utils/storage';
 import { todayKey } from '../utils/date-utils';
+import { IS_ARTIFACT } from '../utils/artifact';
+import { sampleWithTools } from '../utils/ai/sample-client';
 import type { AppState, ChatMessageRecord } from '../types';
 
 export interface ChatImage {
@@ -80,17 +82,48 @@ export function useAssistantChat() {
       // Tools see the state as it will be after earlier tools in this turn
       let snapshot = stateRef.current;
 
-      const client = await createAiClient(aiSettings);
+      const client = IS_ARTIFACT ? null : await createAiClient(aiSettings);
+      const controller = new AbortController();
       try {
         const system: Anthropic.TextBlockParam[] = [
           { type: 'text', text: ASSISTANT_SYSTEM, cache_control: { type: 'ephemeral' } },
           { type: 'text', text: buildAssistantContext(snapshot, today) },
         ];
         let reply = '';
-        for (let round = 0; round < MAX_ROUNDS; round++) {
+        if (IS_ARTIFACT) {
+          // In a Claude Artifact `sample` runs the tool rounds and calls these functions here in the page
+          streamRef.current = controller;
+          reply = (await sampleWithTools({
+            system: `${ASSISTANT_SYSTEM}\n\n${buildAssistantContext(snapshot, today)}`,
+            turns: [
+              ...messages.map((m) => ({ role: m.role, content: m.content })),
+              { role: 'user' as const, content: trimmed || 'ในรูปนี้มีอาหารอะไรบ้าง ประเมินปริมาณแล้วบันทึกให้ด้วย' },
+            ],
+            image,
+            effort: 'low',
+            signal: controller.signal,
+            onText: (whole) => { partialRef.current = whole; setPartial(whole); },
+            tools: ASSISTANT_TOOLS.map((tool) => ({
+              name: tool.name,
+              description: tool.description ?? '',
+              inputSchema: tool.input_schema as { type: 'object'; properties?: Record<string, unknown>; required?: string[] },
+              execute: (input) => {
+                setWorking(true);
+                const outcome = executeAssistantTool(tool.name, input, snapshot, today);
+                for (const action of outcome.actions) {
+                  dispatch(action);
+                  snapshot = appReducer(snapshot, action);
+                }
+                labels.push(...outcome.labels);
+                return outcome.result;
+              },
+            })),
+          })).trim();
+        }
+        for (let round = 0; !IS_ARTIFACT && round < MAX_ROUNDS; round++) {
           partialRef.current = '';
           setPartial('');
-          const stream = client.messages.stream({
+          const stream = client!.messages.stream({
             model: aiModelId(aiSettings),
             max_tokens: 2000,
             ...effortConfig(aiSettings.model, 'low'),

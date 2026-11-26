@@ -8,6 +8,7 @@ import { SnapMealFab } from './components/food-log/snap-meal-fab';
 import { UpdateToast } from './components/layout/update-toast';
 import { useTheme } from './hooks/use-theme';
 import { useMedicationReminders } from './hooks/use-medication-reminders';
+import { useAiReady } from './hooks/use-ai';
 import { IS_ARTIFACT } from './utils/artifact';
 
 // Each page is its own chunk; the dashboard is the start_url so it loads first
@@ -36,6 +37,13 @@ function ReminderEffect() {
   return null;
 }
 
+/** The snap-a-meal button needs AI; in a Claude Artifact it appears once Claude is reachable. */
+function SnapMealGate() {
+  const aiReady = useAiReady();
+  if (IS_ARTIFACT && !aiReady) return null;
+  return <SnapMealFab />;
+}
+
 function PageFallback() {
   return <div className="flex-1" aria-busy="true" />;
 }
@@ -55,7 +63,7 @@ function ModeRoutes() {
         <Route path="/food" element={<FoodLogPage />} />
         <Route path="/weight" element={<WeightPage />} />
         <Route path="/medicine" element={<MedicinePage />} />
-        {!IS_ARTIFACT && <Route path="/assistant" element={<AssistantPage />} />}
+        <Route path="/assistant" element={<AssistantPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     );
@@ -70,7 +78,7 @@ function ModeRoutes() {
       <Route path="/medicine" element={<MedicinePage />} />
       <Route path="/blood-pressure" element={<BloodPressurePage />} />
       <Route path="/history" element={<HistoryPage />} />
-      {!IS_ARTIFACT && <Route path="/coach" element={<CoachPage />} />}
+      <Route path="/coach" element={<CoachPage />} />
       <Route path="/workout" element={<ActiveWorkoutPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
@@ -92,7 +100,7 @@ export default function App() {
               <ModeRoutes />
             </Suspense>
           </ErrorBoundary>
-          {!IS_ARTIFACT && <SnapMealFab />}
+          <SnapMealGate />
           <UpdateToast />
           <BottomNav />
         </div>

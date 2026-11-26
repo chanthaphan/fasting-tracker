@@ -4,6 +4,7 @@ import { useAppState } from '../../context/use-app-state';
 import { useT } from '../../i18n';
 import type { MessageKey } from '../../i18n/messages';
 import { IS_ARTIFACT } from '../../utils/artifact';
+import { useAiReady } from '../../hooks/use-ai';
 
 interface Tab {
   to: string;
@@ -38,8 +39,9 @@ export function BottomNav() {
   const { state } = useAppState();
   const { t } = useT();
   const adult = state.appMode === 'adult';
-  // The AI-backed tabs (coach, assistant) can't reach the network from a Claude Artifact
-  const tabs = (adult ? ADULT_TABS : STANDARD_TABS).filter((tab) => !(IS_ARTIFACT && (tab.to === '/coach' || tab.to === '/assistant')));
+  // In a Claude Artifact the AI tabs (coach, assistant) show once Claude is reachable
+  const aiReady = useAiReady();
+  const tabs = (adult ? ADULT_TABS : STANDARD_TABS).filter((tab) => !(IS_ARTIFACT && !aiReady && (tab.to === '/coach' || tab.to === '/assistant')));
   // Active workout is a full-screen experience
   if (pathname === '/workout') return null;
   return (
